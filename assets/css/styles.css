@@ -2181,25 +2181,42 @@ img { max-width: 100%; display: block; }
 
 
 /* ============================================================
-   Dashboard v2 — module cards
-   Phone (<=640px): horizontal snap carousel with a scale/fade
-   "wheel" effect. Tablet/PC: hero card (most recent module) + grid.
+   Dashboard v2 — module cards (rebuilt)
+   No emoji, no per-module colours: an SVG glyph in a neutral
+   tinted tile, one accent for progress, stats in the same
+   segmented recipe as .stats-strip.
+   Phone (<=640px): snap carousel with a scale/fade "wheel".
+   Tablet/PC: hero (most recent module) + grid.
    Additive block; tokens only.
    ============================================================ */
-
-/* Shared card additions */
-.module-card__icon  { font-size: 1.25rem; }
-.module-card__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modules-grid .module-card {
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+  min-width:      0;
+  padding:        18px 20px;
+  border-left:    1px solid var(--border);   /* no identity stripe: modules share one palette */
+}
+.modules-grid .module-card__header { margin: 0; }
+.modules-grid .module-card__icon {
+  width:        44px;
+  height:       44px;
+  background:   var(--primary-50);
+  color:        var(--accent-text);
+  border-radius: var(--radius);
+}
+.modules-grid .module-card__icon .icon { width: 24px; height: 24px; }
+.modules-grid .module-card__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .module-card__activity {
-  display:       flex;
-  align-items:   center;
-  gap:           6px;
-  min-width:     0;
-  margin-bottom: 12px;
-  font-size:     .75rem;
-  font-weight:   600;
-  color:         var(--text-3);
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  min-width:   0;
+  margin:      0;
+  font-size:   .75rem;
+  font-weight: 600;
+  color:       var(--text-3);
 }
 .module-card__activity .icon { flex-shrink: 0; color: var(--text-4); }
 .module-card__activity span {
@@ -2208,8 +2225,30 @@ img { max-width: 100%; display: block; }
   overflow:      hidden;
   text-overflow: ellipsis;
 }
-.module-card__activity--idle { color: var(--text-4); }
+.module-card__activity--idle,
+.module-card__activity--idle .icon { color: var(--text-4); }
 
+.modules-grid .module-card__progress-track { height: 6px; }
+.modules-grid .module-card__progress-fill  { background: var(--accent-text); }
+
+/* Two-cell stat block: same segmented look as .stats-strip, inset for a card */
+.modules-grid .module-card__stats {
+  margin:        0;
+  gap:           0;
+  background:    transparent;
+  border:        1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:    none;
+}
+.module-card__stats .stat-pill {
+  background:      transparent;
+  backdrop-filter: none;
+  padding:         10px 14px;
+}
+.module-card__stats .stat-pill + .stat-pill { border-left: 1px solid var(--border); }
+.module-card__stats .stat-pill:hover        { background: transparent; }
+
+.modules-grid .module-card__footer { margin-top: auto; justify-content: flex-end; }
 .module-card__cta .icon { transition: transform var(--dur); }
 .module-card:hover .module-card__cta .icon { transform: translateX(3px); }
 
@@ -2218,24 +2257,24 @@ img { max-width: 100%; display: block; }
 /* ── Tablet + PC: hero + grid ────────────────────────────── */
 @media (min-width: 641px) {
   .modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .module-card--hero {
+  .modules-grid .module-card--hero {
     grid-column: 1 / -1;
-    padding:     22px 26px;
-    background:  linear-gradient(135deg,
-                   color-mix(in srgb, var(--mod-color, var(--primary)) 9%, var(--surface)),
-                   var(--surface) 70%);
+    gap:         18px;
+    padding:     24px 28px;
+    background:  linear-gradient(135deg, var(--primary-50), var(--surface) 65%);
   }
-  .module-card--hero:hover,
-  .module-card--hero:focus-visible { background: var(--surface-solid); }
-  .module-card--hero .module-card__header   { gap: 16px; margin-bottom: 14px; }
-  .module-card--hero .module-card__icon     { width: 56px; height: 56px; font-size: 1.7rem; border-radius: var(--radius-lg); }
-  .module-card--hero .module-card__title    { font-size: 1.3rem; }
-  .module-card--hero .module-card__subtitle { font-size: .85rem; margin-top: 3px; }
-  .module-card--hero .module-card__activity { font-size: .8rem; margin-bottom: 18px; }
-  .module-card--hero .module-card__progress-track { height: 8px; }
-  .module-card--hero .module-card__progress-meta  { font-size: .85rem; margin-top: 10px; }
-  .module-card--hero .module-card__body   { margin-bottom: 18px; }
-  .module-card--hero .module-card__footer { justify-content: flex-start; }
+  .modules-grid .module-card--hero:hover,
+  .modules-grid .module-card--hero:focus-visible { background: var(--surface-solid); }
+  .module-card--hero .module-card__header   { gap: 16px; }
+  .modules-grid .module-card--hero .module-card__icon { width: 56px; height: 56px; border-radius: var(--radius-lg); }
+  .modules-grid .module-card--hero .module-card__icon .icon { width: 28px; height: 28px; }
+  .modules-grid .module-card--hero .module-card__title    { font-size: 1.3rem; }
+  .modules-grid .module-card--hero .module-card__subtitle { font-size: .85rem; margin-top: 3px; }
+  .module-card--hero .module-card__activity { font-size: .8rem; }
+  .modules-grid .module-card--hero .module-card__progress-track { height: 8px; }
+  .module-card--hero .stat-pill { padding: 12px 18px; }
+  .module-card--hero .stat-pill__value { font-size: 1.35rem; }
+  .modules-grid .module-card--hero .module-card__footer { justify-content: flex-start; }
   .module-card--hero .module-card__cta {
     gap:           8px;
     padding:       9px 18px;
@@ -2248,7 +2287,7 @@ img { max-width: 100%; display: block; }
 }
 @media (min-width: 1024px) {
   .modules-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .module-card--hero { grid-column: span 2; }
+  .modules-grid .module-card--hero { grid-column: span 2; }
 }
 
 /* ── Phone: wheel-style snap carousel ────────────────────── */
@@ -2258,7 +2297,7 @@ img { max-width: 100%; display: block; }
     position:        relative;                 /* offsetParent for dot scrolling */
     gap:             12px;
     margin-inline:   -14px;                    /* bleed to the screen edges (#app pads 14px) */
-    padding:         6px 36px 10px;            /* 36px side padding centres a card and peeks its neighbours */
+    padding:         6px 36px 10px;            /* centres a card and peeks its neighbours */
     overflow-x:      auto;
     overflow-y:      hidden;
     scroll-snap-type: x mandatory;
@@ -2270,10 +2309,8 @@ img { max-width: 100%; display: block; }
 
   .modules-grid .module-card {
     flex:              0 0 100%;               /* of the padded content box */
-    min-width:         0;
     scroll-snap-align: center;
     scroll-snap-stop:  always;
-    padding:           18px 20px;
     /* --d: 0 = centred, 1 = fully off-centre (set by UI.initModuleCarousel) */
     transform:         scale(calc(1 - var(--d, 0) * .07));
     opacity:           calc(1 - var(--d, 0) * .5);
@@ -2281,12 +2318,11 @@ img { max-width: 100%; display: block; }
     will-change:       transform, opacity;
   }
   .modules-grid .module-card:hover,
-  .modules-grid .module-card:focus-visible {
+  .modules-grid .module-card:focus-visible,
+  .modules-grid .module-card:active {
     transform:  scale(calc(1 - var(--d, 0) * .07));
     box-shadow: var(--shadow);
   }
-  .modules-grid .module-card:active { transform: scale(calc(1 - var(--d, 0) * .07)); }
-  .modules-grid .module-card__icon  { width: 46px; height: 46px; font-size: 1.4rem; }
   .modules-grid .module-card__title { font-size: 1.05rem; }
 
   .modules-dots {

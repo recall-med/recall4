@@ -2178,3 +2178,129 @@ img { max-width: 100%; display: block; }
   .exam-layout .flag-btn__label { display: none; }
   .exam-layout .exam-nav .btn   { padding-inline: 14px; }
 }
+
+
+/* ============================================================
+   Dashboard v2 — module cards
+   Phone (<=640px): horizontal snap carousel with a scale/fade
+   "wheel" effect. Tablet/PC: hero card (most recent module) + grid.
+   Additive block; tokens only.
+   ============================================================ */
+
+/* Shared card additions */
+.module-card__icon  { font-size: 1.25rem; }
+.module-card__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.module-card__activity {
+  display:       flex;
+  align-items:   center;
+  gap:           6px;
+  min-width:     0;
+  margin-bottom: 12px;
+  font-size:     .75rem;
+  font-weight:   600;
+  color:         var(--text-3);
+}
+.module-card__activity .icon { flex-shrink: 0; color: var(--text-4); }
+.module-card__activity span {
+  min-width:     0;
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+.module-card__activity--idle { color: var(--text-4); }
+
+.module-card__cta .icon { transition: transform var(--dur); }
+.module-card:hover .module-card__cta .icon { transform: translateX(3px); }
+
+.modules-dots { display: none; }
+
+/* ── Tablet + PC: hero + grid ────────────────────────────── */
+@media (min-width: 641px) {
+  .modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .module-card--hero {
+    grid-column: 1 / -1;
+    padding:     22px 26px;
+    background:  linear-gradient(135deg,
+                   color-mix(in srgb, var(--mod-color, var(--primary)) 9%, var(--surface)),
+                   var(--surface) 70%);
+  }
+  .module-card--hero:hover,
+  .module-card--hero:focus-visible { background: var(--surface-solid); }
+  .module-card--hero .module-card__header   { gap: 16px; margin-bottom: 14px; }
+  .module-card--hero .module-card__icon     { width: 56px; height: 56px; font-size: 1.7rem; border-radius: var(--radius-lg); }
+  .module-card--hero .module-card__title    { font-size: 1.3rem; }
+  .module-card--hero .module-card__subtitle { font-size: .85rem; margin-top: 3px; }
+  .module-card--hero .module-card__activity { font-size: .8rem; margin-bottom: 18px; }
+  .module-card--hero .module-card__progress-track { height: 8px; }
+  .module-card--hero .module-card__progress-meta  { font-size: .85rem; margin-top: 10px; }
+  .module-card--hero .module-card__body   { margin-bottom: 18px; }
+  .module-card--hero .module-card__footer { justify-content: flex-start; }
+  .module-card--hero .module-card__cta {
+    gap:           8px;
+    padding:       9px 18px;
+    background:    var(--primary);
+    border-radius: var(--radius);
+    color:         #fff;
+    font-size:     .875rem;
+  }
+  .module-card--hero:hover .module-card__cta { gap: 8px; background: var(--primary-light); }
+}
+@media (min-width: 1024px) {
+  .modules-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .module-card--hero { grid-column: span 2; }
+}
+
+/* ── Phone: wheel-style snap carousel ────────────────────── */
+@media (max-width: 640px) {
+  .modules-grid {
+    display:         flex;
+    position:        relative;                 /* offsetParent for dot scrolling */
+    gap:             12px;
+    margin-inline:   -14px;                    /* bleed to the screen edges (#app pads 14px) */
+    padding:         6px 36px 10px;            /* 36px side padding centres a card and peeks its neighbours */
+    overflow-x:      auto;
+    overflow-y:      hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modules-grid::-webkit-scrollbar { display: none; }
+
+  .modules-grid .module-card {
+    flex:              0 0 100%;               /* of the padded content box */
+    min-width:         0;
+    scroll-snap-align: center;
+    scroll-snap-stop:  always;
+    padding:           18px 20px;
+    /* --d: 0 = centred, 1 = fully off-centre (set by UI.initModuleCarousel) */
+    transform:         scale(calc(1 - var(--d, 0) * .07));
+    opacity:           calc(1 - var(--d, 0) * .5);
+    transition:        box-shadow var(--dur), background var(--dur);
+    will-change:       transform, opacity;
+  }
+  .modules-grid .module-card:hover,
+  .modules-grid .module-card:focus-visible {
+    transform:  scale(calc(1 - var(--d, 0) * .07));
+    box-shadow: var(--shadow);
+  }
+  .modules-grid .module-card:active { transform: scale(calc(1 - var(--d, 0) * .07)); }
+  .modules-grid .module-card__icon  { width: 46px; height: 46px; font-size: 1.4rem; }
+  .modules-grid .module-card__title { font-size: 1.05rem; }
+
+  .modules-dots {
+    display:         flex;
+    justify-content: center;
+    gap:             6px;
+    margin-top:      4px;
+  }
+  .modules-dots__dot {
+    width:         6px;
+    height:        6px;
+    border-radius: 999px;
+    background:    var(--border-strong);
+    transition:    width var(--dur), background var(--dur);
+  }
+  .modules-dots__dot--active { width: 18px; background: var(--accent-text); }
+}

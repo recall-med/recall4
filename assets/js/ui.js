@@ -65,20 +65,16 @@ const UI = {
 
     const moduleCard = `<div class="module-card" style="cursor:default">
         <div class="module-card__header">
-          ${this._skel('40px', '40px', 'var(--radius)')}
+          ${this._skel('44px', '44px', 'var(--radius)')}
           <div class="module-card__meta">
             ${this._skel('90px', '15px', '4px')}
             <div style="margin-top:7px">${this._skel('65%', '10px', '4px')}</div>
           </div>
-          ${this._skel('14px', '14px', '3px')}
         </div>
-        <div class="module-card__activity" style="margin-bottom:12px">${this._skel('55%', '10px', '4px')}</div>
-        <div class="module-card__body">
-          ${this._skel('100%', '6px', '999px')}
-          <div style="display:flex;justify-content:space-between;margin-top:8px">
-            ${this._skel('60px', '10px', '4px')}${this._skel('70px', '10px', '4px')}
-          </div>
-        </div>
+        ${this._skel('55%', '10px', '4px')}
+        ${this._skel('100%', '6px', '999px')}
+        ${this._skel('100%', '52px', 'var(--radius)')}
+        <div class="module-card__footer">${this._skel('84px', '14px', '4px')}</div>
       </div>`;
 
     return `
@@ -428,24 +424,21 @@ const UI = {
       const activity = act.ts
         ? `Studied ${this._timeAgo(act.ts)}${act.topic ? ` · ${act.topic}` : ''}`
         : 'Not started yet';
-      return `<div class="module-card${i === 0 ? ' module-card--hero' : ''}" data-nav="module" data-params='${JSON.stringify({ moduleId: mod.id })}' style="--mod-color:${mod.color}" tabindex="0" role="button" aria-label="Open ${mod.title}">
+      return `<div class="module-card${i === 0 ? ' module-card--hero' : ''}" data-nav="module" data-params='${JSON.stringify({ moduleId: mod.id })}' tabindex="0" role="button" aria-label="Open ${mod.title}">
         <div class="module-card__header">
-          <span class="module-card__icon">${mod.icon}</span>
+          <span class="module-card__icon">${this.moduleIcon(mod.id)}</span>
           <div class="module-card__meta">
             <h3 class="module-card__title">${mod.title}</h3>
             <p class="module-card__subtitle">${mod.fullTitle}</p>
           </div>
-          <span class="module-card__arrow"><svg class="icon icon--sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
         </div>
         <div class="module-card__activity${act.ts ? '' : ' module-card__activity--idle'}">${clockSvg}<span>${activity}</span></div>
-        <div class="module-card__body">
-          <div class="module-card__progress-track">
-            <div class="module-card__progress-fill" style="width:${modProgress.percent}%;background:${mod.color}"></div>
-          </div>
-          <div class="module-card__progress-meta">
-            <span>${modProgress.setsCompleted} / ${modProgress.totalSets} Sets</span>
-            <span>${modProgress.avgScore}% Average</span>
-          </div>
+        <div class="module-card__progress-track">
+          <div class="module-card__progress-fill" style="width:${modProgress.percent}%"></div>
+        </div>
+        <div class="stats-strip module-card__stats">
+          <div class="stat-pill"><div class="stat-pill__value">${modProgress.setsCompleted} / ${modProgress.totalSets}</div><div class="stat-pill__label">Sets</div></div>
+          <div class="stat-pill"><div class="stat-pill__value">${modProgress.avgScore}%</div><div class="stat-pill__label">Average</div></div>
         </div>
         <div class="module-card__footer">
           <span class="module-card__cta">${modProgress.setsCompleted > 0 ? 'Continue' : 'Start'} ${arrowSvg}</span>
@@ -1271,6 +1264,19 @@ const UI = {
   },
 
   // ─── Internal helpers ─────────────────────────────────────────────────────
+
+  // Module glyphs: inline SVG (24x24, stroke=currentColor via the shared .icon rule).
+  // Replaces the emoji from config on the dashboard cards. Unknown ids get a generic book glyph.
+  moduleIcon(id) {
+    const g = {
+      CPM:        '<path d="M19.5 13.6c1.5-1.4 2.5-3 2.5-5A5.2 5.2 0 0 0 16.8 3.5c-1.7 0-3.2.8-4.8 2.4-1.6-1.6-3.1-2.4-4.8-2.4A5.2 5.2 0 0 0 2 8.6c0 2.2 1.2 4 2.8 5.5L12 21l7.5-7.4z"/><path d="M3 12h4.5l1.5-2.5 2.5 5 2-3.5H21"/>',
+      GIT:        '<path d="M5 5h10a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h10"/><circle cx="4" cy="5" r="1" fill="currentColor"/><circle cx="20" cy="19" r="1" fill="currentColor"/>',
+      CNS:        '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="5.5" r="1.8"/><circle cx="19.5" cy="5.5" r="1.8"/><circle cx="12" cy="20.5" r="1.8"/><line x1="9.8" y1="9.8" x2="5.8" y2="6.8"/><line x1="14.2" y1="9.8" x2="18.2" y2="6.8"/><line x1="12" y1="15" x2="12" y2="18.7"/>',
+      ENDO_REPRO: '<path d="M8 3c0 5 8 5 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 5-8 9s8 4 8 9"/><path d="M8.6 5.2h6.8"/><path d="M8.6 18.8h6.8"/>',
+      URINARY:    '<path d="M12 3s6 6.3 6 10.5a6 6 0 0 1-12 0C6 9.3 12 3 12 3z"/><path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/>',
+    }[id] || '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>';
+    return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${g}</svg>`;
+  },
 
   // Latest study activity for a module, derived from existing progress records (no storage change).
   _moduleActivity(mod, progressMap) {

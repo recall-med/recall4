@@ -117,6 +117,7 @@ const App = {
         const resumeBannerHTML = (savedExam && !savedExam.state?.submitted)
           ? UI.renderResumeBanner(savedExam, this.config) : '';
         UI.setContent(UI.renderDashboard(this.config, progress, stats, countMap, resumeBannerHTML));
+        UI.initModuleCarousel();
         this._applyThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
         break;
       }

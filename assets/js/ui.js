@@ -65,30 +65,32 @@ const UI = {
 
     const moduleCard = `<div class="module-card" style="cursor:default">
         <div class="module-card__header">
-          ${this._skel('28px', '28px', 'var(--radius-sm)')}
+          ${this._skel('44px', '44px', 'var(--radius)')}
           <div class="module-card__meta">
-            ${this._skel('80px', '15px', '4px')}
-            <div style="margin-top:7px">${this._skel('60%', '10px', '4px')}</div>
+            ${this._skel('90px', '15px', '4px')}
+            <div style="margin-top:7px">${this._skel('65%', '10px', '4px')}</div>
           </div>
         </div>
+        ${this._skel('55%', '10px', '4px')}
         ${this._skel('100%', '6px', '999px')}
-        <div class="module-card__row">${this._skel('120px', '12px', '4px')}${this._skel('84px', '14px', '4px')}</div>
+        ${this._skel('100%', '52px', 'var(--radius)')}
+        <div class="module-card__footer">${this._skel('84px', '14px', '4px')}</div>
       </div>`;
 
     return `
     <div class="dashboard">
       <div class="dashboard__intro">
         <div>
-          ${this._skel('160px', '24px', '6px')}
+          ${this._skel('170px', '28px', '6px')}
           <div style="margin-top:9px">${this._skel('230px', '13px', '4px')}</div>
         </div>
         <div class="dashboard__quickactions">
-          ${this._skel('36px', '36px', 'var(--radius)')}
-          ${this._skel('36px', '36px', 'var(--radius)')}
+          ${this._skel('38px', '38px', 'var(--radius)')}
+          ${this._skel('38px', '38px', 'var(--radius)')}
         </div>
       </div>
-      <div class="stats-strip">${pill}${pill}${pill}</div>
-      <div style="margin-bottom:10px">${this._skel('76px', '11px', '4px')}</div>
+      <div class="stats-strip" style="margin-bottom:28px">${pill}${pill}${pill}</div>
+      <div style="margin-bottom:14px">${this._skel('76px', '11px', '4px')}</div>
       <div class="modules-grid">${moduleCard}${moduleCard}</div>
     </div>`;
   },
@@ -400,7 +402,7 @@ const UI = {
     const flagged   = Storage.getFlagged();
 
     const statsHTML = [
-      { label: 'Solved',           value: stats.totalAttempted },
+      { label: 'Questions Solved', value: stats.totalAttempted },
       { label: 'Accuracy',         value: `${accuracy}%` },
       { label: 'Study Time',       value: this.formatStudyTime(stats.totalTimeSpentSec) },
     ].map(s => `<div class="stat-pill"><div class="stat-pill__value">${s.value}</div><div class="stat-pill__label">${s.label}</div></div>`).join('');
@@ -415,9 +417,13 @@ const UI = {
       .sort((x, y) => y.act.ts - x.act.ts);
 
     const arrowSvg = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+    const clockSvg = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>';
 
-    const modulesHTML = visibleMods.map(({ mod }, i) => {
-      const mp = this._calcModuleProgress(mod, config, progressMap);
+    const modulesHTML = visibleMods.map(({ mod, act }, i) => {
+      const modProgress = this._calcModuleProgress(mod, config, progressMap);
+      const activity = act.ts
+        ? `Studied ${this._timeAgo(act.ts)}${act.topic ? ` · ${act.topic}` : ''}`
+        : 'Not started yet';
       return `<div class="module-card${i === 0 ? ' module-card--hero' : ''}" data-nav="module" data-params='${JSON.stringify({ moduleId: mod.id })}' tabindex="0" role="button" aria-label="Open ${mod.title}">
         <div class="module-card__header">
           <span class="module-card__icon">${this.moduleIcon(mod.id)}</span>
@@ -426,12 +432,16 @@ const UI = {
             <p class="module-card__subtitle">${mod.fullTitle}</p>
           </div>
         </div>
+        <div class="module-card__activity${act.ts ? '' : ' module-card__activity--idle'}">${clockSvg}<span>${activity}</span></div>
         <div class="module-card__progress-track">
-          <div class="module-card__progress-fill" style="width:${mp.percent}%"></div>
+          <div class="module-card__progress-fill" style="width:${modProgress.percent}%"></div>
         </div>
-        <div class="module-card__row">
-          <span class="module-card__stats"><strong>${mp.setsCompleted} / ${mp.totalSets}</strong> sets<span class="module-card__sep" aria-hidden="true">·</span><strong>${mp.avgScore}%</strong> avg</span>
-          <span class="module-card__cta">${mp.setsCompleted > 0 ? 'Continue' : 'Start'} ${arrowSvg}</span>
+        <div class="stats-strip module-card__stats">
+          <div class="stat-pill"><div class="stat-pill__value">${modProgress.setsCompleted} / ${modProgress.totalSets}</div><div class="stat-pill__label">Sets</div></div>
+          <div class="stat-pill"><div class="stat-pill__value">${modProgress.avgScore}%</div><div class="stat-pill__label">Average</div></div>
+        </div>
+        <div class="module-card__footer">
+          <span class="module-card__cta">${modProgress.setsCompleted > 0 ? 'Continue' : 'Start'} ${arrowSvg}</span>
         </div>
       </div>`;
     }).join('');
@@ -464,7 +474,7 @@ const UI = {
         </div>
       </div>
       ${resumeBannerHTML}
-      <div class="stats-strip">${statsHTML}</div>
+      <div class="stats-strip" style="margin-bottom:28px">${statsHTML}</div>
       <section class="section">
         <h2 class="section__title">Modules</h2>
         <div class="modules-grid">${modulesHTML}</div>
@@ -1309,25 +1319,23 @@ const UI = {
     if (cards.length < 2) return;
 
     let raf = 0;
-    const gap = () => parseFloat(getComputedStyle(track).columnGap) || 12;
-    const pad = () => parseFloat(getComputedStyle(track).paddingLeft) || 0;
     const update = () => {
       raf = 0;
-      const step = cards[0].offsetWidth + gap();
+      const r   = track.getBoundingClientRect();
+      const mid = r.left + r.width / 2;
       let best = 0, bestDist = Infinity;
       cards.forEach((c, i) => {
-        // distance of each card from the snap position (left edge, after the track padding)
-        const dist = Math.abs(c.offsetLeft - track.scrollLeft - pad());
-        c.style.setProperty('--d', Math.min(dist / step, 1).toFixed(3));
+        const cr   = c.getBoundingClientRect();
+        const dist = Math.abs(cr.left + cr.width / 2 - mid);
+        c.style.setProperty('--d', Math.min(dist / cr.width, 1).toFixed(3));
         if (dist < bestDist) { bestDist = dist; best = i; }
       });
-      if (track.scrollLeft >= track.scrollWidth - track.clientWidth - 2) best = cards.length - 1;
       dots.forEach((d, i) => d.classList.toggle('modules-dots__dot--active', i === best));
     };
     const schedule = () => { if (!raf) raf = requestAnimationFrame(update); };
     const goTo = i => {
       const c = cards[i];
-      if (c) track.scrollTo({ left: c.offsetLeft - pad(), behavior: 'smooth' });
+      if (c) track.scrollTo({ left: c.offsetLeft - (track.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' });
     };
     const onDot = e => {
       const dot = e.target.closest('[data-dot]');

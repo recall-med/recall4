@@ -2181,74 +2181,115 @@ img { max-width: 100%; display: block; }
 
 
 /* ============================================================
-   Dashboard v2 — module cards (rebuilt)
-   No emoji, no per-module colours: an SVG glyph in a neutral
-   tinted tile, one accent for progress, stats in the same
-   segmented recipe as .stats-strip.
-   Phone (<=640px): snap carousel with a scale/fade "wheel".
-   Tablet/PC: hero (most recent module) + grid.
-   Additive block; tokens only.
+   Dashboard v3 — compact top, simplified module cards
+   Hierarchy: --text for primary info, --text-3 for supporting
+   detail, --border only where it separates content.
+   Phone: left-aligned snap carousel that peeks the next card.
+   Tablet/PC: hero (most recent module) + grid. Tokens only.
    ============================================================ */
-.modules-grid .module-card {
-  display:        flex;
-  flex-direction: column;
-  gap:            14px;
-  min-width:      0;
-  padding:        18px 20px;
-  border-left:    1px solid var(--border);   /* no identity stripe: modules share one palette */
-}
-.modules-grid .module-card__header { margin: 0; }
-.modules-grid .module-card__icon {
-  width:        44px;
-  height:       44px;
-  background:   var(--primary-50);
-  color:        var(--accent-text);
-  border-radius: var(--radius);
-}
-.modules-grid .module-card__icon .icon { width: 24px; height: 24px; }
-.modules-grid .module-card__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.module-card__activity {
-  display:     flex;
-  align-items: center;
-  gap:         6px;
-  min-width:   0;
-  margin:      0;
-  font-size:   .75rem;
-  font-weight: 600;
-  color:       var(--text-3);
+/* ── Compact top half ────────────────────────────────────── */
+.dashboard__intro {
+  flex-wrap:     nowrap;
+  align-items:   flex-start;
+  gap:           12px;
+  margin-bottom: 14px;
 }
-.module-card__activity .icon { flex-shrink: 0; color: var(--text-4); }
-.module-card__activity span {
-  min-width:     0;
-  white-space:   nowrap;
-  overflow:      hidden;
-  text-overflow: ellipsis;
-}
-.module-card__activity--idle,
-.module-card__activity--idle .icon { color: var(--text-4); }
+.dashboard__intro > div:first-child { min-width: 0; }
+.dashboard__greeting    { font-size: 1.35rem; line-height: 1.2; }
+.dashboard__subgreeting { font-size: .8rem; line-height: 1.4; margin-top: 2px; color: var(--text-3); }
 
-.modules-grid .module-card__progress-track { height: 6px; }
-.modules-grid .module-card__progress-fill  { background: var(--accent-text); }
+/* quick actions: one row instead of a stack, same 17px glyphs */
+.dashboard__quickactions { flex-direction: row; gap: 8px; }
+.dashboard__quickactions .quick-icon-btn { width: 36px; height: 36px; }
 
-/* Two-cell stat block: same segmented look as .stats-strip, inset for a card */
-.modules-grid .module-card__stats {
-  margin:        0;
+.dashboard .resume-banner { margin-bottom: 14px; padding: 12px 16px; }
+
+/* Stats strip: soft dividers over one surface (no bright 2px gaps) */
+.dashboard > .stats-strip {
   gap:           0;
-  background:    transparent;
+  margin-bottom: 20px;
+  background:    var(--surface);
+  backdrop-filter: var(--glass-blur);
   border:        1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow:    none;
 }
-.module-card__stats .stat-pill {
+.dashboard > .stats-strip .stat-pill {
   background:      transparent;
   backdrop-filter: none;
   padding:         10px 14px;
 }
-.module-card__stats .stat-pill + .stat-pill { border-left: 1px solid var(--border); }
-.module-card__stats .stat-pill:hover        { background: transparent; }
+.dashboard > .stats-strip .stat-pill + .stat-pill { border-left: 1px solid var(--border); }
+.dashboard > .stats-strip .stat-pill:hover        { background: transparent; }
+.dashboard .stat-pill__value { font-size: 1.1rem; color: var(--text); }
+.dashboard .stat-pill__label { color: var(--text-3); }
 
-.modules-grid .module-card__footer { margin-top: auto; justify-content: flex-end; }
+/* Section label: no rule underneath */
+.dashboard .section { margin-bottom: 24px; }
+.dashboard .section__title {
+  margin-bottom:  10px;
+  padding-bottom: 0;
+  border-bottom:  0;
+  color:          var(--text-3);
+}
+.dashboard__footer { margin-top: 32px; }
+
+/* ── Module card: icon, name, progress, stats, action ────── */
+.modules-grid .module-card {
+  display:        flex;
+  flex-direction: column;
+  gap:            12px;
+  min-width:      0;
+  padding:        16px 18px;
+  border-left:    1px solid var(--border);   /* modules share one palette: no identity stripe */
+}
+.modules-grid .module-card__header { margin: 0; gap: 12px; align-items: center; }
+.modules-grid .module-card__icon {
+  width:      auto;
+  height:     auto;
+  background: none;
+  border-radius: 0;
+  color:      var(--accent-text);
+  flex-shrink: 0;
+}
+.modules-grid .module-card__icon .icon { width: 28px; height: 28px; }
+.modules-grid .module-card__meta { min-width: 0; }
+.modules-grid .module-card__title {
+  font-size:     1.05rem;
+  font-weight:   700;
+  color:         var(--text);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+.modules-grid .module-card__subtitle {
+  margin-top:    1px;
+  font-size:     .8rem;
+  color:         var(--text-3);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+.modules-grid .module-card__progress-track { height: 6px; }
+.modules-grid .module-card__progress-fill  { background: var(--accent-text); }
+
+.module-card__row {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             12px;
+  min-width:       0;
+}
+.module-card__stats {
+  min-width:     0;
+  font-size:    .8rem;
+  color:        var(--text-3);
+  white-space:  nowrap;
+  overflow:     hidden;
+  text-overflow: ellipsis;
+}
+.module-card__stats strong { color: var(--text); font-weight: 700; }
+.module-card__sep { margin: 0 8px; color: var(--text-4); }
+.module-card__cta { flex-shrink: 0; }
 .module-card__cta .icon { transition: transform var(--dur); }
 .module-card:hover .module-card__cta .icon { transform: translateX(3px); }
 
@@ -2259,22 +2300,14 @@ img { max-width: 100%; display: block; }
   .modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .modules-grid .module-card--hero {
     grid-column: 1 / -1;
-    gap:         18px;
-    padding:     24px 28px;
-    background:  linear-gradient(135deg, var(--primary-50), var(--surface) 65%);
+    gap:         16px;
+    padding:     22px 26px;
   }
-  .modules-grid .module-card--hero:hover,
-  .modules-grid .module-card--hero:focus-visible { background: var(--surface-solid); }
-  .module-card--hero .module-card__header   { gap: 16px; }
-  .modules-grid .module-card--hero .module-card__icon { width: 56px; height: 56px; border-radius: var(--radius-lg); }
-  .modules-grid .module-card--hero .module-card__icon .icon { width: 28px; height: 28px; }
+  .modules-grid .module-card--hero .module-card__icon .icon { width: 34px; height: 34px; }
   .modules-grid .module-card--hero .module-card__title    { font-size: 1.3rem; }
-  .modules-grid .module-card--hero .module-card__subtitle { font-size: .85rem; margin-top: 3px; }
-  .module-card--hero .module-card__activity { font-size: .8rem; }
+  .modules-grid .module-card--hero .module-card__subtitle { font-size: .875rem; }
   .modules-grid .module-card--hero .module-card__progress-track { height: 8px; }
-  .module-card--hero .stat-pill { padding: 12px 18px; }
-  .module-card--hero .stat-pill__value { font-size: 1.35rem; }
-  .modules-grid .module-card--hero .module-card__footer { justify-content: flex-start; }
+  .module-card--hero .module-card__stats { font-size: .9rem; }
   .module-card--hero .module-card__cta {
     gap:           8px;
     padding:       9px 18px;
@@ -2290,14 +2323,15 @@ img { max-width: 100%; display: block; }
   .modules-grid .module-card--hero { grid-column: span 2; }
 }
 
-/* ── Phone: wheel-style snap carousel ────────────────────── */
+/* ── Phone: snap carousel, next card peeks ───────────────── */
 @media (max-width: 640px) {
   .modules-grid {
     display:         flex;
     position:        relative;                 /* offsetParent for dot scrolling */
     gap:             12px;
     margin-inline:   -14px;                    /* bleed to the screen edges (#app pads 14px) */
-    padding:         6px 36px 10px;            /* centres a card and peeks its neighbours */
+    padding:         4px 14px 8px;             /* first card lines up with the page content */
+    scroll-padding-inline: 14px;
     overflow-x:      auto;
     overflow-y:      hidden;
     scroll-snap-type: x mandatory;
@@ -2308,28 +2342,28 @@ img { max-width: 100%; display: block; }
   .modules-grid::-webkit-scrollbar { display: none; }
 
   .modules-grid .module-card {
-    flex:              0 0 100%;               /* of the padded content box */
-    scroll-snap-align: center;
+    flex:              0 0 calc(100% - 28px);  /* leaves ~30px of the next card visible */
+    scroll-snap-align: start;
     scroll-snap-stop:  always;
-    /* --d: 0 = centred, 1 = fully off-centre (set by UI.initModuleCarousel) */
-    transform:         scale(calc(1 - var(--d, 0) * .07));
-    opacity:           calc(1 - var(--d, 0) * .5);
+    /* --d: 0 = snapped, 1 = one card away (set by UI.initModuleCarousel) */
+    transform-origin:  left center;
+    transform:         scale(calc(1 - var(--d, 0) * .04));
+    opacity:           calc(1 - var(--d, 0) * .3);
     transition:        box-shadow var(--dur), background var(--dur);
     will-change:       transform, opacity;
   }
   .modules-grid .module-card:hover,
   .modules-grid .module-card:focus-visible,
   .modules-grid .module-card:active {
-    transform:  scale(calc(1 - var(--d, 0) * .07));
+    transform:  scale(calc(1 - var(--d, 0) * .04));
     box-shadow: var(--shadow);
   }
-  .modules-grid .module-card__title { font-size: 1.05rem; }
 
   .modules-dots {
     display:         flex;
     justify-content: center;
     gap:             6px;
-    margin-top:      4px;
+    margin-top:      2px;
   }
   .modules-dots__dot {
     width:         6px;

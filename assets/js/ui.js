@@ -72,6 +72,7 @@ const UI = {
           </div>
           ${this._skel('14px', '14px', '3px')}
         </div>
+        <div class="module-card__activity" style="margin-bottom:12px">${this._skel('55%', '10px', '4px')}</div>
         <div class="module-card__body">
           ${this._skel('100%', '6px', '999px')}
           <div style="display:flex;justify-content:space-between;margin-top:8px">
@@ -410,12 +411,24 @@ const UI = {
       { label: 'Study Time',       value: this.formatStudyTime(stats.totalTimeSpentSec) },
     ].map(s => `<div class="stat-pill"><div class="stat-pill__value">${s.value}</div><div class="stat-pill__label">${s.label}</div></div>`).join('');
 
-    const modulesHTML = config.modules.filter(mod => {
-      if (!countMap) return true;
-      return Object.keys(countMap).some(k => k.startsWith(mod.id + '|') && countMap[k] > 0);
-    }).map(mod => {
+    // Most recently studied module first; never-studied modules keep config order (stable sort).
+    const visibleMods = config.modules
+      .filter(mod => {
+        if (!countMap) return true;
+        return Object.keys(countMap).some(k => k.startsWith(mod.id + '|') && countMap[k] > 0);
+      })
+      .map(mod => ({ mod, act: this._moduleActivity(mod, progressMap) }))
+      .sort((x, y) => y.act.ts - x.act.ts);
+
+    const arrowSvg = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+    const clockSvg = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>';
+
+    const modulesHTML = visibleMods.map(({ mod, act }, i) => {
       const modProgress = this._calcModuleProgress(mod, config, progressMap);
-      return `<div class="module-card" data-nav="module" data-params='${JSON.stringify({ moduleId: mod.id })}' style="--mod-color:${mod.color}" tabindex="0" role="button" aria-label="Open ${mod.title}">
+      const activity = act.ts
+        ? `Studied ${this._timeAgo(act.ts)}${act.topic ? ` · ${act.topic}` : ''}`
+        : 'Not started yet';
+      return `<div class="module-card${i === 0 ? ' module-card--hero' : ''}" data-nav="module" data-params='${JSON.stringify({ moduleId: mod.id })}' style="--mod-color:${mod.color}" tabindex="0" role="button" aria-label="Open ${mod.title}">
         <div class="module-card__header">
           <span class="module-card__icon">${mod.icon}</span>
           <div class="module-card__meta">
@@ -424,6 +437,7 @@ const UI = {
           </div>
           <span class="module-card__arrow"><svg class="icon icon--sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
         </div>
+        <div class="module-card__activity${act.ts ? '' : ' module-card__activity--idle'}">${clockSvg}<span>${activity}</span></div>
         <div class="module-card__body">
           <div class="module-card__progress-track">
             <div class="module-card__progress-fill" style="width:${modProgress.percent}%;background:${mod.color}"></div>
@@ -434,10 +448,15 @@ const UI = {
           </div>
         </div>
         <div class="module-card__footer">
-          <span class="module-card__cta">${modProgress.setsCompleted > 0 ? 'Continue' : 'Start'} <span aria-hidden="true">→</span></span>
+          <span class="module-card__cta">${modProgress.setsCompleted > 0 ? 'Continue' : 'Start'} ${arrowSvg}</span>
         </div>
       </div>`;
     }).join('');
+
+    const dotsHTML = visibleMods.length > 1
+      ? `<div class="modules-dots" aria-hidden="true">${visibleMods.map((_, i) =>
+          `<span class="modules-dots__dot${i === 0 ? ' modules-dots__dot--active' : ''}" data-dot="${i}"></span>`).join('')}</div>`
+      : '';
 
     const reviewBtn = `<button class="quick-icon-btn quick-icon-btn--danger${incorrect.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="review" title="Review Incorrect" aria-label="Review incorrect questions${incorrect.length > 0 ? ` (${incorrect.length})` : ''}">
           <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
@@ -466,6 +485,7 @@ const UI = {
       <section class="section">
         <h2 class="section__title">Modules</h2>
         <div class="modules-grid">${modulesHTML}</div>
+        ${dotsHTML}
       </section>
       <footer class="dashboard__footer">
         <p>Made by <strong>Kareem Farouk</strong> · Questions by Department Heads</p>
@@ -1251,6 +1271,84 @@ const UI = {
   },
 
   // ─── Internal helpers ─────────────────────────────────────────────────────
+
+  // Latest study activity for a module, derived from existing progress records (no storage change).
+  _moduleActivity(mod, progressMap) {
+    let ts = 0, topic = '', latestKey = '';
+    const prefix = mod.id + '|';
+    Object.keys(progressMap || {}).forEach(k => {
+      if (!k.startsWith(prefix)) return;
+      const t = progressMap[k]?.updatedAt || 0;
+      if (t > ts) { ts = t; latestKey = k; }
+    });
+    if (latestKey) {
+      const [, examType, subject, subSubject] = latestKey.split('|');
+      const list = mod.subSubjects?.[examType]?.[subject] || [];
+      topic = (list.find(x => x.id === subSubject) || {}).label || '';
+    }
+    return { ts, topic };
+  },
+
+  _timeAgo(ts) {
+    const sec = Math.max(0, Math.round((Date.now() - ts) / 1000));
+    if (sec < 60)     return 'just now';
+    const min = Math.floor(sec / 60);
+    if (min < 60)     return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24)      return `${hr}h ago`;
+    const day = Math.floor(hr / 24);
+    if (day === 1)    return 'yesterday';
+    if (day < 30)     return `${day}d ago`;
+    return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  },
+
+  // Phone module carousel: drives the scale/fade "wheel" effect (--d = 0 centred … 1 far)
+  // and the page dots. Harmless on wider screens, where the cards are a normal grid.
+  initModuleCarousel() {
+    if (this._carouselCleanup) { this._carouselCleanup(); this._carouselCleanup = null; }
+    const track = document.querySelector('.modules-grid');
+    if (!track) return;
+    const cards = [...track.querySelectorAll('.module-card')];
+    const dots  = [...document.querySelectorAll('.modules-dots__dot')];
+    if (cards.length < 2) return;
+
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const r   = track.getBoundingClientRect();
+      const mid = r.left + r.width / 2;
+      let best = 0, bestDist = Infinity;
+      cards.forEach((c, i) => {
+        const cr   = c.getBoundingClientRect();
+        const dist = Math.abs(cr.left + cr.width / 2 - mid);
+        c.style.setProperty('--d', Math.min(dist / cr.width, 1).toFixed(3));
+        if (dist < bestDist) { bestDist = dist; best = i; }
+      });
+      dots.forEach((d, i) => d.classList.toggle('modules-dots__dot--active', i === best));
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(update); };
+    const goTo = i => {
+      const c = cards[i];
+      if (c) track.scrollTo({ left: c.offsetLeft - (track.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' });
+    };
+    const onDot = e => {
+      const dot = e.target.closest('[data-dot]');
+      if (dot) goTo(parseInt(dot.dataset.dot, 10));
+    };
+    const dotsEl = document.querySelector('.modules-dots');
+
+    track.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    dotsEl && dotsEl.addEventListener('click', onDot);
+    update();
+
+    this._carouselCleanup = () => {
+      track.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      dotsEl && dotsEl.removeEventListener('click', onDot);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  },
 
   _calcModuleProgress(mod, config, progressMap) {
     const subSubjects = mod.subSubjects || {};

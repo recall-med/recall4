@@ -88,7 +88,10 @@ const UI = {
           ${this._skel('38px', '38px', 'var(--radius)')}
         </div>
       </div>
-      <aside class="dashboard__rail"><div class="stats-strip">${pill}${pill}${pill}</div></aside>
+      <aside class="dashboard__rail">
+        <div class="dashboard__skel-title" style="margin-bottom:14px">${this._skel('64px', '11px', '4px')}</div>
+        <div class="stats-strip">${pill}${pill}${pill}</div>
+      </aside>
       <section class="section">
         <div class="dashboard__skel-title" style="margin-bottom:14px">${this._skel('76px', '11px', '4px')}</div>
         <div class="modules-grid">${moduleCard.replace('class="module-card"', 'class="module-card module-card--hero"')}${moduleCard}</div>
@@ -450,15 +453,22 @@ const UI = {
 
     const reviewBtn = `<button class="quick-icon-btn quick-icon-btn--danger${incorrect.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="review" title="Review Incorrect" aria-label="Review incorrect questions${incorrect.length > 0 ? ` (${incorrect.length})` : ''}">
           <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-          <span class="quick-icon-btn__label">Incorrect</span>
           ${incorrect.length > 0 ? `<span class="quick-icon-btn__badge">${incorrect.length}</span>` : ''}
         </button>`;
 
     const flaggedBtn = `<button class="quick-icon-btn quick-icon-btn--success${flagged.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="flagged-review" title="Flagged" aria-label="Flagged questions${flagged.length > 0 ? ` (${flagged.length})` : ''}">
           <svg class="icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-          <span class="quick-icon-btn__label">Flagged</span>
           ${flagged.length > 0 ? `<span class="quick-icon-btn__badge" style="background:var(--success)">${flagged.length}</span>` : ''}
         </button>`;
+
+    const chevron = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+    const railAction = (nav, icon, label, n) => `<button class="rail-action" data-nav="${nav}" aria-label="Review ${label.toLowerCase()} questions (${n})">
+          <span class="rail-action__label">${icon}${label}</span>
+          <span class="rail-action__end"><span class="rail-action__count${n ? '' : ' rail-action__count--zero'}">${n}</span>${chevron}</span>
+        </button>`;
+    const incIcon  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
+    const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
+    const actionsHTML = railAction('review', incIcon, 'Incorrect', incorrect.length) + railAction('flagged-review', flagIcon, 'Flagged', flagged.length);
 
     return `
     <div class="dashboard">
@@ -474,7 +484,8 @@ const UI = {
       </div>
       ${resumeBannerHTML}
       <aside class="dashboard__rail">
-        <div class="stats-strip">${statsHTML}</div>
+        <h2 class="section__title">Progress</h2>
+        <div class="stats-strip">${statsHTML}${actionsHTML}</div>
       </aside>
       <section class="section">
         <h2 class="section__title">Modules</h2>

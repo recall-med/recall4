@@ -2270,6 +2270,75 @@ img { max-width: 100%; display: block; }
 
 .modules-dots { display: none; }
 
+/* Resume card (all screens): same surface language as the stats pill (no left stripe, hairline rows) */
+.dashboard .resume-banner {
+  position:       relative;
+  display:        flex;
+  flex-direction: column;
+  align-items:    stretch;
+  flex-wrap:      nowrap;
+  gap:            0;
+  margin:         0 0 20px;
+  padding:        0;
+  border:         1px solid var(--border);
+  border-radius:  var(--radius-lg);
+  overflow:       hidden;
+}
+.dashboard .resume-banner__info { align-items: flex-start; gap: 10px; padding: 14px 44px 13px 16px; }
+.dashboard .resume-banner__icon {
+  width:         auto;
+  height:        auto;
+  margin-top:    1px;
+  background:    none;
+  border-radius: 0;
+}
+.dashboard .resume-banner__icon .icon { width: 22px; height: 22px; }
+.dashboard .resume-banner__subtitle {
+  margin-top:    3px;
+  line-height:   1.4;
+  white-space:   normal;                    /* vertical card: let the detail wrap */
+  overflow:      visible;
+  text-overflow: clip;
+}
+.dashboard .resume-banner__actions { display: contents; }
+.dashboard .resume-banner__actions .btn.btn--primary {
+  width:           100%;
+  height:          auto;
+  justify-content: space-between;
+  padding:         13px 16px;
+  background:      transparent;
+  border:          0;
+  border-top:      1px solid var(--border);
+  border-radius:   0;
+  box-shadow:      none;
+  transform:       none;
+  color:           var(--accent-text);
+  font-size:       .9rem;
+  font-weight:     700;
+}
+.dashboard .resume-banner__actions .btn.btn--primary:hover { background: var(--primary-50); }
+.dashboard .resume-banner__dismiss {
+  position:   absolute;
+  top:        10px;
+  right:      10px;
+  width:      28px;
+  height:     28px;
+  border:     0;
+  background: transparent;
+  color:      var(--text-3);
+}
+.dashboard .resume-banner__dismiss:hover { color: var(--danger); background: var(--danger-bg); }
+
+/* Phone/small tablet: bigger touch targets on the same card */
+@media (max-width: 767px) {
+  .dashboard .resume-banner__info { padding: 16px 52px 14px 16px; gap: 12px; }
+  .dashboard .resume-banner__icon .icon { width: 24px; height: 24px; }
+  .dashboard .resume-banner__title    { font-size: .95rem; }
+  .dashboard .resume-banner__subtitle { font-size: .8rem; }
+  .dashboard .resume-banner__actions .btn.btn--primary { padding: 15px 16px; font-size: .95rem; }
+  .dashboard .resume-banner__dismiss  { top: 8px; right: 8px; width: 36px; height: 36px; }
+}
+
 /* ── Wide screens: Continue panel + module rows, rail beside them ── */
 /* Phone and small tablets keep the horizontal stats strip; the rail is a layout wrapper only there */
 .dashboard__rail { display: contents; }
@@ -2340,7 +2409,7 @@ img { max-width: 100%; display: block; }
     grid-template-areas:   "intro intro" "main rail" "main resume" "footer footer";
   }
   .dashboard__intro            { grid-area: intro; }
-  .dashboard .resume-banner    { grid-area: resume; }   /* styled below as a vertical card under the stats pill */
+  .dashboard .resume-banner    { grid-area: resume; margin: 14px 0 0; }   /* card under the stats pill */
   .dashboard > .section        { grid-area: main; margin-bottom: 0; min-width: 0; }
   .dashboard__footer           { grid-area: footer; }
 
@@ -2381,65 +2450,6 @@ img { max-width: 100%; display: block; }
     text-transform: none;
     color:          var(--text-3);
   }
-
-  /* Resume card: vertical, same surface language as the stats pill (no left stripe, hairline rows) */
-  .dashboard .resume-banner {
-    position:       relative;
-    display:        flex;
-    flex-direction: column;
-    align-items:    stretch;
-    flex-wrap:      nowrap;
-    gap:            0;
-    margin:         14px 0 0;
-    padding:        0;
-    border:         1px solid var(--border);
-    border-radius:  var(--radius-lg);
-    overflow:       hidden;
-  }
-  .dashboard .resume-banner__info { align-items: flex-start; gap: 10px; padding: 14px 44px 13px 16px; }
-  .dashboard .resume-banner__icon {
-    width:         auto;
-    height:        auto;
-    margin-top:    1px;
-    background:    none;
-    border-radius: 0;
-  }
-  .dashboard .resume-banner__icon .icon { width: 22px; height: 22px; }
-  .dashboard .resume-banner__subtitle {
-    margin-top:    3px;
-    line-height:   1.4;
-    white-space:   normal;                    /* vertical card: let the detail wrap */
-    overflow:      visible;
-    text-overflow: clip;
-  }
-  .dashboard .resume-banner__actions { display: contents; }
-  .dashboard .resume-banner__actions .btn.btn--primary {
-    width:           100%;
-    height:          auto;
-    justify-content: space-between;
-    padding:         13px 16px;
-    background:      transparent;
-    border:          0;
-    border-top:      1px solid var(--border);
-    border-radius:   0;
-    box-shadow:      none;
-    transform:       none;
-    color:           var(--accent-text);
-    font-size:       .9rem;
-    font-weight:     700;
-  }
-  .dashboard .resume-banner__actions .btn.btn--primary:hover { background: var(--primary-50); }
-  .dashboard .resume-banner__dismiss {
-    position:   absolute;
-    top:        10px;
-    right:      10px;
-    width:      28px;
-    height:     28px;
-    border:     0;
-    background: transparent;
-    color:      var(--text-3);
-  }
-  .dashboard .resume-banner__dismiss:hover { color: var(--danger); background: var(--danger-bg); }
 
   /* Review shortcuts now live inside the stats pill as clickable rows */
   .dashboard__quickactions { display: none; }

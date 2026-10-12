@@ -2274,6 +2274,7 @@ img { max-width: 100%; display: block; }
 /* Phone and small tablets keep the horizontal stats strip; the rail is a layout wrapper only there */
 .dashboard__rail { display: contents; }
 .dashboard__rail > .stats-strip { margin-bottom: 28px; }
+.quick-icon-btn__label { display: none; }
 
 @media (min-width: 641px) {
   .modules-grid {
@@ -2334,10 +2335,10 @@ img { max-width: 100%; display: block; }
     grid-template-columns: minmax(0, 1fr) var(--rail-w);
     column-gap:            20px;
     align-items:           start;
-    grid-template-areas:   "intro intro" "resume rail" "main rail" "footer footer";
+    grid-template-areas:   "intro intro" "main rail" "main resume" "footer footer";
   }
   .dashboard__intro            { grid-area: intro; }
-  .dashboard .resume-banner    { grid-area: resume; }
+  .dashboard .resume-banner    { grid-area: resume; }   /* styled below as a vertical card under the stats pill */
   .dashboard > .section        { grid-area: main; margin-bottom: 0; min-width: 0; }
   .dashboard__footer           { grid-area: footer; }
 
@@ -2345,8 +2346,6 @@ img { max-width: 100%; display: block; }
     display:        flex;
     flex-direction: column;
     grid-area:      rail;
-    position:       sticky;
-    top:            calc(var(--header-h) + 20px);
   }
   .dashboard__rail > .stats-strip {
     display:         flex;
@@ -2379,6 +2378,88 @@ img { max-width: 100%; display: block; }
     letter-spacing: 0;
     text-transform: none;
     color:          var(--text-3);
+  }
+
+  /* Resume card: vertical, same surface language as the stats pill (no left stripe, hairline rows) */
+  .dashboard .resume-banner {
+    position:       relative;
+    display:        flex;
+    flex-direction: column;
+    align-items:    stretch;
+    flex-wrap:      nowrap;
+    gap:            0;
+    margin:         14px 0 0;
+    padding:        0;
+    border:         1px solid var(--border);
+    border-radius:  var(--radius-lg);
+    overflow:       hidden;
+  }
+  .dashboard .resume-banner__info { align-items: flex-start; gap: 10px; padding: 14px 44px 13px 16px; }
+  .dashboard .resume-banner__icon {
+    width:         auto;
+    height:        auto;
+    margin-top:    1px;
+    background:    none;
+    border-radius: 0;
+  }
+  .dashboard .resume-banner__icon .icon { width: 22px; height: 22px; }
+  .dashboard .resume-banner__subtitle {
+    margin-top:    3px;
+    line-height:   1.4;
+    white-space:   normal;                    /* vertical card: let the detail wrap */
+    overflow:      visible;
+    text-overflow: clip;
+  }
+  .dashboard .resume-banner__actions { display: contents; }
+  .dashboard .resume-banner__actions .btn.btn--primary {
+    width:           100%;
+    height:          auto;
+    justify-content: space-between;
+    padding:         13px 16px;
+    background:      transparent;
+    border:          0;
+    border-top:      1px solid var(--border);
+    border-radius:   0;
+    box-shadow:      none;
+    transform:       none;
+    color:           var(--accent-text);
+    font-size:       .9rem;
+    font-weight:     700;
+  }
+  .dashboard .resume-banner__actions .btn.btn--primary:hover { background: var(--primary-50); }
+  .dashboard .resume-banner__dismiss {
+    position:   absolute;
+    top:        10px;
+    right:      10px;
+    width:      28px;
+    height:     28px;
+    border:     0;
+    background: transparent;
+    color:      var(--text-3);
+  }
+  .dashboard .resume-banner__dismiss:hover { color: var(--danger); background: var(--danger-bg); }
+
+  /* Review shortcuts: extended with their names, in a row beside the welcome text */
+  .dashboard__intro { align-items: center; }
+  .dashboard__quickactions { flex-direction: row; gap: 10px; }
+  .quick-icon-btn {
+    width:           auto;
+    min-width:       172px;
+    height:          40px;
+    padding:         0 14px;
+    gap:             10px;
+    justify-content: flex-start;
+  }
+  .quick-icon-btn__label {
+    display:     inline;
+    font-size:   .85rem;
+    font-weight: 600;
+    color:       var(--text);
+  }
+  .quick-icon-btn .quick-icon-btn__badge {
+    position:   static;
+    margin-left: auto;
+    border:     0;
   }
 }
 @media (min-width: 1024px) {

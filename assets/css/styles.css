@@ -2184,7 +2184,7 @@ img { max-width: 100%; display: block; }
    Dashboard v4 — module cards
    One idea per row: glyph + name, progress, stats + action.
    No tile, no nested box, no per-module colours.
-   Phone: left-aligned snap carousel, the next card peeks.
+   Phone: full-width snap carousel, page dots show there are more.
    Tablet/PC: hero (most recent module) + grid. Tokens only.
    ============================================================ */
 .module-icon {
@@ -2304,15 +2304,15 @@ img { max-width: 100%; display: block; }
   .modules-grid .module-card--hero { grid-column: span 2; }
 }
 
-/* ── Phone: snap carousel, next card peeks ───────────────── */
+/* ── Phone: full-width snap carousel ─────────────────────── */
 @media (max-width: 640px) {
   .modules-grid {
     display:         flex;
     position:        relative;                 /* offsetParent for dot scrolling */
     gap:             12px;
-    margin-inline:   -14px;                    /* bleed to the screen edges (#app pads 14px) */
-    padding:         4px 14px 8px;             /* first card lines up with the stats strip above */
-    scroll-padding-inline: 14px;
+    margin-inline:   -6px;                     /* 6px of room so card shadows aren't clipped ... */
+    padding:         4px 6px;                  /* ... while each card still matches the stats strip width */
+    scroll-padding-inline: 6px;
     overflow-x:      auto;
     overflow-y:      hidden;
     scroll-snap-type: x mandatory;
@@ -2323,7 +2323,7 @@ img { max-width: 100%; display: block; }
   .modules-grid::-webkit-scrollbar { display: none; }
 
   .modules-grid .module-card {
-    flex:              0 0 calc(100% - 28px);  /* leaves ~30px of the next card visible */
+    flex:              0 0 100%;               /* one full-width card per page */
     scroll-snap-align: start;
     scroll-snap-stop:  always;
     /* --d: 0 = snapped, 1 = one card away (set by UI.initModuleCarousel) */
@@ -2344,7 +2344,7 @@ img { max-width: 100%; display: block; }
     display:         flex;
     justify-content: center;
     gap:             6px;
-    margin-top:      2px;
+    margin-top:      16px;
   }
   .modules-dots__dot {
     width:         6px;

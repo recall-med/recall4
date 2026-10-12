@@ -2270,8 +2270,8 @@ img { max-width: 100%; display: block; }
 
 .modules-dots { display: none; }
 
-/* ── Wide screens: Continue panel + module rows (+ rail on PC) ── */
-/* Phone/tablet keep the horizontal stats strip; the rail is a layout wrapper only there */
+/* ── Wide screens: Continue panel + module rows, rail beside them ── */
+/* Phone and small tablets keep the horizontal stats strip; the rail is a layout wrapper only there */
 .dashboard__rail { display: contents; }
 .dashboard__rail > .stats-strip { margin-bottom: 28px; }
 .rail__title, .review-pill, .modules-grid__label { display: none; }
@@ -2280,7 +2280,13 @@ img { max-width: 100%; display: block; }
   .section > .section__title,
   .dashboard__skel-title { display: none; }
 
-  .modules-grid { display: flex; flex-direction: column; gap: 10px; }
+  .modules-grid {
+    display:        flex;
+    flex-direction: column;
+    gap:            10px;
+    container-type: inline-size;               /* rows adapt to the width they actually get */
+    container-name: modules;
+  }
   .modules-grid__label {
     display:        block;
     margin:         16px 0 2px 2px;
@@ -2291,64 +2297,62 @@ img { max-width: 100%; display: block; }
     color:          var(--text-3);
   }
 
-  /* Continue panel (most recently studied module) */
+  /* Every card is a small grid: [head | stats | action] over a full-width progress bar */
+  .modules-grid .module-card {
+    display:               grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:   "head stats cta" "bar bar bar";
+    align-items:           center;
+    column-gap:            28px;
+    row-gap:               14px;
+    padding:               16px 22px;
+  }
+  .modules-grid .module-card:hover { transform: none; }
+  .module-card .module-card__row        { display: contents; }
+  .module-card .module-card__header     { grid-area: head; min-width: 0; }
+  .module-card .module-card__progress-track { grid-area: bar; }
+  .module-card .module-card__stats      { grid-area: stats; }
+  .module-card .module-card__cta        { grid-area: cta; justify-self: end; }
+
+  /* Continue panel = the phone card, just wider: same type, same text action,
+     a tinted surface and the activity line are the only differences */
   .modules-grid .module-card--hero {
-    gap:        20px;
-    padding:    26px 30px;
+    padding:    20px 24px;
     background: linear-gradient(135deg, var(--primary-50), var(--surface) 65%);
   }
   .modules-grid .module-card--hero:hover,
   .modules-grid .module-card--hero:focus-visible { background: var(--surface-solid); }
-  .module-card--hero .module-icon { width: 44px; height: 44px; }
-  .modules-grid .module-card--hero .module-card__header   { gap: 18px; }
-  .modules-grid .module-card--hero .module-card__title    { font-size: 1.5rem; }
-  .modules-grid .module-card--hero .module-card__subtitle { font-size: .95rem; }
-  .modules-grid .module-card--hero .module-card__activity { font-size: .8rem; }
-  .modules-grid .module-card--hero .module-card__progress-track { height: 8px; }
-  .module-card--hero .module-card__row   { justify-content: flex-start; gap: 32px; }
-  .module-card--hero .module-card__stat strong { font-size: 1.15rem; }
-  .module-card--hero .module-card__stat span   { font-size: .78rem; }
-  .module-card--hero .module-card__cta {
-    order:         -1;                          /* button first, stats beside it: no wide gap */
-    gap:           8px;
-    padding:       10px 20px;
-    background:    var(--primary);
-    border-radius: var(--radius);
-    color:         #fff;
-    font-size:     .9rem;
-  }
-  .module-card--hero:hover .module-card__cta { gap: 8px; background: var(--primary-light); }
 
-  /* Module rows: icon + name | progress | stats | action, one line each */
-  .modules-grid .module-card:not(.module-card--hero) {
-    display:               grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(90px, 1fr) auto auto;
-    align-items:           center;
-    column-gap:            28px;
-    padding:               14px 20px;
-  }
-  .modules-grid .module-card:not(.module-card--hero):hover { transform: none; }
-  .module-card:not(.module-card--hero) .module-card__row   { display: contents; }
-  .module-card:not(.module-card--hero) .module-icon        { width: 28px; height: 28px; }
-  .module-card:not(.module-card--hero) .module-card__activity { display: none; }
+  /* Plain rows: compact, no activity line */
+  .modules-grid .module-card:not(.module-card--hero) .module-card__activity { display: none; }
   .modules-grid .module-card:not(.module-card--hero) .module-card__header   { gap: 12px; }
+  .module-card:not(.module-card--hero) .module-icon  { width: 28px; height: 28px; }
   .modules-grid .module-card:not(.module-card--hero) .module-card__title    { font-size: 1rem; }
   .modules-grid .module-card:not(.module-card--hero) .module-card__subtitle { margin-top: 1px; font-size: .8rem; }
-  .module-card:not(.module-card--hero) .module-card__cta   { justify-self: end; }
+  .modules-grid .module-card:not(.module-card--hero) { row-gap: 12px; padding: 14px 20px; }
 }
 
-/* PC: two-column command center. Rail = vertical pills, same language as the phone strip */
-@media (min-width: 1024px) {
+/* Roomy main column: rows collapse to a single line */
+@container modules (min-width: 560px) {
+  .modules-grid .module-card:not(.module-card--hero) {
+    grid-template-columns: minmax(0, 1.3fr) minmax(90px, 1fr) auto auto;
+    grid-template-areas:   "head bar stats cta";
+  }
+}
+
+/* Tablet and up: two columns, main + rail. Rail narrows on tablets so it fits. */
+@media (min-width: 768px) {
   .dashboard {
+    --rail-w:              224px;
     display:               grid;
-    grid-template-columns: minmax(0, 1fr) 288px;
-    column-gap:            28px;
+    grid-template-columns: minmax(0, 1fr) var(--rail-w);
+    column-gap:            20px;
     align-items:           start;
     grid-template-areas:   "intro intro" "resume resume" "main rail" "footer footer";
   }
   .dashboard__intro            { grid-area: intro; }
   .dashboard .resume-banner    { grid-area: resume; }
-  .dashboard > .section        { grid-area: main; margin-bottom: 0; }
+  .dashboard > .section        { grid-area: main; margin-bottom: 0; min-width: 0; }
   .dashboard__footer           { grid-area: footer; }
   .dashboard__quickactions     { display: none; }   /* replaced by the Review pill */
 
@@ -2389,7 +2393,7 @@ img { max-width: 100%; display: block; }
     justify-content: space-between;
     align-items:     center;
     gap:             12px;
-    padding:         14px 18px;
+    padding:         13px 16px;
     background:      transparent;
     backdrop-filter: none;
   }
@@ -2410,7 +2414,7 @@ img { max-width: 100%; display: block; }
     justify-content: space-between;
     gap:             12px;
     min-width:       0;
-    padding:         14px 18px;
+    padding:         13px 16px;
     background:      transparent;
     border:          0;
     font-family:     var(--font-body);
@@ -2428,6 +2432,9 @@ img { max-width: 100%; display: block; }
   .review-pill__label .icon { color: var(--text-3); flex-shrink: 0; }
   .review-pill__count { font-size: 1.05rem; font-weight: 700; color: var(--text-3); }
   .review-pill__count--zero { color: var(--text-4); font-weight: 500; }
+}
+@media (min-width: 1024px) {
+  .dashboard { --rail-w: 288px; column-gap: 28px; }
 }
 
 /* ── Phone: full-width snap carousel ─────────────────────── */

@@ -2185,7 +2185,7 @@ img { max-width: 100%; display: block; }
    One idea per row: glyph + name, progress, stats + action.
    No tile, no nested box, no per-module colours.
    Phone: full-width snap carousel, page dots show there are more.
-   Tablet/PC: hero (most recent module) + grid. Tokens only.
+   Tablet/PC: Continue panel + module rows, plus a stats/review rail on PC. Tokens only.
    ============================================================ */
 .module-icon {
   display:     block;
@@ -2270,38 +2270,164 @@ img { max-width: 100%; display: block; }
 
 .modules-dots { display: none; }
 
-/* ── Tablet + PC: hero + grid ────────────────────────────── */
+/* ── Wide screens: Continue panel + module rows (+ rail on PC) ── */
+/* Phone/tablet keep the horizontal stats strip; the rail is a layout wrapper only there */
+.dashboard__rail { display: contents; }
+.dashboard__rail > .stats-strip { margin-bottom: 28px; }
+.rail__title, .review-pill, .modules-grid__label { display: none; }
+
 @media (min-width: 641px) {
-  .modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .section > .section__title,
+  .dashboard__skel-title { display: none; }
+
+  .modules-grid { display: flex; flex-direction: column; gap: 10px; }
+  .modules-grid__label {
+    display:        block;
+    margin:         16px 0 2px 2px;
+    font-size:      .7rem;
+    font-weight:    700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color:          var(--text-3);
+  }
+
+  /* Continue panel (most recently studied module) */
   .modules-grid .module-card--hero {
-    grid-column: 1 / -1;
-    gap:         20px;
-    padding:     26px 30px;
-    background:  linear-gradient(135deg, var(--primary-50), var(--surface) 65%);
+    gap:        20px;
+    padding:    26px 30px;
+    background: linear-gradient(135deg, var(--primary-50), var(--surface) 65%);
   }
   .modules-grid .module-card--hero:hover,
   .modules-grid .module-card--hero:focus-visible { background: var(--surface-solid); }
   .module-card--hero .module-icon { width: 44px; height: 44px; }
   .modules-grid .module-card--hero .module-card__header   { gap: 18px; }
-  .modules-grid .module-card--hero .module-card__title    { font-size: 1.4rem; }
-  .modules-grid .module-card--hero .module-card__subtitle { font-size: .9rem; }
+  .modules-grid .module-card--hero .module-card__title    { font-size: 1.5rem; }
+  .modules-grid .module-card--hero .module-card__subtitle { font-size: .95rem; }
   .modules-grid .module-card--hero .module-card__activity { font-size: .8rem; }
   .modules-grid .module-card--hero .module-card__progress-track { height: 8px; }
+  .module-card--hero .module-card__row   { justify-content: flex-start; gap: 32px; }
   .module-card--hero .module-card__stat strong { font-size: 1.15rem; }
   .module-card--hero .module-card__stat span   { font-size: .78rem; }
   .module-card--hero .module-card__cta {
+    order:         -1;                          /* button first, stats beside it: no wide gap */
     gap:           8px;
-    padding:       9px 18px;
+    padding:       10px 20px;
     background:    var(--primary);
     border-radius: var(--radius);
     color:         #fff;
-    font-size:     .875rem;
+    font-size:     .9rem;
   }
   .module-card--hero:hover .module-card__cta { gap: 8px; background: var(--primary-light); }
+
+  /* Module rows: icon + name | progress | stats | action, one line each */
+  .modules-grid .module-card:not(.module-card--hero) {
+    display:               grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(90px, 1fr) auto auto;
+    align-items:           center;
+    column-gap:            28px;
+    padding:               14px 20px;
+  }
+  .modules-grid .module-card:not(.module-card--hero):hover { transform: none; }
+  .module-card:not(.module-card--hero) .module-card__row   { display: contents; }
+  .module-card:not(.module-card--hero) .module-icon        { width: 28px; height: 28px; }
+  .module-card:not(.module-card--hero) .module-card__activity { display: none; }
+  .modules-grid .module-card:not(.module-card--hero) .module-card__header   { gap: 12px; }
+  .modules-grid .module-card:not(.module-card--hero) .module-card__title    { font-size: 1rem; }
+  .modules-grid .module-card:not(.module-card--hero) .module-card__subtitle { margin-top: 1px; font-size: .8rem; }
+  .module-card:not(.module-card--hero) .module-card__cta   { justify-self: end; }
 }
+
+/* PC: two-column command center. Rail = vertical pills, same language as the phone strip */
 @media (min-width: 1024px) {
-  .modules-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .modules-grid .module-card--hero { grid-column: span 2; }
+  .dashboard {
+    display:               grid;
+    grid-template-columns: minmax(0, 1fr) 288px;
+    column-gap:            28px;
+    align-items:           start;
+    grid-template-areas:   "intro intro" "resume resume" "main rail" "footer footer";
+  }
+  .dashboard__intro            { grid-area: intro; }
+  .dashboard .resume-banner    { grid-area: resume; }
+  .dashboard > .section        { grid-area: main; margin-bottom: 0; }
+  .dashboard__footer           { grid-area: footer; }
+  .dashboard__quickactions     { display: none; }   /* replaced by the Review pill */
+
+  .dashboard__rail {
+    display:        flex;
+    flex-direction: column;
+    grid-area:      rail;
+    position:       sticky;
+    top:            calc(var(--header-h) + 20px);
+  }
+  .rail__title {
+    display:        block;
+    margin:         0 0 8px 2px;
+    font-size:      .7rem;
+    font-weight:    700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color:          var(--text-3);
+  }
+  .rail__title:not(:first-child) { margin-top: 20px; }
+
+  .dashboard__rail > .stats-strip,
+  .review-pill {
+    display:         flex;
+    flex-direction:  column;
+    gap:             0;
+    margin:          0;
+    background:      var(--surface);
+    backdrop-filter: var(--glass-blur);
+    border:          1px solid var(--border);
+    border-radius:   var(--radius-lg);
+    box-shadow:      var(--shadow-sm);
+    overflow:        hidden;
+  }
+  .dashboard__rail .stat-pill {
+    flex:            0 0 auto;
+    flex-direction:  row-reverse;               /* label left, value right */
+    justify-content: space-between;
+    align-items:     center;
+    gap:             12px;
+    padding:         14px 18px;
+    background:      transparent;
+    backdrop-filter: none;
+  }
+  .dashboard__rail .stat-pill:hover { background: transparent; }
+  .dashboard__rail .stat-pill + .stat-pill { border-left: 0; border-top: 1px solid var(--border); }
+  .dashboard__rail .stat-pill__value { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+  .dashboard__rail .stat-pill__label {
+    font-size:      .85rem;
+    font-weight:    500;
+    letter-spacing: 0;
+    text-transform: none;
+    color:          var(--text-3);
+  }
+
+  .review-pill__row {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             12px;
+    min-width:       0;
+    padding:         14px 18px;
+    background:      transparent;
+    border:          0;
+    font-family:     var(--font-body);
+    font-size:       .9rem;
+    font-weight:     500;
+    color:           var(--text);
+    text-align:      left;
+    cursor:          pointer;
+    transition:      background var(--dur);
+  }
+  .review-pill__row + .review-pill__row { border-top: 1px solid var(--border); }
+  .review-pill__row:hover,
+  .review-pill__row:focus-visible { background: var(--primary-50); }
+  .review-pill__label { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .review-pill__label .icon { color: var(--text-3); flex-shrink: 0; }
+  .review-pill__count { font-size: 1.05rem; font-weight: 700; color: var(--text-3); }
+  .review-pill__count--zero { color: var(--text-4); font-weight: 500; }
 }
 
 /* ── Phone: full-width snap carousel ─────────────────────── */

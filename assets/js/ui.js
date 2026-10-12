@@ -88,9 +88,11 @@ const UI = {
           ${this._skel('38px', '38px', 'var(--radius)')}
         </div>
       </div>
-      <div class="stats-strip" style="margin-bottom:28px">${pill}${pill}${pill}</div>
-      <div style="margin-bottom:14px">${this._skel('76px', '11px', '4px')}</div>
-      <div class="modules-grid">${moduleCard}${moduleCard}</div>
+      <aside class="dashboard__rail"><div class="stats-strip">${pill}${pill}${pill}</div></aside>
+      <section class="section">
+        <div class="dashboard__skel-title" style="margin-bottom:14px">${this._skel('76px', '11px', '4px')}</div>
+        <div class="modules-grid">${moduleCard.replace('class="module-card"', 'class="module-card module-card--hero"')}${moduleCard}</div>
+      </section>
     </div>`;
   },
 
@@ -439,7 +441,7 @@ const UI = {
           <span class="module-card__cta">${mp.setsCompleted > 0 ? 'Continue' : 'Start'} ${arrowSvg}</span>
         </div>
       </div>`;
-    }).join('');
+    }).map((html, i) => (i === 0 && visibleMods.length > 1) ? html + '<h2 class="modules-grid__label">Modules</h2>' : html).join('');
 
     const dotsHTML = visibleMods.length > 1
       ? `<div class="modules-dots" aria-hidden="true">${visibleMods.map((_, i) =>
@@ -456,6 +458,14 @@ const UI = {
           ${flagged.length > 0 ? `<span class="quick-icon-btn__badge" style="background:var(--success)">${flagged.length}</span>` : ''}
         </button>`;
 
+    const incIcon  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
+    const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
+    const reviewRow = (nav, icon, label, n) => `<button class="review-pill__row" data-nav="${nav}" aria-label="${label} questions: ${n}">
+          <span class="review-pill__label">${icon}${label}</span>
+          <span class="review-pill__count${n ? '' : ' review-pill__count--zero'}">${n}</span>
+        </button>`;
+    const reviewPill = `<div class="review-pill">${reviewRow('review', incIcon, 'Incorrect', incorrect.length)}${reviewRow('flagged-review', flagIcon, 'Flagged', flagged.length)}</div>`;
+
     return `
     <div class="dashboard">
       <div class="dashboard__intro">
@@ -469,7 +479,12 @@ const UI = {
         </div>
       </div>
       ${resumeBannerHTML}
-      <div class="stats-strip" style="margin-bottom:28px">${statsHTML}</div>
+      <aside class="dashboard__rail">
+        <h2 class="rail__title">Progress</h2>
+        <div class="stats-strip">${statsHTML}</div>
+        <h2 class="rail__title">Review</h2>
+        ${reviewPill}
+      </aside>
       <section class="section">
         <h2 class="section__title">Modules</h2>
         <div class="modules-grid">${modulesHTML}</div>

@@ -450,11 +450,13 @@ const UI = {
 
     const reviewBtn = `<button class="quick-icon-btn quick-icon-btn--danger${incorrect.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="review" title="Review Incorrect" aria-label="Review incorrect questions${incorrect.length > 0 ? ` (${incorrect.length})` : ''}">
           <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          <span class="quick-icon-btn__label">Incorrect</span>
           ${incorrect.length > 0 ? `<span class="quick-icon-btn__badge">${incorrect.length}</span>` : ''}
         </button>`;
 
     const flaggedBtn = `<button class="quick-icon-btn quick-icon-btn--success${flagged.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="flagged-review" title="Flagged" aria-label="Flagged questions${flagged.length > 0 ? ` (${flagged.length})` : ''}">
           <svg class="icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          <span class="quick-icon-btn__label">Flagged</span>
           ${flagged.length > 0 ? `<span class="quick-icon-btn__badge" style="background:var(--success)">${flagged.length}</span>` : ''}
         </button>`;
 

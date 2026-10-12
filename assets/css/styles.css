@@ -2274,7 +2274,9 @@ img { max-width: 100%; display: block; }
 /* Phone and small tablets keep the horizontal stats strip; the rail is a layout wrapper only there */
 .dashboard__rail { display: contents; }
 .dashboard__rail > .stats-strip { margin-bottom: 28px; }
-.quick-icon-btn__label { display: none; }
+.dashboard__rail > .section__title,
+.dashboard__rail .dashboard__skel-title,
+.rail-action { display: none; }               /* wide screens only */
 
 @media (min-width: 641px) {
   .modules-grid {
@@ -2439,28 +2441,45 @@ img { max-width: 100%; display: block; }
   }
   .dashboard .resume-banner__dismiss:hover { color: var(--danger); background: var(--danger-bg); }
 
-  /* Review shortcuts: extended with their names, in a row beside the welcome text */
-  .dashboard__intro { align-items: center; }
-  .dashboard__quickactions { flex-direction: row; gap: 10px; }
-  .quick-icon-btn {
-    width:           auto;
-    min-width:       172px;
-    height:          40px;
-    padding:         0 14px;
-    gap:             10px;
-    justify-content: flex-start;
+  /* Review shortcuts now live inside the stats pill as clickable rows */
+  .dashboard__quickactions { display: none; }
+  .dashboard__rail > .section__title,
+  .dashboard__rail .dashboard__skel-title { display: block; }
+
+  .rail-action {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             12px;
+    width:           100%;
+    min-width:       0;
+    padding:         13px 16px;
+    background:      transparent;
+    border:          0;
+    border-top:      1px solid var(--border);
+    font-family:     var(--font-body);
+    font-size:       .85rem;
+    text-align:      left;
+    cursor:          pointer;
+    transition:      background var(--dur);
   }
-  .quick-icon-btn__label {
-    display:     inline;
-    font-size:   .85rem;
+  .rail-action:hover,
+  .rail-action:focus-visible { background: var(--primary-50); }
+  .rail-action:focus-visible { outline: 2px solid var(--accent-text); outline-offset: -2px; }
+  .rail-action__label {
+    display:     flex;
+    align-items: center;
+    gap:         10px;
+    min-width:   0;
     font-weight: 600;
-    color:       var(--text);
+    color:       var(--text);                 /* bright = actionable; stat labels above stay muted */
   }
-  .quick-icon-btn .quick-icon-btn__badge {
-    position:   static;
-    margin-left: auto;
-    border:     0;
-  }
+  .rail-action__label .icon { flex-shrink: 0; color: var(--text-3); }
+  .rail-action__end   { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .rail-action__count { font-size: 1.05rem; font-weight: 700; color: var(--text-3); }
+  .rail-action__count--zero { font-weight: 500; color: var(--text-4); }
+  .rail-action__end .icon { color: var(--accent-text); transition: transform var(--dur); }  /* chevron = "opens" */
+  .rail-action:hover .rail-action__end .icon { transform: translateX(2px); }
 }
 @media (min-width: 1024px) {
   .dashboard { --rail-w: 288px; column-gap: 28px; }

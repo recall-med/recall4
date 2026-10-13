@@ -119,6 +119,28 @@
     4. app.js      — Main application controller (loads last)
     ============================================================
   -->
+  <!-- Boot guard: if a script fails to load or throws at startup, say why instead of spinning forever -->
+  <script>
+    (function () {
+      function show(msg) {
+        var app = document.getElementById('app');
+        if (!app || !app.querySelector('.loading-screen')) return;   // only while the boot spinner is still up
+        app.innerHTML = '<div class="error-screen"><h2>Dept. Q. Bank could not start</h2>' +
+          '<pre style="white-space:pre-wrap;font-size:12px;text-align:left">' +
+          String(msg).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>' +
+          '<p>Try a hard refresh. If it keeps happening, send a screenshot of this screen.</p></div>';
+      }
+      window.addEventListener('error', function (e) {
+        var t = e.target;
+        if (t && t.tagName === 'SCRIPT') { show('Could not load ' + (t.getAttribute('src') || 'a script')); return; }
+        show((e.message || 'Script error') + (e.filename ? '\n' + e.filename.split('/').pop() + ':' + e.lineno + ':' + e.colno : ''));
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        var r = e.reason;
+        show('Startup error: ' + (r && (r.stack || r.message) || r));
+      });
+    })();
+  </script>
   <script src="assets/js/storage.js"></script>
   <script src="assets/js/exam.js"></script>
   <script src="assets/js/ui.js"></script>

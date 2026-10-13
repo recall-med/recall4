@@ -233,7 +233,6 @@ const ExamEngine = {
       score:       results.score,
       correct:     results.correct,
       total:       results.total,
-      attempted:   results.total - results.unanswered,
       timeSec:     results.timeSec,
     });
 

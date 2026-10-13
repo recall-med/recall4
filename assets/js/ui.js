@@ -519,7 +519,7 @@ const UI = {
           data-params='${JSON.stringify({ moduleId: mod.id, examType: et.id, subject: sub.id })}'
           tabindex="0" role="button">
           <div class="subject-card__left">
-            <span class="subject-card__icon" aria-hidden="true">${this.subjectIcon()}</span>
+            <span class="subject-card__icon" style="background:${sub.color}20;color:${sub.color}">${sub.icon}</span>
             <div>
               <div class="subject-card__name">${sub.label}</div>
               <div class="subject-card__score">${subSubs.length > 0 ? `${completed}/${subSubs.length} topics` : 'No topics yet'}</div>
@@ -563,9 +563,6 @@ const UI = {
       </div>`;
     }).join('');
 
-    const moduleStats = this._scopeStats(progressMap, countMap, mod.id);
-    const moduleStatsHTML = `<div class="stats-strip page-progress-strip" aria-label="${mod.title} progress">${moduleStats.map(x => `<div class="stat-pill"><div class="stat-pill__value">${x.value}</div><div class="stat-pill__label">${x.label}</div></div>`).join('')}</div>`;
-
     return `
     <div class="page module-page">
       ${this.backBtn('dashboard')}
@@ -573,9 +570,8 @@ const UI = {
         { label: 'Dashboard', nav: 'dashboard' },
         { label: mod.title },
       ])}
-      ${moduleStatsHTML}
       <header class="page__header" style="--mod-color:${mod.color}">
-        <span class="page__icon">${this.moduleIcon(mod.id)}</span>
+        <span class="page__icon">${mod.icon}</span>
         <div>
           <h1 class="page__title">${mod.title}</h1>
           <p class="page__subtitle">${mod.fullTitle}</p>
@@ -599,9 +595,6 @@ const UI = {
       ? visibleSubSubs.reduce((acc, ss) => acc + (countMap[`${mod.id}|${examType}|${subjectId}|${ss.id}`] || 0), 0)
       : 0;
 
-    const subjectStats = this._scopeStats(progressMap, countMap, mod.id, examType, subjectId);
-    const subjectStatsHTML = `<div class="stats-strip page-progress-strip" aria-label="${sub.label} progress">${subjectStats.map(x => `<div class="stat-pill"><div class="stat-pill__value">${x.value}</div><div class="stat-pill__label">${x.label}</div></div>`).join('')}</div>`;
-
     const subjectExamPanel = totalSubjectQ > 0
       ? `<div class="topic-panel" style="margin-bottom:20px">
           <p class="wide-exam-note">Practice every topic in ${sub.label} as one shuffled exam.</p>
@@ -623,7 +616,7 @@ const UI = {
         data-params='${JSON.stringify({ moduleId: mod.id, examType, subject: subjectId, subSubject: ss.id })}'
         tabindex="0" role="button">
         <div class="topic-row__left">
-          <span class="topic-row__icon topic-row__icon--dot" aria-hidden="true"><svg class="icon icon--sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg></span>
+          <span class="topic-row__icon" style="background:${sub.color}20;color:${sub.color}">${ss.icon}</span>
           <div class="topic-row__text">
             <div class="topic-row__name">${ss.label}</div>
             <div class="topic-row__meta">${qCount} Question${qCount === 1 ? '' : 's'}${prog.completed ? '' : ' · Not attempted'}</div>
@@ -637,7 +630,7 @@ const UI = {
     }).join('');
 
     const content = visibleSubSubs.length === 0
-      ? this.emptyState('No Topics Yet', `No questions added yet for ${sub.label} in ${mod.title}.`, this.subjectIcon())
+      ? this.emptyState('No Topics Yet', `No questions added yet for ${sub.label} in ${mod.title}.`, sub.icon)
       : `${subjectExamPanel}
         <div style="margin-bottom:12px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-4)">Topics</div>
         <div class="topics-list">${topicRows}</div>`;
@@ -651,9 +644,8 @@ const UI = {
         { label: et.label, nav: 'module', params: { moduleId: mod.id } },
         { label: sub.label },
       ])}
-      ${subjectStatsHTML}
       <header class="page__header" style="--mod-color:${sub.color}">
-        <span class="page__icon">${this.subjectIcon()}</span>
+        <span class="page__icon">${sub.icon}</span>
         <div>
           <h1 class="page__title">${sub.label}</h1>
           <p class="page__subtitle">${mod.title} · ${et.label} — Choose a topic</p>
@@ -698,7 +690,7 @@ const UI = {
         { label: ss.label },
       ])}
       <header class="page__header" style="--mod-color:${sub.color}">
-        <span class="page__icon">${this.subjectIcon()}</span>
+        <span class="page__icon">${ss.icon}</span>
         <div>
           <h1 class="page__title">${ss.label}</h1>
           <p class="page__subtitle">${mod.title} · ${sub.label} · ${et.label}</p>
@@ -1288,31 +1280,6 @@ const UI = {
   // Module glyphs: Health Icons "outline/body" set (MIT, github.com/resolvetosavelives/healthicons),
   // 48x48 filled outlines drawn with currentColor. Heart = CPM, stomach = GIT, brain = CNS,
   // thyroid = ENDO & REPRO, kidneys = Urinary; unknown ids get a generic body glyph.
-  subjectIcon() {
-    return '<svg class="icon page-subject-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20M8 7h8M8 10h6"/></svg>';
-  },
-
-  _scopeStats(progressMap, countMap, moduleId, examType = null, subjectId = null) {
-    const matches = Object.entries(progressMap || {}).filter(([key]) => {
-      const parts = key.split('|');
-      return parts[0] === moduleId && (!examType || parts[1] === examType) && (!subjectId || parts[2] === subjectId);
-    }).map(([, value]) => value || {});
-    const completed = matches.filter(p => p.completed).length;
-    const attempted = matches.filter(p => (p.total || 0) > 0).length;
-    const correct = matches.reduce((n, p) => n + (p.correct || 0), 0);
-    const total = matches.reduce((n, p) => n + (p.total || 0), 0);
-    const qTotal = Object.entries(countMap || {}).filter(([key]) => {
-      const parts = key.split('|');
-      return parts[0] === moduleId && (!examType || parts[1] === examType) && (!subjectId || parts[2] === subjectId);
-    }).reduce((n, [, count]) => n + (count || 0), 0);
-    return [
-      { label: 'Questions', value: qTotal },
-      { label: 'Topics attempted', value: `${attempted}` },
-      { label: 'Topics completed', value: `${completed}` },
-      { label: 'Accuracy', value: total ? `${Math.round(correct / total * 100)}%` : '—' }
-    ];
-  },
-
   moduleIcon(id) {
     const g = {
       CPM: '<path fill-rule="evenodd" clip-rule="evenodd" d="M30.05 9.52V7C30.05 6.73 29.94 6.48 29.75 6.29C29.56 6.11 29.31 6 29.04 6L24.7 6C24.14 6 23.69 6.45 23.69 7V9.43L22.2 10.12L20.27 7.72C19.94 7.32 19.37 7.22 18.93 7.5L15.53 9.66C15.29 9.81 15.12 10.06 15.08 10.34C15.03 10.62 15.11 10.9 15.28 11.12L17.18 13.48C17.09 13.59 16.99 13.72 16.89 13.85C16.69 14.11 16.46 14.45 16.27 14.83C15.52 14.16 14.64 13.6 13.8 13.16C12.89 12.68 11.99 12.31 11.33 12.06C10.99 11.93 10.42 11.74 10.23 11.68C9.95 11.6 9.63 11.63 9.39 11.78C9.14 11.93 8.97 12.17 8.92 12.45L8.02 17.18C7.97 17.44 8.03 17.72 8.18 17.94C8.34 18.16 8.58 18.31 8.85 18.35C9.95 18.53 10.79 19.07 11.36 19.59C11.64 19.85 11.86 20.1 11.99 20.28C12.01 20.3 12.03 20.33 12.05 20.36C11.05 21.89 10.66 23.68 10.72 25.53C10.8 28.03 11.71 30.67 13.08 33.07C14.45 35.47 16.31 37.68 18.37 39.29C20.42 40.9 22.76 42 25.07 42C27.37 42 29.77 40.91 31.89 39.29C34.03 37.66 35.99 35.43 37.43 32.97C40.25 28.14 41.28 21.93 36.72 17.93C36.53 17.77 36.35 17.63 36.19 17.51C36.92 17.5 37.76 17.51 38.73 17.55L39.75 17.58L40 10.83L39 10.8C36.43 10.71 34.08 10.82 31.94 11.31C31.41 10.62 30.83 10.11 30.38 9.77C30.26 9.67 30.15 9.59 30.05 9.52ZM32.22 18.14C32.4 18.06 32.58 17.99 32.77 17.93C33.27 18.21 33.67 18.4 33.99 18.56C34.1 18.61 34.19 18.66 34.28 18.7C34.66 18.89 34.96 19.06 35.38 19.43C38.82 22.45 38.35 27.4 35.68 31.97C34.37 34.22 32.58 36.25 30.66 37.71C28.73 39.18 26.76 40 25.07 40C23.38 40 21.48 39.18 19.62 37.73C17.78 36.28 16.09 34.28 14.84 32.08C13.58 29.88 12.81 27.55 12.74 25.46C12.66 23.39 13.28 21.6 14.75 20.31C15.5 19.65 16.82 19.38 18.51 19.48C19.62 19.54 20.79 19.75 21.86 20.03L21.86 20.03L23 20.36C24.21 20.71 25.61 21.27 26.53 21.65L25.08 24.78L21.34 26.45L17.3 25.51L16.83 27.46L20.07 28.21L19.01 30.88L20.89 31.61L22.23 28.25L24.42 27.27C24.31 28.43 24.5 29.61 24.97 30.69L25.32 31.48L25.59 35.42L27.6 35.28L27.39 32.13L30.72 31.74L30.49 29.76L26.94 30.17L26.82 29.89C26.36 28.84 26.28 27.67 26.59 26.57L26.78 25.88L28.96 21.21C29.07 21.11 29.16 20.99 29.24 20.86C30.17 19.41 31.14 18.64 32.22 18.14ZM24.75 18.82C25.41 17.67 26.12 16.76 26.93 16.01C27.1 15.86 27.27 15.71 27.44 15.57C28.16 14.98 28.96 14.51 29.87 14.09C32.06 13.08 34.69 12.73 37.91 12.77L37.8 15.52C34.96 15.45 33.01 15.59 31.38 16.33C29.93 17 28.66 18.04 27.54 19.81C27.52 19.83 27.5 19.85 27.47 19.86C27.45 19.86 27.44 19.86 27.44 19.86C26.77 19.57 25.77 19.17 24.75 18.82ZM14.72 18.01C14.55 18.08 14.39 18.15 14.23 18.24L13.64 18.53C13.52 18.59 13.41 18.65 13.3 18.71L12.73 18.12C12.13 17.58 11.28 16.98 10.18 16.62L10.69 13.96C11.29 14.18 12.07 14.51 12.85 14.93C13.68 15.36 14.47 15.88 15.07 16.46C15.42 16.79 15.68 17.13 15.85 17.46L14.72 18.01ZM18 17.46C18.21 17.46 18.42 17.47 18.63 17.48C18.81 17.49 19 17.5 19.18 17.52C20.46 17.63 21.77 17.89 22.81 18.13C23.53 16.49 24.88 15.07 26.23 13.96C27.36 13.04 28.56 12.27 29.58 11.71C29.43 11.57 29.28 11.45 29.14 11.35C28.96 11.2 28.55 10.95 28.55 10.95C28.55 10.95 28.03 10.43 28.03 10.07V8L25.71 8V10.07C25.71 10.46 25.48 10.81 25.12 10.97L22.34 12.27C21.91 12.47 21.41 12.35 21.12 11.99L19.26 9.67L17.56 10.74L19.29 12.9C19.62 13.3 19.58 13.89 19.2 14.25L19 14.46C19 14.46 18.69 14.8 18.51 15.04C18.12 15.56 17.88 16.06 17.87 16.41C17.86 16.61 17.87 16.89 17.93 17.23C17.96 17.3 17.98 17.38 18 17.46Z"/>',

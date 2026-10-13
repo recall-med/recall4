@@ -219,10 +219,10 @@ const App = {
       case 'scoped-review': {
         const filter    = params;
         const incorrect = Storage.getIncorrect().filter(q =>
-          q.module     === filter.moduleId   &&
-          q.examType   === filter.examType   &&
-          q.subject    === filter.subject    &&
-          q.subSubject === filter.subSubject
+          q.module === filter.moduleId &&
+          (!filter.examType   || q.examType   === filter.examType)   &&
+          (!filter.subject    || q.subject    === filter.subject)    &&
+          (!filter.subSubject || q.subSubject === filter.subSubject)
         );
         UI.setContent(UI.renderReview(incorrect, this.config, filter));
         this._bindReviewEvents();
@@ -239,10 +239,10 @@ const App = {
       case 'scoped-flagged': {
         const filter  = params;
         const flagged = Storage.getFlagged().filter(q =>
-          q.module     === filter.moduleId   &&
-          q.examType   === filter.examType   &&
-          q.subject    === filter.subject    &&
-          q.subSubject === filter.subSubject
+          q.module === filter.moduleId &&
+          (!filter.examType   || q.examType   === filter.examType)   &&
+          (!filter.subject    || q.subject    === filter.subject)    &&
+          (!filter.subSubject || q.subSubject === filter.subSubject)
         );
         UI.setContent(UI.renderFlagged(flagged, this.config, filter));
         this._bindFlaggedReviewEvents();
@@ -567,7 +567,7 @@ const App = {
               const et  = this.config.examTypes.find(e => e.id === q.examType);
               return `<div class="review-item" data-uid="${q.uid}">
                 <div class="review-item__meta">
-                  <span class="badge" style="background:${sub?.color}20;color:${sub?.color}">${sub?.icon} ${sub?.label}</span>
+                  <span class="badge">${UI.subjectIcon(sub?.id, 'module-icon module-icon--inline')}${sub?.label}</span>
                   <span class="badge badge--ghost">${q.module}</span>
                   ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
                   <span class="badge badge--ghost">${et?.label}</span>
@@ -629,7 +629,7 @@ const App = {
               const et  = this.config.examTypes.find(e => e.id === q.examType);
               return `<div class="review-item" data-uid="${q.uid}">
                 <div class="review-item__meta">
-                  <span class="badge" style="background:${sub?.color}20;color:${sub?.color}">${sub?.icon} ${sub?.label}</span>
+                  <span class="badge">${UI.subjectIcon(sub?.id, 'module-icon module-icon--inline')}${sub?.label}</span>
                   <span class="badge badge--ghost">${q.module}</span>
                   ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
                   <span class="badge badge--ghost">${et?.label}</span>

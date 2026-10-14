@@ -2564,9 +2564,9 @@ img { max-width: 100%; display: block; }
   vertical-align: -3px;
 }
 .module-icon--lg  { width: 48px; height: 48px; margin: 0 auto; }
-.topic-dot        { display: block; width: 10px; height: 10px; }
+.topic-dot        { display: block; width: 14px; height: 14px; }
 .wide-breakdown-item__label { display: inline-flex; align-items: center; gap: 8px; }
-.wide-breakdown-item__label .topic-dot { width: 8px; height: 8px; flex-shrink: 0; color: var(--accent-text); }
+.wide-breakdown-item__label .topic-dot { width: 12px; height: 12px; flex-shrink: 0; color: var(--accent-text); }
 
 /* Page headers: no colour stripe, no tinted tile, glyph in the accent colour */
 :is(.module-page, .subject-page, .subsubject-page, .wide-exam-start-page) .page__header {
@@ -2741,10 +2741,46 @@ img { max-width: 100%; display: block; }
   .subject-page .wide-exam-note { display: none; }
   .subject-page .topic-panel__primary { display: block; }
 
-  /* Topic page: the rail carries the review rows, the stats strip is redundant here */
-  .subsubject-page .stats-strip,
+  /* Topic page: the rail carries the stats + review rows, so the in-page copies are redundant here */
+  .subsubject-page .page__main .stats-strip,
   .subsubject-page .topic-panel__divider,
   .subsubject-page .topic-panel__secondary { display: none; }
+
+  /* Topic page: [title rule] → [Start Exam row] → [Retry row], same recipe as the subject page */
+  .subsubject-page .topic-panel {
+    margin:          0;
+    padding:         0;
+    background:      none;
+    border:          0;
+    box-shadow:      none;
+    backdrop-filter: none;
+  }
+  .subsubject-page .topic-panel__primary { display: flex; flex-direction: column; gap: 10px; }
+  .subsubject-page #start-exam-btn,
+  .subsubject-page #retry-exam-btn {
+    display:         flex;
+    align-items:     center;
+    justify-content: flex-start;
+    gap:             10px;
+    width:           100%;
+    margin:          0;
+    padding:         16px 22px;
+    border:          1px solid var(--border);
+    border-radius:   var(--radius-lg);
+    box-shadow:      none;
+    transform:       none;
+    color:           var(--text);
+    font-size:       .95rem;
+    font-weight:     700;
+    text-align:      left;
+  }
+  .subsubject-page #start-exam-btn { background: linear-gradient(135deg, var(--primary-50), var(--surface) 65%); }
+  .subsubject-page #retry-exam-btn { background: var(--surface); }
+  .subsubject-page #start-exam-btn:hover,
+  .subsubject-page #retry-exam-btn:hover { background: var(--surface-solid); transform: none; }
+  .subsubject-page #start-exam-btn .badge--count { background: var(--primary-50); color: var(--accent-text); }
+  .subsubject-page #retry-exam-btn .icon { color: var(--accent-text); }
+  .subsubject-page #start-exam-btn:hover .wide-exam-btn__arrow { transform: translateX(3px); }
 }
 
 /* Rows with room: show a progress bar */

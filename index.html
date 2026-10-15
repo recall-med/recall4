@@ -8,10 +8,10 @@
     HOW TO CHANGE SITE TITLE: Edit the <title> tag below AND
     update "siteTitle" in config/modules.json.
 
-    HOW TO CHANGE FAVICON: Replace assets/images/icon.png (and
-    regenerate favicon.png / apple-touch-icon.png from it) to swap
-    the site mark shown in the browser tab and header. The *-dark.png
-    variants (white mark) are used for dark theme / dark browser tabs.
+    HOW TO CHANGE FAVICON: Replace assets/images/icon.png (header mark,
+    light theme) and icon-dark.png (header mark, dark theme), then
+    regenerate favicon*.png / apple-touch-icon.png from it. Favicons
+    are navy with a thin white outline so they work on any tab colour.
 
     HOW TO CHANGE COLORS: Edit assets/css/styles.css :root {}
 
@@ -33,11 +33,10 @@
   <meta property="og:type"        content="website" />
 
   <!-- Favicon -->
-  <!-- Tab icon follows the browser/OS theme (navy mark on light tabs, white mark on dark tabs) -->
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon.png" media="(prefers-color-scheme: light)" />
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-dark.png" media="(prefers-color-scheme: dark)" />
-  <link rel="icon" type="image/png" href="assets/images/favicon.png" media="(prefers-color-scheme: light)" />
-  <link rel="icon" type="image/png" href="assets/images/favicon-dark.png" media="(prefers-color-scheme: dark)" />
+  <!-- Favicon: navy mark with a thin white outline so it stays visible on light and dark browser tabs -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/images/favicon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/images/favicon-192.png" />
   <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png" />
 
   <!-- Theme: apply before render to prevent flash -->

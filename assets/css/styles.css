@@ -229,6 +229,10 @@ img { max-width: 100%; display: block; }
   transition:    transform var(--dur) var(--ease-bounce);
 }
 .site-header__brand:hover .site-header__mark { transform: scale(1.05) rotate(-2deg); }
+/* Logo mark: navy in light theme, soft white in dark theme (two <img>, swapped by theme) */
+.site-header__mark--dark { display: none; }
+[data-theme="dark"] .site-header__mark--light { display: none; }
+[data-theme="dark"] .site-header__mark--dark  { display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,.35)); }
 .site-header__wordmark {
   display:        flex;
   flex-direction: column;
@@ -2619,11 +2623,143 @@ img { max-width: 100%; display: block; }
   text-transform: uppercase;
   color:          var(--text-4);
 }
-.page-label--wide { display: none; }
 .subject-page .topic-panel { margin-bottom: 20px; }
 
 /* Progress rail is a PC/tablet feature */
 .page > .dashboard__rail { display: none; }
+
+/* ── All screens: titled rules, tinted action rows, bordered lists (phone matches tablet/PC) ── */
+/* Titled rule above the main column, same style as "MODULES" / "PROGRESS" */
+.page-label,
+.page-label--wide {
+  display:        block;
+  margin:         0 0 14px;
+  padding-bottom: 8px;
+  border-bottom:  1px solid var(--border);
+  font-size:      .7rem;
+  letter-spacing: .08em;
+  color:          var(--text-4);
+}
+
+/* Subject rows can afford a progress bar when their column is wide enough */
+.subjects-list { container-type: inline-size; container-name: subjects; }
+
+/* Module page: [title rule] → [full-exam action row] → [subjects pill] */
+.module-page .exam-type-section {
+  display:               grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:   "title" "action" "list";
+  margin-bottom:         28px;
+}
+.module-page .exam-type-header,
+.module-page .exam-type-header__top { display: contents; }
+.module-page .exam-type-header__top > div:first-child {
+  grid-area:      title;
+  margin:         0 0 14px;
+  padding-bottom: 8px;
+  border-bottom:  1px solid var(--border);
+}
+.module-page .exam-type-header__title {
+  margin:         0;
+  font-size:      .7rem;
+  font-weight:    700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color:          var(--text-4);
+}
+.module-page .exam-type-header__desc { display: none; }
+.module-page .subjects-list {
+  grid-area:     list;
+  border:        1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow:      hidden;
+}
+
+/* Full-exam action rows (module page + subject page): a tinted row, text + count + arrow */
+.module-page .wide-exam-btn,
+.subject-page #start-subject-exam-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: flex-start;
+  gap:             10px;
+  width:           100%;
+  margin:          0 0 10px;
+  padding:         16px 22px;
+  background:      linear-gradient(135deg, var(--primary-50), var(--surface) 65%);
+  border:          1px solid var(--border);
+  border-radius:   var(--radius-lg);
+  box-shadow:      none;
+  transform:       none;
+  color:           var(--text);
+  font-size:       .95rem;
+  font-weight:     700;
+  text-align:      left;
+}
+.module-page .wide-exam-btn { grid-area: action; }
+.module-page .wide-exam-btn:hover,
+.subject-page #start-subject-exam-btn:hover { background: var(--surface-solid); transform: none; }
+.module-page .wide-exam-btn .badge--count,
+.subject-page #start-subject-exam-btn .badge--count {
+  background: var(--primary-50);
+  color:      var(--accent-text);
+}
+.wide-exam-btn__arrow {
+  display:     block;
+  margin-left: auto;
+  color:       var(--accent-text);
+  transition:  transform var(--dur);
+}
+.module-page .wide-exam-btn:hover .wide-exam-btn__arrow,
+.subject-page #start-subject-exam-btn:hover .wide-exam-btn__arrow { transform: translateX(3px); }
+
+/* Subject page: [title rule] → [full-exam row] → [topics pill] */
+.subject-page .topic-panel  {
+  padding:         0;
+  background:      none;
+  border:          0;
+  box-shadow:      none;
+  backdrop-filter: none;
+}
+.subject-page .topic-panel__primary { display: block; }
+
+/* Topic page: [title rule] → [Start Exam row] → [Retry row], same recipe as the subject page */
+.subsubject-page .topic-panel {
+  margin:          0;
+  padding:         0;
+  background:      none;
+  border:          0;
+  box-shadow:      none;
+  backdrop-filter: none;
+}
+.subsubject-page .topic-panel__primary { display: flex; flex-direction: column; gap: 10px; }
+.subsubject-page #start-exam-btn,
+.subsubject-page #retry-exam-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: flex-start;
+  gap:             10px;
+  width:           100%;
+  margin:          0;
+  padding:         16px 22px;
+  border:          1px solid var(--border);
+  border-radius:   var(--radius-lg);
+  box-shadow:      none;
+  transform:       none;
+  color:           var(--text);
+  font-size:       .95rem;
+  font-weight:     700;
+  text-align:      left;
+}
+.subsubject-page #start-exam-btn { background: linear-gradient(135deg, var(--primary-50), var(--surface) 65%); }
+.subsubject-page #retry-exam-btn { background: var(--surface); }
+.subsubject-page #start-exam-btn:hover,
+.subsubject-page #retry-exam-btn:hover { background: var(--surface-solid); transform: none; }
+.subsubject-page #start-exam-btn .badge--count { background: var(--primary-50); color: var(--accent-text); }
+.subsubject-page #retry-exam-btn .icon { color: var(--accent-text); }
+.subsubject-page #start-exam-btn:hover .wide-exam-btn__arrow { transform: translateX(3px); }
+
+/* Phone keeps the explanatory note, set as quiet text above the row */
+.subject-page .wide-exam-note { margin: 0 0 10px; }
 
 /* ── Tablet + PC: main column + progress rail ────────────── */
 @media (min-width: 768px) {
@@ -2642,145 +2778,18 @@ img { max-width: 100%; display: block; }
   .page.has-rail > .page__main  { grid-area: main; min-width: 0; }
   .page.has-rail > .dashboard__rail { display: flex; grid-area: rail; }
 
-  /* Titled rule above the main column, same style as "MODULES" / "PROGRESS" */
-  .page-label,
-  .page-label--wide {
-    display:        block;
-    margin:         0 0 14px;
-    padding-bottom: 8px;
-    border-bottom:  1px solid var(--border);
-    font-size:      .7rem;
-    letter-spacing: .08em;
-    color:          var(--text-4);
-  }
 
-  /* Subject rows can afford a progress bar when their column is wide enough */
-  .subjects-list { container-type: inline-size; container-name: subjects; }
-
-  /* Module page: [title rule] → [full-exam action row] → [subjects pill] */
-  .module-page .exam-type-section {
-    display:               grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:   "title" "action" "list";
-    margin-bottom:         28px;
-  }
-  .module-page .exam-type-header,
-  .module-page .exam-type-header__top { display: contents; }
-  .module-page .exam-type-header__top > div:first-child {
-    grid-area:      title;
-    margin:         0 0 14px;
-    padding-bottom: 8px;
-    border-bottom:  1px solid var(--border);
-  }
-  .module-page .exam-type-header__title {
-    margin:         0;
-    font-size:      .7rem;
-    font-weight:    700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color:          var(--text-4);
-  }
-  .module-page .exam-type-header__desc { display: none; }
-  .module-page .subjects-list {
-    grid-area:     list;
-    border:        1px solid var(--border);
-    border-radius: var(--radius-lg);
-    overflow:      hidden;
-  }
-
-  /* Full-exam action rows (module page + subject page): a tinted row, text + count + arrow */
-  .module-page .wide-exam-btn,
-  .subject-page #start-subject-exam-btn {
-    display:         flex;
-    align-items:     center;
-    justify-content: flex-start;
-    gap:             10px;
-    width:           100%;
-    margin:          0 0 10px;
-    padding:         16px 22px;
-    background:      linear-gradient(135deg, var(--primary-50), var(--surface) 65%);
-    border:          1px solid var(--border);
-    border-radius:   var(--radius-lg);
-    box-shadow:      none;
-    transform:       none;
-    color:           var(--text);
-    font-size:       .95rem;
-    font-weight:     700;
-    text-align:      left;
-  }
-  .module-page .wide-exam-btn { grid-area: action; }
-  .module-page .wide-exam-btn:hover,
-  .subject-page #start-subject-exam-btn:hover { background: var(--surface-solid); transform: none; }
-  .module-page .wide-exam-btn .badge--count,
-  .subject-page #start-subject-exam-btn .badge--count {
-    background: var(--primary-50);
-    color:      var(--accent-text);
-  }
-  .wide-exam-btn__arrow {
-    display:     block;
-    margin-left: auto;
-    color:       var(--accent-text);
-    transition:  transform var(--dur);
-  }
-  .module-page .wide-exam-btn:hover .wide-exam-btn__arrow,
-  .subject-page #start-subject-exam-btn:hover .wide-exam-btn__arrow { transform: translateX(3px); }
-
-  /* Subject page: [title rule] → [full-exam row] → [topics pill] */
+  /* Subject page on wide screens: [title rule] first, then the full-exam row, then the topics pill */
   .subject-page .page__main { display: flex; flex-direction: column; }
   .subject-page .page-label   { order: 1; }
-  .subject-page .topic-panel  {
-    order:           2;
-    margin:          0 0 10px;
-    padding:         0;
-    background:      none;
-    border:          0;
-    box-shadow:      none;
-    backdrop-filter: none;
-  }
+  .subject-page .topic-panel  { order: 2; margin: 0 0 10px; }
   .subject-page .topics-list  { order: 3; }
   .subject-page .wide-exam-note { display: none; }
-  .subject-page .topic-panel__primary { display: block; }
 
   /* Topic page: the rail carries the stats + review rows, so the in-page copies are redundant here */
   .subsubject-page .page__main .stats-strip,
   .subsubject-page .topic-panel__divider,
   .subsubject-page .topic-panel__secondary { display: none; }
-
-  /* Topic page: [title rule] → [Start Exam row] → [Retry row], same recipe as the subject page */
-  .subsubject-page .topic-panel {
-    margin:          0;
-    padding:         0;
-    background:      none;
-    border:          0;
-    box-shadow:      none;
-    backdrop-filter: none;
-  }
-  .subsubject-page .topic-panel__primary { display: flex; flex-direction: column; gap: 10px; }
-  .subsubject-page #start-exam-btn,
-  .subsubject-page #retry-exam-btn {
-    display:         flex;
-    align-items:     center;
-    justify-content: flex-start;
-    gap:             10px;
-    width:           100%;
-    margin:          0;
-    padding:         16px 22px;
-    border:          1px solid var(--border);
-    border-radius:   var(--radius-lg);
-    box-shadow:      none;
-    transform:       none;
-    color:           var(--text);
-    font-size:       .95rem;
-    font-weight:     700;
-    text-align:      left;
-  }
-  .subsubject-page #start-exam-btn { background: linear-gradient(135deg, var(--primary-50), var(--surface) 65%); }
-  .subsubject-page #retry-exam-btn { background: var(--surface); }
-  .subsubject-page #start-exam-btn:hover,
-  .subsubject-page #retry-exam-btn:hover { background: var(--surface-solid); transform: none; }
-  .subsubject-page #start-exam-btn .badge--count { background: var(--primary-50); color: var(--accent-text); }
-  .subsubject-page #retry-exam-btn .icon { color: var(--accent-text); }
-  .subsubject-page #start-exam-btn:hover .wide-exam-btn__arrow { transform: translateX(3px); }
 }
 
 /* Rows with room: show a progress bar */

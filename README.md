@@ -14,6 +14,7 @@ Built with plain HTML, CSS, and JavaScript — no build step, no backend, no dep
 - [Deployment to GitHub Pages](#deployment-to-github-pages)
 - [Repository Structure](#repository-structure)
 - [Adding Questions](#adding-questions)
+- [Crediting a Professor](#crediting-a-professor)
 - [JSON Question Format](#json-question-format)
 - [Adding a New Module](#adding-a-new-module)
 - [Adding a New Subject](#adding-a-new-subject)
@@ -139,40 +140,62 @@ See [Deployment to GitHub Pages](#deployment-to-github-pages).
 │   └── modules.json        Site configuration, modules, subjects
 │
 └── data/
-    ├── CPM/
-    │   ├── end_module/
-    │   │   ├── anatomy.json
-    │   │   ├── physiology.json
-    │   │   ├── biochemistry.json
-    │   │   └── histology.json
-    │   └── final_exam/
-    │       └── (same four files)
-    ├── GIT/            (same structure)
-    ├── CNS/            (same structure)
-    ├── ENDO_REPRO/     (same structure)
-    └── URINARY/        (same structure)
+    └── <MODULE>/                       e.g. CPM, GIT, CNS, ENDO_REPRO, URINARY
+        └── <exam_type>/                end_module or final_exam
+            └── <subject>/              anatomy, physiology, biochemistry, histology
+                └── <topic>.json        one file per topic (sub-subject)
 ```
 
 ---
 
 ## Adding Questions
 
-### Step-by-step
+Questions are organised as **module → exam type → subject → topic**. Each topic has its own JSON file and its own entry in `config/modules.json`. A topic only appears in the app once it has at least one question.
 
-1. Open the relevant JSON file. For example, to add CNS End Module Exam — Anatomy questions:
+### Step-by-step: adding a new topic
+
+1. Create the data file at:
    ```
-   data/CNS/end_module/anatomy.json
+   data/<MODULE>/<exam_type>/<subject>/<topic_id>.json
+   ```
+   For example: `data/CNS/end_module/anatomy/spinal_cord.json`
+
+2. Put the questions in it (see [JSON Question Format](#json-question-format)):
+   ```json
+   {
+     "meta": {
+       "module": "CNS",
+       "examType": "end_module",
+       "subject": "anatomy",
+       "subSubject": "spinal_cord",
+       "totalQuestions": 23
+     },
+     "questions": [ ... ]
+   }
    ```
 
-2. Find the `"questions"` array.
+3. Register the topic in `config/modules.json`. Find the module, then `subSubjects` → exam type → subject, and add an entry:
+   ```json
+   {
+     "id": "spinal_cord",
+     "label": "Spinal Cord",
+     "icon": "🧠",
+     "professor": "Prof. Samaa"
+   }
+   ```
+   - `id` must match the JSON file name (without `.json`).
+   - `label` is the name shown in the app.
+   - `professor` is optional, see [Crediting a Professor](#crediting-a-professor).
 
-3. Copy the template below and paste it at the end of the array (before the closing `]`).
+4. Push to GitHub.
 
-4. Fill in all fields.
+### Step-by-step: adding questions to an existing topic
 
-5. Ensure the `"id"` is unique within the file (increment from the last question's id).
-
-6. Save and push to GitHub.
+1. Open the topic's JSON file, e.g. `data/CPM/final_exam/anatomy/larynx.json`.
+2. Add the new question objects at the end of the `"questions"` array.
+3. Give each one a unique `"id"` (continue from the last question's id).
+4. Update `meta.totalQuestions` to the new total.
+5. Save and push.
 
 ### Single question template
 
@@ -228,6 +251,23 @@ Simply add multiple objects to the array, separated by commas:
 | `answer` | integer | Yes | Index of the correct option: `0`=A, `1`=B, `2`=C, `3`=D |
 | `explanation` | string | Yes | Detailed explanation shown after answering |
 
+Each file is an object with a `meta` block and a `questions` array (the `meta` block records the module, exam type, subject, topic id and `totalQuestions`; keep it up to date when you add or remove questions).
+
+If the source material gives no explanation for a question, use `"Correct answer: C. <option text>"` as the explanation.
+
+## Crediting a Professor
+
+Every question in this bank comes from a professor's exam guide. To show who wrote a topic's questions, add a `professor` field to the topic's entry in `config/modules.json`:
+
+```json
+{ "id": "ventricles", "label": "Ventricles", "icon": "🧠", "professor": "Prof. Samaa" }
+```
+
+- The text is displayed exactly as written, so include the title yourself (`Prof. Samaa`, `Dr. Hala`).
+- It appears as a badge on the topic's card in the topic list and on the topic's start page.
+- If the field is missing or empty, no badge is shown.
+- Going forward, use this field instead of adding the name to `label`.
+
 ---
 
 ## Adding a New Module
@@ -278,13 +318,7 @@ Note: the `icon` field is rendered verbatim in the interface. The placeholder ab
    ```
    (as above, use an actual glyph for `icon` to match the existing subjects)
 
-3. For every module and exam type, create the matching JSON file:
-   ```
-   data/CPM/end_module/pathology.json
-   data/CPM/final_exam/pathology.json
-   data/GIT/end_module/pathology.json
-   ... (repeat for all modules)
-   ```
+3. Add the subject to each module's `subSubjects` list in `config/modules.json` (for every exam type), then add topic files under `data/<MODULE>/<exam_type>/pathology/` as described in [Adding Questions](#adding-questions).
 
 ---
 

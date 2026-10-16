@@ -495,6 +495,22 @@ img { max-width: 100%; display: block; }
 }
 .badge--prof__text { overflow: hidden; text-overflow: ellipsis; }
 .page__badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.module-card__titlerow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.badge--ongoing {
+  gap:        6px;
+  padding:    2px 9px 2px 8px;
+  background: var(--primary-50);
+  color:      var(--accent-text);
+  border-color: var(--border);
+  white-space: nowrap;
+}
+.badge--ongoing::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
 
 /* ── Inputs ───────────────────────────────────────────────── */
 .input {

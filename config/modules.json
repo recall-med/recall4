@@ -257,7 +257,14 @@
           ],
           "physiology": [],
           "biochemistry": [],
-          "histology": []
+          "histology": [
+            {
+              "id": "meninges_ear",
+              "label": "Meninges & Ear",
+              "icon": "🧠",
+              "professor": "Prof. Abeer"
+            }
+          ]
         },
         "final_exam": {
           "anatomy": [],
@@ -265,7 +272,8 @@
           "biochemistry": [],
           "histology": []
         }
-      }
+      },
+      "ongoing": true
     },
     {
       "id": "ENDO_REPRO",

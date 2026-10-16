@@ -15,6 +15,7 @@ Built with plain HTML, CSS, and JavaScript — no build step, no backend, no dep
 - [Repository Structure](#repository-structure)
 - [Adding Questions](#adding-questions)
 - [Crediting a Professor](#crediting-a-professor)
+- [Marking a Module as Ongoing](#marking-a-module-as-ongoing)
 - [JSON Question Format](#json-question-format)
 - [Adding a New Module](#adding-a-new-module)
 - [Adding a New Subject](#adding-a-new-subject)
@@ -267,6 +268,21 @@ Every question in this bank comes from a professor's exam guide. To show who wro
 - It appears as a badge on the topic's card in the topic list and on the topic's start page.
 - If the field is missing or empty, no badge is shown.
 - Going forward, use this field instead of adding the name to `label`.
+
+---
+
+## Marking a Module as Ongoing
+
+To highlight the module the class is currently studying, add `"ongoing": true` to that module in `config/modules.json`:
+
+```json
+{ "id": "CNS", "title": "CNS", "ongoing": true, ... }
+```
+
+- The module card shows an **Ongoing** badge.
+- An ongoing module is always listed first on the dashboard (the large card on desktop, the first card on phones).
+- If the student studies a different module, that module takes the first spot for 1 hour after its last activity, then the ongoing module returns to first. Studying the ongoing module again puts it straight back on top.
+- To stop highlighting a module, remove the field or set it to `false`.
 
 ---
 

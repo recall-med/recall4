@@ -425,13 +425,26 @@ const UI = {
     ].map(s => `<div class="stat-pill"><div class="stat-pill__value">${s.value}</div><div class="stat-pill__label">${s.label}</div></div>`).join('');
 
     // Most recently studied module first; never-studied modules keep config order (stable sort).
-    const visibleMods = config.modules
+    // A module flagged "ongoing" in config is pinned to the top. If another module was studied
+    // more recently than the ongoing one AND within the last hour, that module takes the top
+    // spot until the hour is up, then the ongoing module returns to first.
+    const byRecency = config.modules
       .filter(mod => {
         if (!countMap) return true;
         return Object.keys(countMap).some(k => k.startsWith(mod.id + '|') && countMap[k] > 0);
       })
       .map(mod => ({ mod, act: this._moduleActivity(mod, progressMap) }))
       .sort((x, y) => y.act.ts - x.act.ts);
+
+    const pinned = byRecency.filter(x => x.mod.ongoing);
+    const others = byRecency.filter(x => !x.mod.ongoing);
+    let visibleMods = byRecency;
+    if (pinned.length) {
+      const ONGOING_TAKEOVER_MS = 60 * 60 * 1000;
+      const lead = others[0];
+      const takeover = lead && lead.act.ts > pinned[0].act.ts && (Date.now() - lead.act.ts) < ONGOING_TAKEOVER_MS;
+      visibleMods = takeover ? [lead, ...pinned, ...others.slice(1)] : [...pinned, ...others];
+    }
 
     const arrowSvg = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
 
@@ -441,7 +454,7 @@ const UI = {
         <div class="module-card__header">
           <span class="module-card__icon">${this.moduleIcon(mod.id)}</span>
           <div class="module-card__meta">
-            <h3 class="module-card__title">${mod.title}</h3>
+            <div class="module-card__titlerow"><h3 class="module-card__title">${mod.title}</h3>${mod.ongoing ? '<span class="badge badge--ongoing">Ongoing</span>' : ''}</div>
             <p class="module-card__subtitle">${mod.fullTitle}</p>
             <p class="module-card__activity">${act.ts ? `Studied ${this._timeAgo(act.ts)}` : 'Not started yet'}</p>
           </div>

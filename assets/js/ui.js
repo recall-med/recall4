@@ -695,7 +695,7 @@ const UI = {
           <span class="topic-row__icon">${this.topicIcon()}</span>
           <div class="topic-row__text">
             <div class="topic-row__name">${ss.label}</div>
-            <div class="topic-row__meta">${qCount} Question${qCount === 1 ? '' : 's'}${prog.completed ? '' : ' · Not attempted'}</div>
+            <div class="topic-row__meta"><span>${qCount} Question${qCount === 1 ? '' : 's'}</span>${this.professorBadge(ss.professor)}</div>
           </div>
         </div>
         <div class="topic-row__right">
@@ -777,6 +777,7 @@ const UI = {
         <div>
           <h1 class="page__title">${ss.label}</h1>
           <p class="page__subtitle">${mod.title} · ${sub.label} · ${et.label}</p>
+          ${ss.professor ? `<div class="page__badges">${this.professorBadge(ss.professor)}</div>` : ''}
         </div>
       </header>
       ${rail}
@@ -1397,6 +1398,13 @@ const UI = {
   // One unified dot for every topic (topics are added over time, so no per-topic glyphs)
   topicIcon() {
     return '<svg class="topic-dot" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>';
+  },
+
+  // Professor badge — returns '' when no professor is set on the topic
+  professorBadge(name) {
+    if (!name) return '';
+    const safe = String(name).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return `<span class="badge badge--prof" title="Questions by ${safe}"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="badge--prof__text">${safe}</span></span>`;
   },
 
 

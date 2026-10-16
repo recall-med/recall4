@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "anatomy",
+    "subSubject": "csf_circulation",
+    "totalQuestions": 10
+  },
+  "questions": [
+    {
+      "question": "A patient has a mass obstructing the left interventricular foramen of Monro. Which ventricular compartment is expected to enlarge first?",
+      "options": [
+        "Fourth ventricle",
+        "Right lateral ventricle only",
+        "Left lateral ventricle",
+        "Third ventricle only"
+      ],
+      "answer": 2,
+      "explanation": "Obstruction of the left foramen of Monro traps CSF in the left lateral ventricle.",
+      "id": 1
+    },
+    {
+      "question": "A child has narrowing of the cerebral aqueduct. MRI shows ventricular enlargement above the obstruction. Which pattern is most likely?",
+      "options": [
+        "Enlarged lateral and third ventricles with a relatively normal fourth ventricle",
+        "Enlarged fourth ventricle only",
+        "Enlarged third and fourth ventricles with normal lateral ventricles",
+        "Enlargement of all ventricles equally"
+      ],
+      "answer": 0,
+      "explanation": "Aqueduct obstruction enlarges the upstream lateral and third ventricles; the fourth lies downstream.",
+      "id": 2
+    },
+    {
+      "question": "A patient has obstruction of both lateral apertures and the median aperture of the fourth ventricle. CSF is prevented from flowing directly into which compartment?",
+      "options": [
+        "Third ventricle",
+        "Lateral ventricles",
+        "Epidural space",
+        "Subarachnoid space"
+      ],
+      "answer": 3,
+      "explanation": "The fourth ventricular apertures allow CSF to enter the subarachnoid space.",
+      "id": 3
+    },
+    {
+      "question": "During surgery, the median outlet of the fourth ventricle is identified. What is its name?",
+      "options": [
+        "Foramen of Monro",
+        "Foramen of Magendie",
+        "Foramen of Luschka",
+        "Cerebral aqueduct"
+      ],
+      "answer": 1,
+      "explanation": "Magendie is the median aperture of the fourth ventricle.",
+      "id": 4
+    },
+    {
+      "question": "A lesion blocks the outlet at the lateral end of a fourth ventricular lateral recess. Which opening is affected?",
+      "options": [
+        "Cerebral aqueduct",
+        "Foramen of Monro",
+        "Foramen of Luschka",
+        "Foramen of Magendie"
+      ],
+      "answer": 2,
+      "explanation": "The paired foramina of Luschka are the lateral apertures.",
+      "id": 5
+    },
+    {
+      "question": "A tracer is introduced into a lateral ventricle. Which sequence describes its normal route toward the subarachnoid space?",
+      "options": [
+        "Monro → third ventricle → aqueduct → fourth ventricle → Magendie/Luschka",
+        "Aqueduct → third ventricle → Monro → fourth ventricle → Magendie/Luschka",
+        "Monro → fourth ventricle → aqueduct → third ventricle → Magendie/Luschka",
+        "Magendie → third ventricle → aqueduct → fourth ventricle → Monro"
+      ],
+      "answer": 0,
+      "explanation": "CSF passes through Monro, the third ventricle, the aqueduct, and the fourth ventricular outlets.",
+      "id": 6
+    },
+    {
+      "question": "Following meningitis, a patient develops scarring that impairs CSF absorption, although the ventricular pathways remain patent. Which structures are most directly affected?",
+      "options": [
+        "Denticulate ligaments",
+        "Cerebellar peduncles",
+        "Choroid plexuses",
+        "Arachnoid villi and granulations"
+      ],
+      "answer": 3,
+      "explanation": "Impaired absorption at arachnoid villi can cause communicating hydrocephalus.",
+      "id": 7
+    },
+    {
+      "question": "A student follows CSF absorption from the subarachnoid space through arachnoid granulations. Into which structure does much of this CSF drain?",
+      "options": [
+        "Internal carotid artery",
+        "Superior sagittal sinus",
+        "Cerebral aqueduct",
+        "Epidural venous plexus"
+      ],
+      "answer": 1,
+      "explanation": "Arachnoid granulations drain CSF into dural venous sinuses, especially the superior sagittal sinus.",
+      "id": 8
+    },
+    {
+      "question": "A patient develops increased dural venous sinus pressure. How can this interfere with CSF absorption through arachnoid villi?",
+      "options": [
+        "It directly blocks the foramina of Monro",
+        "It stops CSF production by all choroid plexuses",
+        "It reduces the pressure gradient driving CSF into venous blood",
+        "It forces all CSF into the spinal central canal"
+      ],
+      "answer": 2,
+      "explanation": "Absorption depends on CSF pressure exceeding venous sinus pressure.",
+      "id": 9
+    },
+    {
+      "question": "A ventricular tumor arises from the tissue responsible for producing most CSF. Which tissue is involved?",
+      "options": [
+        "Choroid plexus",
+        "Arachnoid granulations",
+        "Dura mater",
+        "Denticulate ligament"
+      ],
+      "answer": 0,
+      "explanation": "Choroid plexuses produce most CSF, principally within the lateral ventricles.",
+      "id": 10
+    }
+  ]
+}

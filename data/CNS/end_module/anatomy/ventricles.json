@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "anatomy",
+    "subSubject": "ventricles",
+    "totalQuestions": 10
+  },
+  "questions": [
+    {
+      "question": "An MRI shows a midline, slit-like cavity between the two thalami. Which ventricle is being identified?",
+      "options": [
+        "Fourth ventricle",
+        "Third ventricle",
+        "Right lateral ventricle",
+        "Left lateral ventricle"
+      ],
+      "answer": 1,
+      "explanation": "The third ventricle is a midline cavity between the thalami and hypothalamic regions.",
+      "id": 1
+    },
+    {
+      "question": "A tumor occupies a ventricular cavity posterior to the pons and upper medulla and anterior to the cerebellum. Which ventricle contains the tumor?",
+      "options": [
+        "Third ventricle",
+        "Lateral ventricle",
+        "Central canal",
+        "Fourth ventricle"
+      ],
+      "answer": 3,
+      "explanation": "The fourth ventricle lies between the brainstem anteriorly and cerebellum posteriorly.",
+      "id": 2
+    },
+    {
+      "question": "A lesion lies within the extension of a lateral ventricle into the frontal lobe, anterior to the interventricular foramen. Which part is involved?",
+      "options": [
+        "Anterior horn",
+        "Posterior horn",
+        "Inferior horn",
+        "Central part"
+      ],
+      "answer": 0,
+      "explanation": "The anterior horn extends into the frontal lobe.",
+      "id": 3
+    },
+    {
+      "question": "Imaging shows a cyst within the temporal lobe extension of the lateral ventricle. Which part contains the cyst?",
+      "options": [
+        "Central part",
+        "Anterior horn",
+        "Inferior horn",
+        "Posterior horn"
+      ],
+      "answer": 2,
+      "explanation": "The inferior horn extends into the temporal lobe.",
+      "id": 4
+    },
+    {
+      "question": "A ventricular catheter tip is positioned in the occipital lobe extension of the lateral ventricle. Where is the tip located?",
+      "options": [
+        "Inferior horn",
+        "Posterior horn",
+        "Anterior horn",
+        "Third ventricle"
+      ],
+      "answer": 1,
+      "explanation": "The posterior horn extends into the occipital lobe.",
+      "id": 5
+    },
+    {
+      "question": "During surgery, a thin sheet of white matter stretching between the superior cerebellar peduncles is identified in the upper roof of the fourth ventricle. What is it?",
+      "options": [
+        "Lamina terminalis",
+        "Inferior medullary velum",
+        "Tela choroidea of the third ventricle",
+        "Superior medullary velum"
+      ],
+      "answer": 3,
+      "explanation": "The superior medullary velum forms the upper part of the fourth ventricular roof.",
+      "id": 6
+    },
+    {
+      "question": "A focal lesion affects the facial colliculus in the floor of the fourth ventricle. Which anatomical relationship produces this elevation?",
+      "options": [
+        "Facial nerve fibers looping around the abducens nucleus",
+        "Trigeminal nerve fibers looping around the facial nucleus",
+        "Hypoglossal fibers looping around the vagal nucleus",
+        "Vestibular fibers looping around the cochlear nucleus"
+      ],
+      "answer": 0,
+      "explanation": "The facial colliculus is formed by the underlying abducens nucleus and looping facial nerve fibers.",
+      "id": 7
+    },
+    {
+      "question": "During inspection of the medullary part of the fourth ventricular floor, a surgeon identifies the hypoglossal trigone. Which nucleus lies beneath it?",
+      "options": [
+        "Abducens nucleus",
+        "Facial nucleus",
+        "Hypoglossal nucleus",
+        "Dorsal motor nucleus of the vagus"
+      ],
+      "answer": 2,
+      "explanation": "The hypoglossal trigone overlies the hypoglossal nucleus.",
+      "id": 8
+    },
+    {
+      "question": "A lesion damages the lamina terminalis and anterior commissure. Which wall of the third ventricle is involved?",
+      "options": [
+        "Posterior wall",
+        "Anterior wall",
+        "Roof",
+        "Floor"
+      ],
+      "answer": 1,
+      "explanation": "The lamina terminalis and anterior commissure contribute to the anterior wall.",
+      "id": 9
+    },
+    {
+      "question": "A mass projects into the third ventricle from the region of the optic chiasm, infundibulum, and mammillary bodies. Which boundary is involved?",
+      "options": [
+        "Roof",
+        "Anterior wall",
+        "Posterior wall",
+        "Floor"
+      ],
+      "answer": 3,
+      "explanation": "These structures contribute to the floor of the third ventricle.",
+      "id": 10
+    }
+  ]
+}

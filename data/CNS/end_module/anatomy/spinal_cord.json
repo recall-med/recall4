@@ -1,0 +1,287 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "anatomy",
+    "subSubject": "spinal_cord",
+    "totalQuestions": 23
+  },
+  "questions": [
+    {
+      "question": "A 24-year-old patient undergoes lumbar puncture at the L4–L5 intervertebral space. The procedure avoids the spinal cord because, in most adults, the cord terminates at which level?",
+      "options": [
+        "T11–T12",
+        "L1–L2",
+        "L3–L4",
+        "S1–S2"
+      ],
+      "answer": 1,
+      "explanation": "The adult spinal cord usually ends around L1–L2.",
+      "id": 1
+    },
+    {
+      "question": "During dissection, a student observes numerous nerve roots descending below the conus medullaris around the filum terminale. What is this collection called?",
+      "options": [
+        "Brachial plexus",
+        "Denticulate ligament",
+        "Cauda equina",
+        "Lumbar enlargement"
+      ],
+      "answer": 2,
+      "explanation": "The descending lumbar, sacral, and coccygeal nerve roots form the cauda equina.",
+      "id": 2
+    },
+    {
+      "question": "A patient develops weakness after an injury that selectively damages the anterior root of a spinal nerve. Which type of fibers is primarily affected?",
+      "options": [
+        "Motor fibers",
+        "Sensory fibers",
+        "Both motor and sensory fibers equally",
+        "Postganglionic sympathetic fibers only"
+      ],
+      "answer": 0,
+      "explanation": "Anterior roots carry motor fibers; posterior roots carry sensory fibers.",
+      "id": 3
+    },
+    {
+      "question": "A small lesion selectively damages the posterior horn of the spinal cord. Which function is most directly affected?",
+      "options": [
+        "Somatic motor output",
+        "CSF production",
+        "Sympathetic motor output",
+        "Sensory processing"
+      ],
+      "answer": 3,
+      "explanation": "The posterior horn receives and processes sensory input.",
+      "id": 4
+    },
+    {
+      "question": "A spinal cord section from the T10 segment shows a prominent lateral horn. Which neuronal population is associated with this region?",
+      "options": [
+        "Somatic motor neurons supplying skeletal muscle",
+        "Preganglionic sympathetic neurons",
+        "Sensory neurons with cell bodies in dorsal root ganglia",
+        "Cerebellar relay neurons"
+      ],
+      "answer": 1,
+      "explanation": "The lateral horn at T1–L2 contains preganglionic sympathetic neurons.",
+      "id": 5
+    },
+    {
+      "question": "Following an arterial occlusion, imaging shows ischemia involving the anterior two- thirds of the spinal cord. Which artery is most likely occluded?",
+      "options": [
+        "Posterior spinal artery",
+        "Posterior cerebral artery",
+        "Anterior spinal artery",
+        "Superior cerebellar artery"
+      ],
+      "answer": 2,
+      "explanation": "The anterior spinal artery supplies approximately the anterior two-thirds of the cord.",
+      "id": 6
+    },
+    {
+      "question": "During spinal surgery, a surgeon identifies tooth-like lateral extensions of pia mater passing between the anterior and posterior nerve roots to attach to dura. What are these structures?",
+      "options": [
+        "Denticulate ligaments",
+        "Arachnoid granulations",
+        "Filum terminale",
+        "Posterior longitudinal ligament"
+      ],
+      "answer": 0,
+      "explanation": "Denticulate ligaments are lateral pial extensions that stabilize the cord.",
+      "id": 7
+    },
+    {
+      "question": "An anesthetist introduces a needle into the spinal epidural space. Which structure is normally found in this space?",
+      "options": [
+        "Choroid plexus",
+        "Spinal cord",
+        "Arachnoid villi",
+        "Internal vertebral venous plexus"
+      ],
+      "answer": 3,
+      "explanation": "The spinal epidural space contains fat and the internal vertebral venous plexus.",
+      "id": 8
+    },
+    {
+      "question": "A lesion affects the C5–T1 spinal cord segments, where an enlargement supplies nerves to the upper limb. Which enlargement is involved?",
+      "options": [
+        "Lumbar enlargement",
+        "Cervical enlargement",
+        "Conus medullaris",
+        "Cauda equina"
+      ],
+      "answer": 1,
+      "explanation": "The cervical enlargement corresponds to segments supplying the upper limb through the brachial plexus.",
+      "id": 9
+    },
+    {
+      "question": "During a lumbar puncture, the needle enters a widened subarachnoid space containing CSF, the cauda equina, and the filum terminale. Which space has been entered?",
+      "options": [
+        "Epidural space",
+        "Subdural space",
+        "Lumbar cistern",
+        "Central canal"
+      ],
+      "answer": 2,
+      "explanation": "The lumbar cistern is the widened subarachnoid space below the conus medullaris.",
+      "id": 10
+    },
+    {
+      "question": "A 35-year-old man sustains a penetrating stab wound to the posterior neck. Imaging reveals injury to the structure continuing from the medulla oblongata at the level of the foramen magnum. Which structure is most likely affected?",
+      "options": [
+        "Brainstem",
+        "Medulla oblongata",
+        "Spinal cord",
+        "Cerebellum"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Spinal cord",
+      "id": 11
+    },
+    {
+      "question": "A newborn’s spinal cord extends to the level of the L3 vertebra. At what vertebral level does the spinal cord typically end in an adult?",
+      "options": [
+        "T12",
+        "L1–L2 intervertebral disc",
+        "L3–L4 intervertebral disc",
+        "L5 vertebra"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. L1–L2 intervertebral disc",
+      "id": 12
+    },
+    {
+      "question": "A 22-year-old male undergoes lumbar puncture for CSF analysis. The needle is inserted between L3 and L4. In which space is the needle tip located?",
+      "options": [
+        "Epidural space",
+        "Subdural space",
+        "Subarachnoid space (lumbar cistern)",
+        "Central canal"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Subarachnoid space (lumbar cistern)",
+      "id": 13
+    },
+    {
+      "question": "A lesion in the anterior horn of the spinal cord selectively affects which type of neurons?",
+      "options": [
+        "Sensory neurons",
+        "Motor neurons",
+        "Autonomic neurons only",
+        "Interneurons"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Motor neurons",
+      "id": 14
+    },
+    {
+      "question": "A 58-year-old woman presents with weakness in the upper limbs due to compression of spinal cord segments C5–T1. This region is known as the:",
+      "options": [
+        "Lumbar enlargement",
+        "Cervical enlargement",
+        "Medullary cone",
+        "Cauda equina"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Cervical enlargement",
+      "id": 15
+    },
+    {
+      "question": "During a spinal surgery, a surgeon identifies a thin thread-like structure extending from the conus medullaris to the coccyx. Which anatomical structure is this?",
+      "options": [
+        "Denticulate ligament",
+        "Filum terminale",
+        "Cauda equina",
+        "Posterior median septum"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Filum terminale",
+      "id": 16
+    },
+    {
+      "question": "A 46-year-old man with prostate carcinoma develops metastases in the brain. The spread occurred through valveless venous channels connecting the pelvic venous system and cranial venous sinuses. Which plexus is responsible?",
+      "options": [
+        "External vertebral venous plexus",
+        "Internal vertebral venous plexus",
+        "Azygos venous system",
+        "Brachial venous plexus"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Internal vertebral venous plexus",
+      "id": 17
+    },
+    {
+      "question": "A patient has ischemia of the anterior two-thirds of the spinal cord following occlusion of a major artery running in the anterior median fissure. Which artery is involved?",
+      "options": [
+        "Posterior spinal artery",
+        "Anterior spinal artery",
+        "Anterior radicular artery",
+        "Segmental medullary artery"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Anterior spinal artery",
+      "id": 18
+    },
+    {
+      "question": "An autopsy reveals a wedge-shaped midline fissure on the anterior aspect of the spinal cord. This is most precisely termed:",
+      "options": [
+        "Posterior median sulcus",
+        "Anterior median fissure",
+        "Anterolateral sulcus",
+        "Posterolateral sulcus"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Anterior median fissure",
+      "id": 19
+    },
+    {
+      "question": "A 27-year-old patient undergoes imaging for low back pain. MRI shows bundles of lumbar, sacral, and coccygeal roots floating in CSF below the conus medullaris. This collection is known as:",
+      "options": [
+        "Filum terminale",
+        "Cauda equina",
+        "Denticulate ligament",
+        "Posterior column"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Cauda equina",
+      "id": 20
+    },
+    {
+      "question": "A lesion limited to the lateral horn of the spinal cord at T1–L2 will mainly disrupt which function?",
+      "options": [
+        "Voluntary motor control",
+        "Sensation from the limbs",
+        "Autonomic (sympathetic) outflow",
+        "Reflex pathways"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Autonomic (sympathetic) outflow",
+      "id": 21
+    },
+    {
+      "question": "A 50-year-old patient suffers a herniated intervertebral disc compressing the posterior root of a spinal nerve. What symptoms should be expected?",
+      "options": [
+        "Motor paralysis",
+        "Loss of sensation",
+        "Increased reflexes",
+        "Muscle spasticity"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Loss of sensation",
+      "id": 22
+    },
+    {
+      "question": "A vascular neurosurgeon ligates a radicular artery supplying the lower thoracic spinal cord. Which artery’s flow may this vessel reinforce?",
+      "options": [
+        "Anterior spinal artery",
+        "Vertebral artery",
+        "Basilar artery",
+        "Circle of Willis"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Anterior spinal artery",
+      "id": 23
+    }
+  ]
+}

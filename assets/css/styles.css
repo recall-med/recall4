@@ -479,6 +479,22 @@ img { max-width: 100%; display: block; }
   border:     none;
   font-size:  .7rem;
 }
+.badge--prof {
+  gap:        5px;
+  max-width:  100%;
+  min-width:  0;
+  padding:    2px 9px 2px 7px;
+  background: var(--primary-50);
+  color:      var(--accent-text);
+  border-color: var(--border);
+  white-space: nowrap;
+}
+.badge--prof .icon {
+  width: 11px; height: 11px;
+  stroke-width: 2;
+}
+.badge--prof__text { overflow: hidden; text-overflow: ellipsis; }
+.page__badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
 /* ── Inputs ───────────────────────────────────────────────── */
 .input {
@@ -1130,14 +1146,17 @@ img { max-width: 100%; display: block; }
   text-overflow:  ellipsis;
 }
 .topic-row__meta {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
   font-size:   .75rem;
   color:       var(--text-3);
   font-weight: 500;
-  margin-top:  1px;
+  margin-top:  3px;
   white-space: nowrap;
   overflow:    hidden;
-  text-overflow: ellipsis;
 }
+.topic-row__meta > span:first-child { flex-shrink: 0; }
 .topic-row__right {
   display:     flex;
   align-items: center;

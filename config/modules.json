@@ -229,7 +229,32 @@
       "dataPath": "CNS",
       "subSubjects": {
         "end_module": {
-          "anatomy": [],
+          "anatomy": [
+            {
+              "id": "spinal_cord",
+              "label": "Spinal Cord",
+              "icon": "🧠",
+              "professor": "Prof. Samaa"
+            },
+            {
+              "id": "diencephalon",
+              "label": "Diencephalon",
+              "icon": "🧠",
+              "professor": "Prof. Samaa"
+            },
+            {
+              "id": "ventricles",
+              "label": "Ventricles",
+              "icon": "🧠",
+              "professor": "Prof. Samaa"
+            },
+            {
+              "id": "csf_circulation",
+              "label": "CSF Circulation",
+              "icon": "🧠",
+              "professor": "Prof. Samaa"
+            }
+          ],
           "physiology": [],
           "biochemistry": [],
           "histology": []

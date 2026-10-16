@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "anatomy",
+    "subSubject": "diencephalon",
+    "totalQuestions": 8
+  },
+  "questions": [
+    {
+      "question": "An MRI identifies a lesion in a large ovoid gray matter mass lying above the hypothalamic sulcus. Which structure is affected?",
+      "options": [
+        "Hypothalamus",
+        "Pineal gland",
+        "Thalamus",
+        "Subthalamus"
+      ],
+      "answer": 2,
+      "explanation": "The thalamus is the largest diencephalic subdivision and lies above the hypothalamic sulcus.",
+      "id": 1
+    },
+    {
+      "question": "A tumor involves both the medial and lateral geniculate bodies. Which subdivision of the diencephalon is affected?",
+      "options": [
+        "Epithalamus",
+        "Subthalamus",
+        "Hypothalamus",
+        "Metathalamus"
+      ],
+      "answer": 3,
+      "explanation": "The medial and lateral geniculate bodies constitute the metathalamus.",
+      "id": 2
+    },
+    {
+      "question": "Imaging reveals a mass involving the pineal gland and nearby habenular structures. Which diencephalic subdivision contains these structures?",
+      "options": [
+        "Metathalamus",
+        "Epithalamus",
+        "Subthalamus",
+        "Thalamus"
+      ],
+      "answer": 1,
+      "explanation": "The epithalamus includes the pineal gland and habenular structures.",
+      "id": 3
+    },
+    {
+      "question": "A small lesion is localized to a group of gray matter nuclei between the thalamus and midbrain. Which region is involved?",
+      "options": [
+        "Epithalamus",
+        "Metathalamus",
+        "Subthalamus",
+        "Hypothalamus"
+      ],
+      "answer": 2,
+      "explanation": "The subthalamus lies between the thalamus and midbrain.",
+      "id": 4
+    },
+    {
+      "question": "A radiologist describes a lesion involving the expanded posterior end of the thalamus, which overhangs the geniculate bodies. What is this part called?",
+      "options": [
+        "Pulvinar",
+        "Anterior tubercle",
+        "Infundibulum",
+        "Habenula"
+      ],
+      "answer": 0,
+      "explanation": "The pulvinar is the expanded posterior end of the thalamus.",
+      "id": 5
+    },
+    {
+      "question": "A thalamic mass extends laterally and reaches a major white matter pathway immediately adjacent to the thalamus. Which structure is most likely involved?",
+      "options": [
+        "Anterior commissure",
+        "Posterior limb of the internal capsule",
+        "Optic chiasm",
+        "Superior cerebellar peduncle"
+      ],
+      "answer": 1,
+      "explanation": "The posterior limb of the internal capsule lies lateral to the thalamus.",
+      "id": 6
+    },
+    {
+      "question": "During third ventricular endoscopy, a bridge of tissue is seen connecting the medial surfaces of the two thalami. What is this structure?",
+      "options": [
+        "Posterior commissure",
+        "Corpus callosum",
+        "Interthalamic adhesion",
+        "Anterior commissure"
+      ],
+      "answer": 2,
+      "explanation": "The interthalamic adhesion connects the medial surfaces of the thalami when present.",
+      "id": 7
+    },
+    {
+      "question": "A patient has a lesion involving the mammillary bodies and infundibular region. Which diencephalic subdivision is primarily involved?",
+      "options": [
+        "Hypothalamus",
+        "Metathalamus",
+        "Epithalamus",
+        "Subthalamus"
+      ],
+      "answer": 0,
+      "explanation": "The mammillary bodies and infundibular region belong to the hypothalamus.",
+      "id": 8
+    }
+  ]
+}

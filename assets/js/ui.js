@@ -520,7 +520,7 @@ const UI = {
       </section>
       <footer class="dashboard__footer">
         <p>Made by <strong>Kareem Farouk</strong> · Questions by Department Heads</p>
-        <p>Visit <a href="https://harvest-programme.web.app/index.html" target="_blank" rel="noopener noreferrer" class="harvest-link">Harvest Programme</a> & <a href="https://znu-pulse.vercel.app" target="_blank" rel="noopener noreferrer" class="pulse-link">ZNU Pulse</a></p>
+        <p>Visit <a href="https://harvest-programme.web.app/index.html" target="_blank" rel="noopener noreferrer" class="harvest-link">Redline Education</a> &amp; <a href="https://znu-pulse.vercel.app" target="_blank" rel="noopener noreferrer" class="pulse-link">ZNU Pulse</a></p>
       </footer>
     </div>
     `;

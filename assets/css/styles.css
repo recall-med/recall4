@@ -1801,15 +1801,17 @@ img { max-width: 100%; display: block; }
 }
 .dashboard__footer strong { color: var(--text-3); font-weight: 600; }
 .dashboard__footer p { margin: 4px 0; }
-.harvest-link {
-  color: var(--primary);
+.harvest-link,
+.pulse-link {
+  color: var(--accent-text);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
   transition: opacity .15s;
 }
-.harvest-link:hover { opacity: .75; }
+.harvest-link:hover,
+.pulse-link:hover { opacity: .75; }
 
 /* ── Toggle (settings) ────────────────────────────────────── */
 .toggle-row {

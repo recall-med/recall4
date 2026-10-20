@@ -248,7 +248,7 @@ img { max-width: 100%; display: block; }
   overflow:       hidden;
   text-overflow:  ellipsis;
 }
-.site-header__title em { color: var(--primary); font-style: normal; }
+.site-header__title em { color: var(--accent-text); font-style: normal; }
 .site-header__tagline {
   font-size:      .64rem;
   font-weight:    700;
@@ -1856,10 +1856,21 @@ img { max-width: 100%; display: block; }
   .stats-strip { flex-wrap: wrap; }
   .stat-pill   { min-width: calc(33.33% - 2px); }
 }
+@media (max-width: 339px) {
+  .site-header__tagline { display: none; }
+}
 @media (max-width: 640px) {
   #app { padding: 16px 14px 56px; }
   .dashboard__intro { flex-wrap: wrap; }
-  .site-header__tagline { display: none; }
+  .site-header__inner { padding: 0 16px; gap: 10px; }
+  .site-header__tagline {
+    font-size:      .625rem;
+    font-weight:    600;
+    letter-spacing: 0;
+    text-transform: none;
+    color:          var(--text-3);
+    white-space:    nowrap;
+  }
   .modules-grid { grid-template-columns: 1fr; }
   .exam-options-card { padding: 14px 16px; }
   .topic-panel { padding: 14px 16px; }

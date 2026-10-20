@@ -1856,7 +1856,7 @@ img { max-width: 100%; display: block; }
   .stats-strip { flex-wrap: wrap; }
   .stat-pill   { min-width: calc(33.33% - 2px); }
 }
-@media (max-width: 339px) {
+@media (max-width: 349px) {
   .site-header__tagline { display: none; }
 }
 @media (max-width: 640px) {

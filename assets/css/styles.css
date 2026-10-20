@@ -9,6 +9,15 @@
 /* ── Google Fonts ─────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
+/* RECALL wordmark: Krona One (Latin, ~10 KB, unmodified), self-hosted so it works offline. SIL OFL, see assets/fonts/OFL-Krona-One.txt */
+@font-face {
+  font-family:  'Krona One';
+  src:          url('../fonts/krona-one-400.woff2') format('woff2');
+  font-weight:  400;
+  font-style:   normal;
+  font-display: swap;
+}
+
 /* ── Design Tokens ────────────────────────────────────────── */
 :root {
   /* Brand */
@@ -234,27 +243,45 @@ img { max-width: 100%; display: block; }
 [data-theme="dark"] .site-header__mark--light { display: none; }
 [data-theme="dark"] .site-header__mark--dark  { display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,.35)); }
 .site-header__wordmark {
-  display:        flex;
-  flex-direction: column;
-  line-height:    1.15;
-  min-width:      0;
+  display:     flex;
+  align-items: center;
+  gap:         14px;
+  line-height: 1;
+  min-width:   0;
 }
+/* RECALL: wide wordmark with a left-to-right brand gradient (bright in both themes) */
 .site-header__title {
-  font-size:      1.02rem;
-  font-weight:    800;
-  letter-spacing: -.02em;
-  color:          var(--text);
+  --brand-from:   #1B3A6B;
+  --brand-to:     #2F6FE0;
+  font-family:    'Krona One', var(--font-body), sans-serif;
+  font-size:      1.3rem;
+  font-weight:    400;
+  letter-spacing: .06em;
+  line-height:    1;
+  white-space:    nowrap;
+  flex-shrink:    0;
+  color:          var(--brand-from);
+  background:     linear-gradient(90deg, var(--brand-from), var(--brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+[data-theme="dark"] .site-header__title { --brand-from: #7FA8EE; --brand-to: #B4D2FF; }
+/* Tagline: sits beside the wordmark behind a hairline divider (hidden on phones) */
+.site-header__tagline {
+  align-self:     stretch;
+  display:        flex;
+  align-items:    center;
+  padding-left:   14px;
+  border-left:    1px solid var(--border-strong);
+  font-size:      .64rem;
+  font-weight:    700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color:          var(--text-3);
   white-space:    nowrap;
   overflow:       hidden;
   text-overflow:  ellipsis;
-}
-.site-header__title em { color: var(--accent-text); font-style: normal; }
-.site-header__tagline {
-  font-size:      .64rem;
-  font-weight:    700;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-  color:          var(--text-4);
 }
 .site-header__actions {
   display:     flex;
@@ -289,8 +316,8 @@ img { max-width: 100%; display: block; }
 .theme-toggle__icon--moon { opacity: 1; transform: rotate(0) scale(1); }
 .theme-toggle__icon { transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease-bounce); }
 .theme-toggle--dark .theme-toggle__icon--moon { opacity: 0; transform: rotate(60deg) scale(.5); }
-.theme-toggle--dark .theme-toggle__icon--sun  { opacity: 1; transform: rotate(0) scale(1); color: #f0b429; }
-.theme-toggle--dark:hover { color: #f0b429; border-color: #f0b429; }
+.theme-toggle--dark .theme-toggle__icon--sun  { opacity: 1; transform: rotate(0) scale(1); }
+.theme-toggle--dark:hover { color: var(--text); border-color: var(--text-3); }
 
 @keyframes pageEnter {
   from { opacity: 0; transform: translateY(8px); }
@@ -1856,21 +1883,11 @@ img { max-width: 100%; display: block; }
   .stats-strip { flex-wrap: wrap; }
   .stat-pill   { min-width: calc(33.33% - 2px); }
 }
-@media (max-width: 349px) {
-  .site-header__tagline { display: none; }
-}
 @media (max-width: 640px) {
   #app { padding: 16px 14px 56px; }
   .dashboard__intro { flex-wrap: wrap; }
-  .site-header__inner { padding: 0 16px; gap: 10px; }
-  .site-header__tagline {
-    font-size:      .625rem;
-    font-weight:    600;
-    letter-spacing: 0;
-    text-transform: none;
-    color:          var(--text-3);
-    white-space:    nowrap;
-  }
+  .site-header__inner { padding: 0 14px; }   /* lines up with the 14px page padding */
+  .site-header__tagline { display: none; }
   .modules-grid { grid-template-columns: 1fr; }
   .exam-options-card { padding: 14px 16px; }
   .topic-panel { padding: 14px 16px; }

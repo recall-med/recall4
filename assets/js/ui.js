@@ -500,8 +500,8 @@ const UI = {
     <div class="dashboard">
       <div class="dashboard__intro">
         <div>
-          <h1 class="dashboard__greeting">Welcome back</h1>
-          <p class="dashboard__subgreeting">ZNU medical students, the A⁺ is waiting...</p>
+          <h1 class="dashboard__greeting">Welcome, Batch #4.</h1>
+          <p class="dashboard__subgreeting">By Your Professors.</p>
         </div>
         <div class="dashboard__quickactions">
           ${reviewBtn}

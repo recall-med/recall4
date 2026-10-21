@@ -190,11 +190,10 @@ img { max-width: 100%; display: block; }
   top:             0;
   z-index:         500;
   height:          var(--header-h);
-  /* hero-card gradient laid over a soft blue/green glow so the glass has something to blur */
+  /* hero-card gradient laid over a soft blue glow so the glass has something to blur */
   background:
     linear-gradient(135deg, var(--primary-50), var(--surface) 65%),
-    radial-gradient(circle at 20% 50%, rgba(47,111,224,.35) 0, transparent 30%),
-    radial-gradient(circle at 75% 40%, rgba(45,150,165,.35) 0, transparent 25%);
+    radial-gradient(circle at 20% 50%, rgba(47,111,224,.35) 0, transparent 30%);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom:   1px solid var(--border);
@@ -263,6 +262,7 @@ img { max-width: 100%; display: block; }
   flex-shrink:    0;
   color:          var(--accent-text);
 }
+[data-theme="dark"] .site-header__title { color: var(--text); }
 /* Tagline: sits beside the wordmark behind a hairline divider (hidden on phones) */
 .site-header__tagline {
   align-self:     stretch;

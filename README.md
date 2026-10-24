@@ -1,6 +1,6 @@
-# Dept. Q. Bank
+# Recall (previously Dept. Q. Bank)
 
-A professional, offline-first medical question bank for GitHub Pages.
+A professional, offline-first medical question bank for ZNU Med students.
 Built with plain HTML, CSS, and JavaScript — no build step, no backend, no dependencies.
 
 ---
@@ -29,7 +29,7 @@ Built with plain HTML, CSS, and JavaScript — no build step, no backend, no dep
 
 ## Overview
 
-Dept. Q. Bank is a self-hosted medical question bank platform for practising multiple-choice questions across five medical modules:
+Recall is a self-hosted medical question bank platform for practising multiple-choice questions across five medical modules:
 
 | Module | Full Title |
 |--------|-----------|

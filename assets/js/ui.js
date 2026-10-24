@@ -1007,7 +1007,7 @@ const UI = {
       const sub   = config.subjects.find(s => s.id === engine.config.subject);
       const subSubs = (modObj?.subSubjects?.[engine.config.examType]?.[engine.config.subject]) || [];
       const ss    = subSubs.find(s => s.id === engine.config.subSubject) || { label: engine.config.subSubject };
-      sidebarTitle = `${this.topicIcon()}${ss.label}`;
+      sidebarTitle = ss.label;
       sidebarSub   = `${sub?.label} · ${et?.label}`;
     }
 

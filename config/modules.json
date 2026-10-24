@@ -255,7 +255,13 @@
               "professor": "Prof. Samaa"
             }
           ],
-          "physiology": [],
+          "physiology": [
+            {
+              "id": "general_physiology",
+              "label": "General Physiology",
+              "icon": "🧠"
+            }
+          ],
           "biochemistry": [],
           "histology": [
             {

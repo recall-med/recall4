@@ -1,6 +1,6 @@
 /*
  * ============================================================
- * DEPT. Q. BANK — styles.css  (v3 — Modern SaaS Redesign)
+ * Recall — styles.css  (v3 — Modern SaaS Redesign)
  * ============================================================
  * Design: Modern SaaS · Glassmorphism · DM Sans · Left-border cards
  * ============================================================
@@ -9,7 +9,7 @@
 /* ── Google Fonts ─────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&family=DM+Serif+Display&display=swap');
 
-/* RECALL wordmark: Krona One (Latin, ~10 KB, unmodified), self-hosted so it works offline. SIL OFL, see assets/fonts/OFL-Krona-One.txt */
+/* Recall wordmark: Krona One (Latin, ~10 KB, unmodified), self-hosted so it works offline. SIL OFL, see assets/fonts/OFL-Krona-One.txt */
 @font-face {
   font-family:  'Krona One';
   src:          url('../fonts/krona-one-400.woff2') format('woff2');

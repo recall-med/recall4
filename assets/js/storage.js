@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * DEPT. Q. BANK — storage.js  (v2 — sub-subject support)
+ * Recall — storage.js  (v2 — sub-subject support)
  * ============================================================
  */
 

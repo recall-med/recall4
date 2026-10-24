@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * DEPT. Q. BANK — ui.js  (v3 — subject & exam-type wide exams)
+ * Recall — ui.js  (v3 — subject & exam-type wide exams)
  * ============================================================
  */
 

@@ -97,7 +97,7 @@ const App = {
     this.currentParams = params;
     Storage.saveLastPage({ page, params });
     history.pushState({ page, params }, '', '#' + page);
-    this._renderPage(page, params);
+    this._safeRender(page, params);
   },
 
   _navigateWithoutHistory(page, params = {}) {
@@ -105,7 +105,23 @@ const App = {
     this.currentPage   = page;
     this.currentParams = params;
     Storage.saveLastPage({ page, params });
-    this._renderPage(page, params);
+    this._safeRender(page, params);
+  },
+
+  // Never leave the person on an endless loading screen: if a page fails to render, say so and offer a reload.
+  _safeRender(page, params) {
+    return Promise.resolve(this._renderPage(page, params)).catch(err => this._showRenderError(err));
+  },
+
+  _showRenderError(err) {
+    console.error('[Recall] Page failed to render:', err);
+    const msg = String((err && err.message) || err).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    UI.setContent(`<div class="error-screen">
+      <h2>This page could not be displayed</h2>
+      <p>Try reloading. If it keeps happening, some site files may be out of date, so reload again after the next update finishes publishing.</p>
+      <pre>${msg}</pre>
+      <button class="btn btn--primary" onclick="location.reload()">Reload</button>
+    </div>`, 'swap');
   },
 
   async _renderPage(page, params) {
@@ -928,6 +944,7 @@ const App = {
       if (!refreshable.includes(this.currentPage)) return;
       UI._silent = true;
       Promise.resolve(this._renderPage(this.currentPage, this.currentParams))
+        .catch(() => {})
         .finally(() => { UI._silent = false; });
     });
   },

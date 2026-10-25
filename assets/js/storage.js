@@ -37,6 +37,13 @@ const Storage = {
 
   _delete(key) { localStorage.removeItem(key); },
 
+  // ─── Question-count cache ─────────────────────────────────────────────────
+  // Remembers how many questions each topic file has, so pages can open instantly
+  // instead of waiting on every data file. Deliberately NOT in STORAGE_KEYS: it is
+  // not user progress, so Reset Progress must not clear it.
+  getCountCache()      { return this._get('dqb_count_cache') || {}; },
+  saveCountCache(map)  { this._set('dqb_count_cache', map); },
+
   // ─── Stats ────────────────────────────────────────────────────────────────
 
   getStats() {

@@ -136,7 +136,8 @@ See [Deployment to GitHub Pages](#deployment-to-github-pages).
 │       ├── app.js          Main application controller and navigation
 │       ├── storage.js      LocalStorage persistence layer
 │       ├── exam.js         Exam engine (loading, scoring, state)
-│       └── ui.js           UI rendering functions
+│       ├── ui.js           UI rendering functions
+│       └── ui-skeletons.js Loading skeletons (adds to UI; loads after ui.js)
 │
 ├── config/
 │   └── modules.json        Site configuration, modules, subjects

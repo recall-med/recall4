@@ -7,7 +7,7 @@
  */
 
 /* ── Google Fonts ─────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&family=DM+Serif+Display&display=swap');
+/* Google Fonts are loaded from a <link> in index.html (an @import here makes the browser fetch them one step later) */
 
 /* Recall wordmark: Krona One (Latin, ~10 KB, unmodified), self-hosted so it works offline. SIL OFL, see assets/fonts/OFL-Krona-One.txt */
 @font-face {
@@ -2919,3 +2919,25 @@ img { max-width: 100%; display: block; }
 .redline-link:hover { opacity: .8; }
 .redline-link:hover .icon { transform: translate(1px, -1px); }
 .redline-link:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+/* ── Page transitions ─────────────────────────────────────────
+   'enter': the page fades in and its parts rise in one after another (--i is set in UI.setContent).
+   'swap' : quick fade, used for a skeleton and for the real page replacing it.
+   Uses the individual `translate` property so it never fights hover/carousel `transform`s. */
+@keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes riseIn   { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+
+.page-enter { animation: pageFade .18s var(--ease-out) both; }
+.page-swap  { animation: pageFade .14s var(--ease-out) both; }
+
+.page-enter :is(.breadcrumb, .page__header, .resume-banner, .stats-strip, .exam-type-header,
+                .subjects-list, .topics-list, .modules-grid .module-card, .topic-panel) {
+  animation:       riseIn .3s var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .page-swap,
+  .page-enter :is(.breadcrumb, .page__header, .resume-banner, .stats-strip, .exam-type-header,
+                  .subjects-list, .topics-list, .modules-grid .module-card, .topic-panel) { animation: none; }
+}

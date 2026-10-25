@@ -2941,3 +2941,5 @@ img { max-width: 100%; display: block; }
   .page-enter :is(.breadcrumb, .page__header, .resume-banner, .stats-strip, .exam-type-header,
                   .subjects-list, .topics-list, .modules-grid .module-card, .topic-panel) { animation: none; }
 }
+
+.error-screen .btn { margin-top: 14px; }

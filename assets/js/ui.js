@@ -8,8 +8,8 @@ const UI = {
 
   get root() { return document.getElementById('app'); },
 
-  // Page parts that rise in one after another on a normal page change.
-  _STAGGER: '.breadcrumb, .page__header, .resume-banner, .stats-strip, .exam-type-header, .subjects-list, .topics-list, .modules-grid .module-card, .topic-panel',
+  // The dashboard's module cards cascade in one after another; everything else rises in as one piece.
+  _STAGGER: '.modules-grid .module-card',
 
   // mode: 'enter' = parts rise in one after another (normal page change)
   //       'swap'  = quick fade (used for a skeleton, and for the real page replacing it)
@@ -21,7 +21,7 @@ const UI = {
     if (mode === 'none') return;
     void this.root.offsetWidth;
     if (mode === 'swap') { this.root.classList.add('page-swap'); return; }
-    this.root.querySelectorAll(this._STAGGER).forEach((el, n) => el.style.setProperty('--i', Math.min(n, 9)));
+    this.root.querySelectorAll(this._STAGGER).forEach((el, n) => el.style.setProperty('--i', Math.min(n, 4)));
     this.root.classList.add('page-enter');
   },
 

@@ -32,6 +32,8 @@ const App = {
 
     this._initTheme();
     document.addEventListener('click', e => this._handleGlobalClick(e));
+    // iOS Safari only applies :active (the press feedback) when a touch listener exists on the page
+    document.addEventListener('touchstart', () => {}, { passive: true });
 
     document.addEventListener('visibilitychange', () => {
       const onExamScreen = this.currentPage === 'exam' || this.currentPage === 'resume-exam';

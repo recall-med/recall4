@@ -14,11 +14,14 @@ const App = {
   // ─── Bootstrap ───────────────────────────────────────────────────────────
 
   async init() {
-    UI.setContent(UI.skeletonAppBoot());
+    // Only show the boot skeleton if the config is slow to arrive; on a normal visit it would just flash.
+    const bootTimer = setTimeout(() => UI.setContent(UI.skeletonAppBoot(), 'swap'), 150);
     try {
       this.config = await this._loadConfig();
+      clearTimeout(bootTimer);
       document.title = this.config.siteTitle;
     } catch (e) {
+      clearTimeout(bootTimer);
       UI.setContent(`<div class="error-screen">
         <h2>⚠️ Configuration Error</h2>
         <p>Could not load <code>config/modules.json</code>. Check the file exists and is valid JSON.</p>
@@ -111,12 +114,13 @@ const App = {
       case 'dashboard': {
         const progress = Storage.getProgress();
         const stats    = Storage.getStats();
-        UI.setContent(UI.skeletonDashboard());
+        const warm = this._hasAllCounts(this.config);
+        if (!warm) UI.setContent(UI.skeletonDashboard(), 'swap');
         const countMap  = await this._buildCountMap(this.config);
         const savedExam = Storage.loadCurrentExam();
         const resumeBannerHTML = (savedExam && !savedExam.state?.submitted)
           ? UI.renderResumeBanner(savedExam, this.config) : '';
-        UI.setContent(UI.renderDashboard(this.config, progress, stats, countMap, resumeBannerHTML));
+        UI.setContent(UI.renderDashboard(this.config, progress, stats, countMap, resumeBannerHTML), warm ? 'enter' : 'swap');
         UI.initModuleCarousel();
         this._applyThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
         break;
@@ -126,9 +130,10 @@ const App = {
         const mod = this._getModule(params.moduleId);
         if (!mod) { this.navigate('dashboard'); break; }
         const progress = Storage.getProgress();
-        UI.setContent(UI.skeletonModule());
+        const warm = this._hasAllCounts(this.config, mod);
+        if (!warm) UI.setContent(UI.skeletonModule(), 'swap');
         const countMap = await this._buildCountMap(this.config, mod);
-        UI.setContent(UI.renderModule(mod, this.config, progress, countMap));
+        UI.setContent(UI.renderModule(mod, this.config, progress, countMap), warm ? 'enter' : 'swap');
         break;
       }
 
@@ -140,9 +145,10 @@ const App = {
         if (!mod) { this.navigate('dashboard'); break; }
         const subSubjects = (mod.subSubjects && mod.subSubjects[et] && mod.subSubjects[et][subject]) || [];
         const progress    = Storage.getProgress();
-        UI.setContent(UI.skeletonSubject());
+        const warm = this._hasAllCounts(this.config, mod);
+        if (!warm) UI.setContent(UI.skeletonSubject(), 'swap');
         const countMap = await this._buildCountMap(this.config, mod);
-        UI.setContent(UI.renderSubject(mod, et, subject, subSubjects, progress, this.config, countMap));
+        UI.setContent(UI.renderSubject(mod, et, subject, subSubjects, progress, this.config, countMap), warm ? 'enter' : 'swap');
         this._bindSubjectPageEvents(mod, et, subject, subSubjects, countMap);
         break;
       }
@@ -154,10 +160,18 @@ const App = {
         const et         = params.examType;
         const subSubject = params.subSubject;
         if (!mod) { this.navigate('dashboard'); break; }
-        UI.setContent(UI.skeletonSubSubject());
-        const count    = await this._getQuestionCount(mod, et, subject, subSubject);
+        const ssKey = this._countKey(mod, et, subject, subSubject);
+        const known = this._counts()[ssKey];
+        let count;
+        if (known !== undefined) {
+          count = known;
+          this._revalidateCounts([{ key: ssKey, m: mod, et, sub: subject, ss: subSubject }]);
+        } else {
+          UI.setContent(UI.skeletonSubSubject(), 'swap');
+          count = await this._getQuestionCount(mod, et, subject, subSubject);
+        }
         const progress = Storage.getSubjectProgress(mod.id, et, subject, subSubject);
-        UI.setContent(UI.renderSubSubject(mod, et, subject, subSubject, count, progress, this.config));
+        UI.setContent(UI.renderSubSubject(mod, et, subject, subSubject, count, progress, this.config), known !== undefined ? 'enter' : 'swap');
         this._bindSubSubjectEvents(mod, et, subject, subSubject);
         break;
       }
@@ -166,10 +180,11 @@ const App = {
       case 'wide-exam-start': {
         const mod = this._getModule(params.moduleId);
         if (!mod) { this.navigate('dashboard'); break; }
-        UI.setContent(UI.skeletonWideExamStart());
+        const warm = this._hasAllCounts(this.config, mod);
+        if (!warm) UI.setContent(UI.skeletonWideExamStart(), 'swap');
         const countMap  = await this._buildCountMap(this.config, mod);
         const totalCount = await this._getWideQuestionCount(mod, params.examType, params.subject, params.scope, countMap);
-        UI.setContent(UI.renderWideExamStart(mod, params, totalCount, this.config));
+        UI.setContent(UI.renderWideExamStart(mod, params, totalCount, this.config), warm ? 'enter' : 'swap');
         this._bindWideExamStartEvents(mod, params);
         break;
       }
@@ -821,13 +836,24 @@ const App = {
 
   // ─── Config / data loaders ────────────────────────────────────────────────
 
+  _countCache:    null,
+  _countsChecked: new Set(),
+
   async _loadConfig() {
     const res = await fetch('config/modules.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   },
 
-  async _buildCountMap(config, mod = null) {
+  // ─── Question counts (cached) ─────────────────────────────────────────────
+  // Counts come from a small cache in LocalStorage, so pages open instantly. Only topics
+  // that have never been counted are fetched before showing a page. After showing it, the
+  // files are re-checked in the background (once per visit) and the page quietly refreshes
+  // if a count changed (e.g. new questions were added).
+
+  _countKey(m, et, sub, ss) { return `${m.id}|${et}|${sub}|${ss}`; },
+
+  _countEntries(config, mod = null) {
     const mods = mod ? [mod] : (config.modules || []);
     const entries = [];
     for (const m of mods) {
@@ -835,15 +861,75 @@ const App = {
         for (const sub of (config.subjects || [])) {
           const subs = (m.subSubjects && m.subSubjects[et.id] && m.subSubjects[et.id][sub.id]) || [];
           for (const ss of subs) {
-            entries.push({ key: `${m.id}|${et.id}|${sub.id}|${ss.id}`, m, et: et.id, sub: sub.id, ss: ss.id });
+            entries.push({ key: this._countKey(m, et.id, sub.id, ss.id), m, et: et.id, sub: sub.id, ss: ss.id });
           }
         }
       }
     }
-    const results = await Promise.all(
-      entries.map(e => this._getQuestionCount(e.m, e.et, e.sub, e.ss).then(n => [e.key, n]))
-    );
-    return Object.fromEntries(results);
+    return entries;
+  },
+
+  _counts() {
+    if (!this._countCache) this._countCache = Storage.getCountCache();
+    return this._countCache;
+  },
+
+  // True when every topic for this page already has a remembered count (no waiting needed)
+  _hasAllCounts(config, mod = null) {
+    const cache = this._counts();
+    return this._countEntries(config, mod).every(e => e.key in cache);
+  },
+
+  // Fetch one topic's count. Returns null only when the network failed (so nothing wrong gets remembered).
+  async _fetchCount(e) {
+    let res;
+    try { res = await fetch(`data/${e.m.dataPath}/${e.et}/${e.sub}/${e.ss}.json`); }
+    catch { return null; }
+    if (!res.ok) return res.status === 404 ? 0 : null;
+    try {
+      const data = await res.json();
+      return Array.isArray(data.questions) ? data.questions.length : 0;
+    } catch { return 0; }
+  },
+
+  async _buildCountMap(config, mod = null) {
+    const entries = this._countEntries(config, mod);
+    const cache   = this._counts();
+    const missing = entries.filter(e => !(e.key in cache));
+    if (missing.length) {
+      const results = await Promise.all(missing.map(e => this._fetchCount(e).then(n => [e, n])));
+      let saved = false;
+      for (const [e, n] of results) {
+        if (n === null) continue;
+        cache[e.key] = n;
+        this._countsChecked.add(e.key);
+        saved = true;
+      }
+      if (saved) Storage.saveCountCache(cache);
+    }
+    this._revalidateCounts(entries);
+    return Object.fromEntries(entries.map(e => [e.key, cache[e.key] || 0]));
+  },
+
+  // Re-check files in the background; refresh the open page quietly if anything changed
+  _revalidateCounts(entries) {
+    const stale = entries.filter(e => !this._countsChecked.has(e.key));
+    if (!stale.length) return;
+    stale.forEach(e => this._countsChecked.add(e.key));
+    const cache = this._counts();
+    Promise.all(stale.map(e => this._fetchCount(e).then(n => [e, n]))).then(results => {
+      let changed = false;
+      for (const [e, n] of results) {
+        if (n !== null && cache[e.key] !== n) { cache[e.key] = n; changed = true; }
+      }
+      if (!changed) return;
+      Storage.saveCountCache(cache);
+      const refreshable = ['dashboard', 'module', 'subject', 'subsubject', 'wide-exam-start'];
+      if (!refreshable.includes(this.currentPage)) return;
+      UI._silent = true;
+      Promise.resolve(this._renderPage(this.currentPage, this.currentParams))
+        .finally(() => { UI._silent = false; });
+    });
   },
 
   async _getQuestionCount(mod, examType, subject, subSubject) {

@@ -2943,3 +2943,15 @@ img { max-width: 100%; display: block; }
 }
 
 .error-screen .btn { margin-top: 14px; }
+
+/* ── Exam: moving between questions ───────────────────────────
+   The sidebar, palette and header never re-animate (they are identical between questions);
+   only the question card and its options ease in, quickly. The explanation eases in whenever it appears. */
+@keyframes questionIn { from { opacity: .3; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+.exam-q-change .question-card { animation: questionIn .2s var(--ease-out) backwards; }
+.exam-q-change .options-list  { animation: questionIn .22s var(--ease-out) 40ms backwards; }
+.exam-layout .explanation-box { animation: questionIn .22s var(--ease-out) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .exam-q-change .question-card, .exam-q-change .options-list, .exam-layout .explanation-box { animation: none; }
+}

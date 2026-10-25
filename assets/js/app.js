@@ -206,8 +206,9 @@ const App = {
       }
 
       case 'exam': {
-        UI.setContent(UI.skeletonExam());
+        const skelTimer = setTimeout(() => UI.setContent(UI.skeletonExam(), 'swap'), 150);
         const started = await this._startExam(params);
+        clearTimeout(skelTimer);
         if (!started) {
           // Go back to appropriate page
           if (params.scope === 'examtype') {
@@ -225,8 +226,9 @@ const App = {
       }
 
       case 'resume-exam': {
-        UI.setContent(UI.skeletonExam());
+        const skelTimer = setTimeout(() => UI.setContent(UI.skeletonExam(), 'swap'), 150);
         const resumed = await ExamEngine.resume();
+        clearTimeout(skelTimer);
         if (!resumed) { this.navigate('dashboard'); break; }
         this._renderExam();
         this._bindExamEvents();
@@ -454,16 +456,16 @@ const App = {
       const palBtn = e.target.closest('.palette-btn');
       if (palBtn && palBtn.dataset.goto !== undefined) {
         ExamEngine.goTo(parseInt(palBtn.dataset.goto, 10));
-        this._renderExam();
+        this._renderExam('change');
       }
 
       if (e.target.closest('#next-btn')) {
         ExamEngine.next();
-        this._renderExam();
+        this._renderExam('change');
       }
       if (e.target.closest('#prev-btn')) {
         ExamEngine.prev();
-        this._renderExam();
+        this._renderExam('change');
       }
 
       if (e.target.id === 'flag-btn' || e.target.closest('#flag-btn')) {
@@ -496,8 +498,11 @@ const App = {
   // Single entry point for (re)drawing the exam screen. Always lands at the top of the
   // new question and keeps the current palette chip in view (palette scrolls on long exams
   // and is a horizontal strip on mobile).
-  _renderExam() {
-    UI.setContent(UI.renderExam(ExamEngine, this.config));
+  // kind: 'enter'  = opening the exam (one quick fade)
+  //       'change' = moving between questions: nothing flashes; only the question and its options ease in
+  _renderExam(kind = 'enter') {
+    UI.setContent(UI.renderExam(ExamEngine, this.config), kind === 'change' ? 'none' : 'swap');
+    UI.root.classList.toggle('exam-q-change', kind === 'change');
     window.scrollTo(0, 0);
     document.querySelectorAll('.exam-layout .palette').forEach(pal => {
       const cur = pal.querySelector('.palette-btn--current');

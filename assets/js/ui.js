@@ -17,7 +17,7 @@ const UI = {
   setContent(html, mode = 'enter') {
     if (this._silent) mode = 'none';
     this.root.innerHTML = html;
-    this.root.classList.remove('page-enter', 'page-swap');
+    this.root.classList.remove('page-enter', 'page-swap', 'exam-q-change');
     if (mode === 'none') return;
     void this.root.offsetWidth;
     if (mode === 'swap') { this.root.classList.add('page-swap'); return; }

@@ -2911,38 +2911,63 @@ img { max-width: 100%; display: block; }
 .redline-link:hover .icon { transform: translate(1px, -1px); }
 .redline-link:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; border-radius: var(--radius-sm); }
 
-/* ── Page transitions ─────────────────────────────────────────
-   'enter': the page fades in and its parts rise in one after another (--i is set in UI.setContent).
-   'swap' : quick fade, used for a skeleton and for the real page replacing it.
-   Uses the individual `translate` property so it never fights hover/carousel `transform`s. */
+/* ── Motion ───────────────────────────────────────────────────
+   Principles (after Emil Kowalski's animation guidance):
+   - strong ease-out for anything entering: it reacts instantly, then settles (the built-in curves are too weak)
+   - nothing over 300ms; only opacity / translate / scale are animated
+   - frequent actions (moving between questions) get almost no motion; one-off moments (opening the dashboard) get a little more
+   - pressing something gives immediate tactile feedback
+   - reduced-motion keeps quick fades but drops movement
+   Uses the individual `translate` / `scale` properties so it never fights existing `transform`s. */
+:root { --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1); }
+
 @keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes riseIn   { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes pageRise { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+@keyframes cardIn   { from { opacity: 0; translate: 0 10px; scale: .985; } to { opacity: 1; translate: 0 0; scale: 1; } }
 
-.page-enter { animation: pageFade .18s var(--ease-out) both; }
-.page-swap  { animation: pageFade .14s var(--ease-out) both; }
+/* 'swap': a skeleton appearing, or the real page replacing it: just a quick fade */
+.page-swap  { animation: pageFade .14s var(--ease-out-strong) both; }
 
-.page-enter :is(.breadcrumb, .page__header, .resume-banner, .stats-strip, .exam-type-header,
-                .subjects-list, .topics-list, .modules-grid .module-card, .topic-panel) {
-  animation:       riseIn .3s var(--ease-out) backwards;
-  animation-delay: calc(var(--i, 0) * 30ms);
+/* 'enter': the page rises in as one piece. The dashboard instead lets its module cards cascade. */
+.page-enter { animation: pageFade .16s var(--ease-out-strong) both; }
+.page-enter > :not(.dashboard) { animation: pageRise .26s var(--ease-out-strong) backwards; }
+.page-enter .modules-grid .module-card {
+  animation:       cardIn .3s var(--ease-out-strong) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .page-enter, .page-swap,
-  .page-enter :is(.breadcrumb, .page__header, .resume-banner, .stats-strip, .exam-type-header,
-                  .subjects-list, .topics-list, .modules-grid .module-card, .topic-panel) { animation: none; }
+/* Pressing: immediate, tactile */
+.module-card, .modules-grid .module-card {
+  transition: box-shadow .18s ease, background .18s ease, transform .18s ease, scale .16s var(--ease-out-strong);
 }
+.subject-card, .topic-row { transition: background .18s ease, scale .16s var(--ease-out-strong); }
+.option                   { transition: background .18s ease, opacity .18s ease, scale .16s var(--ease-out-strong); }
+.btn {
+  transition: background .18s cubic-bezier(.4,0,.2,1), border-color .18s cubic-bezier(.4,0,.2,1),
+              box-shadow .18s cubic-bezier(.4,0,.2,1), transform .18s cubic-bezier(.4,0,.2,1),
+              scale .16s var(--ease-out-strong);
+}
+.icon-btn, .quick-icon-btn, .topic-action-btn {
+  transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease,
+              scale .16s var(--ease-out-strong);
+}
+.module-card:active, .subject-card:active, .topic-row:active, .option:not([disabled]):active,
+.palette-btn:active { scale: .98; }
+.btn:active, .icon-btn:active, .quick-icon-btn:active, .topic-action-btn:active { scale: .97; }
 
 .error-screen .btn { margin-top: 14px; }
 
-/* ── Exam: moving between questions ───────────────────────────
-   The sidebar, palette and header never re-animate (they are identical between questions);
-   only the question card and its options ease in, quickly. The explanation eases in whenever it appears. */
-@keyframes questionIn { from { opacity: .3; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
-.exam-q-change .question-card { animation: questionIn .2s var(--ease-out) backwards; }
-.exam-q-change .options-list  { animation: questionIn .22s var(--ease-out) 40ms backwards; }
-.exam-layout .explanation-box { animation: questionIn .22s var(--ease-out) backwards; }
+/* Exam: moving between questions happens constantly, so it is nearly motionless: the sidebar, palette
+   and header never re-animate, and only the question and its options settle in with a soft fade. */
+@keyframes questionIn { from { opacity: .55; } to { opacity: 1; } }
+@keyframes noteIn     { from { opacity: 0; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }
+.exam-q-change .question-card { animation: questionIn .14s var(--ease-out-strong) backwards; }
+.exam-q-change .options-list  { animation: questionIn .16s var(--ease-out-strong) backwards; }
+.exam-layout .explanation-box { animation: noteIn .2s var(--ease-out-strong) backwards; }
 
 @media (prefers-reduced-motion: reduce) {
-  .exam-q-change .question-card, .exam-q-change .options-list, .exam-layout .explanation-box { animation: none; }
+  .page-enter > :not(.dashboard), .page-enter .modules-grid .module-card { animation: pageFade .12s linear backwards; animation-delay: 0s; }
+  .exam-layout .explanation-box { animation: pageFade .12s linear backwards; }
+  .module-card:active, .subject-card:active, .topic-row:active, .option:active, .palette-btn:active,
+  .btn:active, .icon-btn:active, .quick-icon-btn:active, .topic-action-btn:active { scale: 1; }
 }

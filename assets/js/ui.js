@@ -8,10 +8,20 @@ const UI = {
 
   get root() { return document.getElementById('app'); },
 
-  setContent(html) {
+  // Page parts that rise in one after another on a normal page change.
+  _STAGGER: '.breadcrumb, .page__header, .resume-banner, .stats-strip, .exam-type-header, .subjects-list, .topics-list, .modules-grid .module-card, .topic-panel',
+
+  // mode: 'enter' = parts rise in one after another (normal page change)
+  //       'swap'  = quick fade (used for a skeleton, and for the real page replacing it)
+  //       'none'  = no animation (also forced while _silent is set, for background refreshes)
+  setContent(html, mode = 'enter') {
+    if (this._silent) mode = 'none';
     this.root.innerHTML = html;
-    this.root.classList.remove('page-enter');
+    this.root.classList.remove('page-enter', 'page-swap');
+    if (mode === 'none') return;
     void this.root.offsetWidth;
+    if (mode === 'swap') { this.root.classList.add('page-swap'); return; }
+    this.root.querySelectorAll(this._STAGGER).forEach((el, n) => el.style.setProperty('--i', Math.min(n, 9)));
     this.root.classList.add('page-enter');
   },
 
@@ -1540,7 +1550,4 @@ const UI = {
       setsCompleted: completed,
       totalSets:     total,
       percent:       total > 0 ? Math.round((completed / total) * 100) : 0,
-      avgScore:      scoredCount > 0 ? Math.round(scoreSum / scoredCount) : 0,
-    };
-  },
-};
+      avgScore:     

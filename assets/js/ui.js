@@ -636,12 +636,24 @@ const UI = {
           </button>`
         : '';
 
+      // Optional "Redline Data" guide link: mod.redlineLinks[examTypeId]; no link configured = no button
+      const redlineUrl = (mod.redlineLinks && mod.redlineLinks[et.id]) || '';
+      const redlineBtn = redlineUrl
+        ? `<a class="redline-link" href="${String(redlineUrl).replace(/"/g, '&quot;')}" target="_blank" rel="noopener noreferrer">
+            <span class="redline-link__label">Redline Data</span>
+            <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>`
+        : '';
+
       return `<div class="exam-type-section">
         <div class="exam-type-header">
           <div class="exam-type-header__top">
-            <div>
-              <h3 class="exam-type-header__title">${et.label}</h3>
-              <p class="exam-type-header__desc">${et.description}</p>
+            <div class="exam-type-header__row">
+              <div class="exam-type-header__heading">
+                <h3 class="exam-type-header__title">${et.label}</h3>
+                <p class="exam-type-header__desc">${et.description}</p>
+              </div>
+              ${redlineBtn}
             </div>
             ${fullExamBtn}
           </div>

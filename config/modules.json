@@ -227,6 +227,9 @@
       "color": "#2a5298",
       "icon": "🧠",
       "dataPath": "CNS",
+      "redlineLinks": {
+        "end_module": "https://redlineeducation.pages.dev/guide?id=p7pOoxivzDrBhpoTTq0r"
+      },
       "subSubjects": {
         "end_module": {
           "anatomy": [
@@ -257,38 +260,8 @@
           ],
           "physiology": [
             {
-              "id": "receptors",
-              "label": "Receptors",
-              "icon": "🧠"
-            },
-            {
-              "id": "stretch_reflex",
-              "label": "Stretch Reflex",
-              "icon": "🧠"
-            },
-            {
-              "id": "internal_capsule_umnl_lmnl",
-              "label": "Internal Capsule, UMNL & LMNL",
-              "icon": "🧠"
-            },
-            {
-              "id": "thalamus_rf_hypothalamus_limbic",
-              "label": "Thalamus, RF, Hypothalamus & Limbic System",
-              "icon": "🧠"
-            },
-            {
-              "id": "basal_ganglia",
-              "label": "Basal Ganglia",
-              "icon": "🧠"
-            },
-            {
-              "id": "hearing",
-              "label": "Hearing",
-              "icon": "🧠"
-            },
-            {
-              "id": "vision",
-              "label": "Vision",
+              "id": "general_physiology",
+              "label": "General Physiology",
               "icon": "🧠"
             }
           ],

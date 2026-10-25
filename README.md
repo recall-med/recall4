@@ -16,6 +16,7 @@ Built with plain HTML, CSS, and JavaScript — no build step, no backend, no dep
 - [Adding Questions](#adding-questions)
 - [Crediting a Professor](#crediting-a-professor)
 - [Marking a Module as Ongoing](#marking-a-module-as-ongoing)
+- [Adding Redline Data Links](#adding-redline-data-links)
 - [JSON Question Format](#json-question-format)
 - [Adding a New Module](#adding-a-new-module)
 - [Adding a New Subject](#adding-a-new-subject)
@@ -283,6 +284,30 @@ To highlight the module the class is currently studying, add `"ongoing": true` t
 - An ongoing module is always listed first on the dashboard (the large card on desktop, the first card on phones).
 - If the student studies a different module, that module takes the first spot for 1 hour after its last activity, then the ongoing module returns to first. Studying the ongoing module again puts it straight back on top.
 - To stop highlighting a module, remove the field or set it to `false`.
+
+---
+
+## Adding Redline Data Links
+
+Each exam section on a module page (End Module Exam, Final Exam) can show a **Redline Data** link that opens the matching data guide in a new tab. Add a `redlineLinks` field to the module in `config/modules.json`, keyed by exam type id:
+
+```json
+{
+  "id": "CNS",
+  "title": "CNS",
+  "redlineLinks": {
+    "end_module": "https://redlineeducation.pages.dev/guide?id=p7pOoxivzDrBhpoTTq0r",
+    "final_exam": "https://redlineeducation.pages.dev/guide?id=XXXXXXXX"
+  },
+  ...
+}
+```
+
+- The two keys are `end_module` (End Module Exam) and `final_exam` (Final Exam).
+- Each link appears at the right end of that section's title line, on every screen size.
+- Use the full URL, including `https://`.
+- If a key is missing or empty, no link is shown for that section. A module with no `redlineLinks` field shows none at all.
+- No code changes are needed, and the link is picked up the next time the page loads.
 
 ---
 

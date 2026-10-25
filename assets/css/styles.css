@@ -2875,3 +2875,47 @@ img { max-width: 100%; display: block; }
 
 /* Subject badges on review pages: small glyph, neutral colours */
 .badge .module-icon--inline { width: 14px; height: 14px; margin-right: 5px; vertical-align: -2px; }
+/* ── Redline Data link (exam-type section header, only rendered when a link is configured) ── */
+.exam-type-header__row {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             12px;
+  min-width:       0;
+}
+.exam-type-header__heading { min-width: 0; flex: 1; }
+.exam-type-header__title {
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+/* The row is the grid "title" cell on the module page, so the rule sits under the whole row */
+.module-page .exam-type-header__top > .exam-type-header__row {
+  grid-area:      title;
+  margin:         0 0 14px;
+  padding-bottom: 8px;
+  border-bottom:  1px solid var(--border);
+}
+.module-page .exam-type-header__heading { margin: 0; padding: 0; border: 0; }
+
+/* Quiet section action, like "See all" in Apple lists: label-sized text, accent colour, no box */
+.redline-link {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             4px;
+  flex-shrink:     0;
+  padding:         4px 0 4px 8px;
+  color:           var(--accent-text);
+  font-size:       .7rem;
+  font-weight:     700;
+  letter-spacing:  .08em;
+  text-transform:  uppercase;
+  white-space:     nowrap;
+  text-decoration: none;
+  transition:      opacity .15s ease;
+}
+.redline-link__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.redline-link .icon { width: 12px; height: 12px; stroke-width: 2.2; transition: transform .15s ease; }
+.redline-link:hover { opacity: .8; }
+.redline-link:hover .icon { transform: translate(1px, -1px); }
+.redline-link:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; border-radius: var(--radius-sm); }

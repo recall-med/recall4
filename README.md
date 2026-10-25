@@ -1,6 +1,6 @@
-# Recall
+# Recall (previously Dept. Q. Bank)
 
-A professional, offline-first medical question bank for GitHub Pages.
+A professional, offline-first medical question bank for ZNU Med students.
 Built with plain HTML, CSS, and JavaScript — no build step, no backend, no dependencies.
 
 ---

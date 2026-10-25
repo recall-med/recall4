@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "physiology",
+    "subSubject": "internal_capsule_umnl_lmnl",
+    "totalQuestions": 14
+  },
+  "questions": [
+    {
+      "question": "The genu of the internal capsule contains mainly the:",
+      "options": [
+        "Optic radiation",
+        "Corticospinal tract",
+        "Corticobulbar tract",
+        "Auditory radiation"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Corticobulbar tract",
+      "id": 1
+    },
+    {
+      "question": "The anterior two-thirds of the posterior limb contains mainly:",
+      "options": [
+        "Auditory and optic radiations",
+        "Corticospinal and extrapyramidal fibers",
+        "Only sensory fibers",
+        "Only corticobulbar fibers"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Corticospinal and extrapyramidal fibers",
+      "id": 2
+    },
+    {
+      "question": "The sensory radiation from the thalamus passes mainly through the which of the following part of the internal capsule?",
+      "options": [
+        "Genu",
+        "Anterior limb",
+        "Posterior half of the posterior limb",
+        "Sublenticular part"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Posterior half of the posterior limb",
+      "id": 3
+    },
+    {
+      "question": "A patient with an internal capsule lesion develops weakness of the opposite half of the body involving multiple muscle groups. Which type of paralysis is most likely present?",
+      "options": [
+        "Spastic hemiplegia",
+        "Flaccid hemiplegia",
+        "Spastic monoplegia",
+        "Flaccid monoplegia"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Spastic hemiplegia",
+      "id": 4
+    },
+    {
+      "question": "The typical paralysis associated with an internal capsule lesion is:",
+      "options": [
+        "Ipsilateral monoplegia",
+        "Contralateral spastic hemiplegia",
+        "Flaccid paralysis of one muscle",
+        "Bilateral flaccid paralysis"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Contralateral spastic hemiplegia",
+      "id": 5
+    },
+    {
+      "question": "Hypertonia in an internal capsule UMNL is partly explained by which of the following?",
+      "options": [
+        "Loss of all vestibular activity",
+        "Increased activity of inhibitory medullary reticular formation",
+        "Intact facilitatory vestibular influence and reduced cortical inhibition of tone",
+        "Destruction of the anterior horn cells"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Intact facilitatory vestibular influence and reduced cortical inhibition of tone",
+      "id": 6
+    },
+    {
+      "question": "Which finding is characteristic of an established UMNL?",
+      "options": [
+        "Absent tendon reflexes",
+        "Marked denervation atrophy",
+        "Exaggerated tendon reflexes",
+        "Loss of all superficial reflexes in every lesion"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Exaggerated tendon reflexes",
+      "id": 7
+    },
+    {
+      "question": "The plantar response in a typical UMNL may become?",
+      "options": [
+        "A normal flexor response in all cases",
+        "Babinski's sign",
+        "An absent pupillary reflex",
+        "A fibrillation response"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Babinski's sign",
+      "id": 8
+    },
+    {
+      "question": "Muscle wasting is usually less marked in UMNL than LMNL due to which of the following?",
+      "options": [
+        "The muscles no longer receive blood",
+        "The lower motor neuron and reflex muscle activation remain intact",
+        "The muscles become permanently contracted",
+        "The motor end plates disappear immediately"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. The lower motor neuron and reflex muscle activation remain intact",
+      "id": 9
+    },
+    {
+      "question": "Which finding best distinguishes LMNL from UMNL?",
+      "options": [
+        "Spastic paralysis with brisk reflexes",
+        "Babinski's sign",
+        "Flaccid paralysis with absent deep tendon reflexes",
+        "Increased muscle tone with clonus"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Flaccid paralysis with absent deep tendon reflexes",
+      "id": 10
+    },
+    {
+      "question": "A patient with a lower motor neuron lesion is examined for deep and superficial reflexes. Which combination of findings is most likely?",
+      "options": [
+        "Deep reflexes exaggerated, superficial reflexes absent",
+        "Deep reflexes intact, superficial reflexes exaggerated",
+        "Deep reflexes absent, superficial reflexes intact",
+        "Deep reflexes exaggerated, superficial reflexes intact"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Deep reflexes absent, superficial reflexes intact",
+      "id": 11
+    },
+    {
+      "question": "The characteristic type of hypertonia in spasticity is:",
+      "options": [
+        "Lead-pipe rigidity",
+        "Cogwheel rigidity only",
+        "Clasp-knife phenomenon",
+        "Complete hypotonia"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Clasp-knife phenomenon",
+      "id": 12
+    },
+    {
+      "question": "Which finding favors spasticity rather than rigidity?",
+      "options": [
+        "Babinski's sign and clonus",
+        "Lead-pipe resistance",
+        "Cogwheel resistance",
+        "Association with Parkinsonism"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Babinski's sign and clonus",
+      "id": 13
+    },
+    {
+      "question": "Which feature is typical of LMNL?",
+      "options": [
+        "Marked muscle atrophy",
+        "Exaggerated deep reflexes",
+        "Spasticity",
+        "Babinski's sign"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Marked muscle atrophy",
+      "id": 14
+    }
+  ]
+}

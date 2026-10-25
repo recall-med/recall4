@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "physiology",
+    "subSubject": "receptors",
+    "totalQuestions": 9
+  },
+  "questions": [
+    {
+      "question": "A patient experiences pain following tissue damage. Which receptor type is primarily responsible for detecting this stimulus?",
+      "options": [
+        "Nociceptor",
+        "Osmoreceptor",
+        "Proprioceptor",
+        "Photoreceptor"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Nociceptor",
+      "id": 1
+    },
+    {
+      "question": "A physiologist examines receptors responsible for sensing body position, movement, and muscle tension. Which receptor group is being studied?",
+      "options": [
+        "Visceroceptors",
+        "Photoreceptors",
+        "Proprioceptors",
+        "Nociceptors"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Proprioceptors",
+      "id": 2
+    },
+    {
+      "question": "A sensory receptor is stimulated and develops a local depolarization at the stimulated site. What is this electrical response called?",
+      "options": [
+        "Action potential",
+        "Generator potential",
+        "Resting potential",
+        "Refractory potential"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Generator potential",
+      "id": 3
+    },
+    {
+      "question": "A receptor potential is recorded from a sensory receptor. Which characteristic best describes this potential?",
+      "options": [
+        "It obeys the all-or-none law",
+        "It is a propagated electrical response",
+        "It is a local electerical response can be summated",
+        "It has a extremely long absolute refractory period"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. It is a local electerical response can be summated",
+      "id": 4
+    },
+    {
+      "question": "How does the central nervous system determine and code for the intensity of a sensory stimulus?",
+      "options": [
+        "By changing the speed of action potential through the axon.",
+        "By the frequency of action potential and the number of activated receptors.",
+        "By altering the size (amplitude) of the action potential.",
+        "By switching the modality of the activated receptor"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. By the frequency of action potential and the number of activated receptors.",
+      "id": 5
+    },
+    {
+      "question": "Which type of sensory receptors adapt slowly and continue to fire for as long as a continuous stimulus persists?",
+      "options": [
+        "Phasic receptors",
+        "Tonic receptors",
+        "Thermoreceptors",
+        "Electromagnetic receptors"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Phasic receptors",
+      "id": 6
+    },
+    {
+      "question": "A student studies sensory receptors and classifies temperature receptors responding within the range of 20–40°C. How are these receptors classified by adaptation rate?",
+      "options": [
+        "Rapidly adapting receptors",
+        "Slowly adapting receptors",
+        "Non-adapting receptors",
+        "Moderately adapting receptors"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Moderately adapting receptors",
+      "id": 7
+    },
+    {
+      "question": "A person needs continuous information about the body's position and its relationship to the surroundings. Which receptor type is particularly suited to this role?",
+      "options": [
+        "Phasic receptors",
+        "Rapidly adapting receptors",
+        "Completely adapting receptors",
+        "Tonic receptors"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Tonic receptors",
+      "id": 8
+    },
+    {
+      "question": "A man identifies a cold stimulus on his right forearm and a hot stimulus on his left thigh while his eyes are closed. Which concept describes the CNS's ability to determine the type of stimulus?",
+      "options": [
+        "Sensory adaptation",
+        "Compression function",
+        "Müller's law",
+        "Accommodation of nerve fibers"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Müller's law",
+      "id": 9
+    }
+  ]
+}

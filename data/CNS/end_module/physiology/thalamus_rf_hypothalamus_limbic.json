@@ -1,0 +1,59 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "physiology",
+    "subSubject": "thalamus_rf_hypothalamus_limbic",
+    "totalQuestions": 4
+  },
+  "questions": [
+    {
+      "question": "The lateral geniculate body is primarily concerned with:",
+      "options": [
+        "Hearing",
+        "Vision",
+        "Balance",
+        "Smell"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Vision",
+      "id": 1
+    },
+    {
+      "question": "The dorsomedial and dorsolateral thalamic nuclei project mainly to the:",
+      "options": [
+        "Frontal association areas",
+        "Primary visual cortex",
+        "Primary auditory cortex",
+        "Spinal cord"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Frontal association areas",
+      "id": 2
+    },
+    {
+      "question": "Which type of reticular formation neurons is largest in number but smallest in size?",
+      "options": [
+        "Motor neurons",
+        "Sensory neurons",
+        "Neurosecretory cells only",
+        "Cortical pyramidal neurons"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Sensory neurons",
+      "id": 3
+    },
+    {
+      "question": "Papez circuit connects which of the following structures?",
+      "options": [
+        "Limbic system, thalamus, and hypothalamus",
+        "Cerebellum, basal ganglia, and spinal cord",
+        "Reticular formation, optic nerve, and occipital cortex",
+        "Medulla, pons, and midbrain"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Limbic system, thalamus, and hypothalamus",
+      "id": 4
+    }
+  ]
+}

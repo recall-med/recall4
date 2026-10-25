@@ -1,0 +1,215 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "physiology",
+    "subSubject": "hearing",
+    "totalQuestions": 17
+  },
+  "questions": [
+    {
+      "question": "A person is exposed to an intense, high-pitched sound. The acoustic reflex is activated. Which action of the tensor tympani muscle helps protect the auditory apparatus?",
+      "options": [
+        "It relaxes the tympanic membrane to increase vibration",
+        "It tenses the tympanic membrane to reduce vigorous vibration",
+        "It opens the round window to increase perilymph movement",
+        "It relaxes the stapes to increase its inward displacement"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. It tenses the tympanic membrane to reduce vigorous vibration",
+      "id": 1
+    },
+    {
+      "question": "A healthy passenger repeatedly swallows during an airplane journey to maintain normal hearing. What is the main purpose of this action?",
+      "options": [
+        "To equalize pressure across the tympanic membrane",
+        "To increase endolymph production within the cochlea",
+        "To stimulate the hair cells directly in the cochlea",
+        "To increase the tension of the basilar membrane"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. To equalize pressure across the tympanic membrane",
+      "id": 2
+    },
+    {
+      "question": "A patient tilts their head to the right while maintaining an upright posture. Which change occurs in the discharge of the otolith organs?",
+      "options": [
+        "Increased right utricular discharge and decreased left utricular discharge",
+        "Decreased right utricular discharge and increased left utricular discharge",
+        "Increased discharge from both utricles equally",
+        "Decreased discharge from both utricles equally"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Increased right utricular discharge and decreased left utricular discharge",
+      "id": 3
+    },
+    {
+      "question": "A patient is examined for vestibular function. Which structure detects angular acceleration?",
+      "options": [
+        "Macula",
+        "Semicircular canals",
+        "Cochlea",
+        "Otolith membrane"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Semicircular canals",
+      "id": 4
+    },
+    {
+      "question": "A hair cell is stimulated by bending its stereocilia. Which direction causes depolarization?",
+      "options": [
+        "Away from the kinocilium",
+        "Toward the kinocilium",
+        "Perpendicular to the kinocilium",
+        "Toward the cochlea"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Toward the kinocilium",
+      "id": 5
+    },
+    {
+      "question": "A person is rotating at a constant speed. What happens to the sensation of rotation after some time?",
+      "options": [
+        "It continuously increases",
+        "It changes into hearing sensation",
+        "It disappears",
+        "It becomes stronger after 20 seconds"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. It disappears",
+      "id": 6
+    },
+    {
+      "question": "A person suddenly stops rotating. Which sensation is expected?",
+      "options": [
+        "Rotation in the same direction",
+        "Counter-rotation",
+        "Complete loss of balance without vertigo",
+        "Hearing loss"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Counter-rotation",
+      "id": 7
+    },
+    {
+      "question": "After rotation stops, persistent endolymph movement produces which clinical effect?",
+      "options": [
+        "Vertigo",
+        "Deafness",
+        "Tremor",
+        "Spastic gait"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Vertigo",
+      "id": 8
+    },
+    {
+      "question": "A patient experiences forward acceleration in a vehicle. The otoconia lag backward because of their inertia, bending the hair-cell cilia. Which sensation may result?",
+      "options": [
+        "A false sensation of falling forward",
+        "A false sensation of falling backward",
+        "A false sensation of rotating upward",
+        "A false sensation of rotating downward"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. A false sensation of falling backward",
+      "id": 9
+    },
+    {
+      "question": "A histological specimen shows auditory receptor cells positioned on a membrane within the cochlea. Which membrane supports the organ of Corti?",
+      "options": [
+        "The tectorial membrane",
+        "The basilar membrane",
+        "Reissner's membrane",
+        "The secondary tympanic membrane"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. The basilar membrane",
+      "id": 10
+    },
+    {
+      "question": "A patient has impaired function of the structure that normally closes the terminal opening of the scala tympani. Which structure is involved?",
+      "options": [
+        "The stapes footplate",
+        "The tympanic membrane",
+        "The secondary tympanic membrane",
+        "Reticular lamina"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. The secondary tympanic membrane",
+      "id": 11
+    },
+    {
+      "question": "During exposure to a loud sound, the stapedius muscle contracts. Which effect is associated with this contraction according to the notes?",
+      "options": [
+        "Increased inward displacement of the stapes",
+        "Increased vibration of the tympanic membrane",
+        "Prevention of inward displacement of the stapes",
+        "Increased movement of the round window"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Prevention of inward displacement of the stapes",
+      "id": 12
+    },
+    {
+      "question": "A traveler experiences ear discomfort during an airplane's descent. Which mechanism normally helps prevent excessive pressure differences across the tympanic membrane?",
+      "options": [
+        "Contraction of the outer hair cells",
+        "Opening of the Eustachian tube",
+        "Movement of the tectorial membrane",
+        "Contraction of the spiral ganglion neurons"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Opening of the Eustachian tube",
+      "id": 13
+    },
+    {
+      "question": "A patient has dysfunction of the tensor tympani muscle. Which normal action of this muscle is directly impaired?",
+      "options": [
+        "Pulling the malleus handle inward to maintain tympanic membrane tension",
+        "Pulling the stapes outward to increase movement at the round window",
+        "Moving the basilar membrane to stimulate the auditory hair cells",
+        "Opening the Eustachian tube to renew air in the middle ear"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Pulling the malleus handle inward to maintain tympanic membrane tension",
+      "id": 14
+    },
+    {
+      "question": "A person is exposed to an intense, high-pitched sound. The acoustic reflex is activated. Which action of the tensor tympani muscle helps protect the auditory apparatus?",
+      "options": [
+        "It relaxes the tympanic membrane to increase vibration",
+        "It tenses the tympanic membrane to reduce vigorous vibration",
+        "It opens the round window to increase perilymph movement",
+        "It relaxes the stapes to increase its inward displacement"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. It tenses the tympanic membrane to reduce vigorous vibration",
+      "id": 15
+    },
+    {
+      "question": "A researcher studies the fluid environment of cochlear hair cells. The bases are bathed in one fluid, while the hair-cell processes are bathed in another. Which arrangement is correct?",
+      "options": [
+        "Bases in endolymph; processes in perilymph",
+        "Bases in perilymph; processes in endolymph",
+        "Bases in cerebrospinal fluid; processes in perilymph",
+        "Bases in endolymph; processes in cerebrospinal fluid"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Bases in perilymph; processes in endolymph",
+      "id": 16
+    },
+    {
+      "question": "Regarding the hair cell in the cristae, what is their structure?",
+      "options": [
+        "many small kinocilia and one large stiff stereocilium.",
+        "many small stereocilia and one large stiff kinocilium.",
+        "single stereocilium and single kinocilium",
+        "multiple stereocilia and multiple kinocilia"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. many small stereocilia and one large stiff kinocilium.",
+      "id": 17
+    }
+  ]
+}

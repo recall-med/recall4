@@ -1,0 +1,167 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "physiology",
+    "subSubject": "stretch_reflex",
+    "totalQuestions": 13
+  },
+  "questions": [
+    {
+      "question": "A medical student examines the receptor responsible for detecting muscle stretch during a tendon jerk. Which structure should the student identify?",
+      "options": [
+        "A Golgi tendon organ located within the tendon",
+        "A Pacinian corpuscle located within connective tissue",
+        "A muscle spindle located in the fleshy muscle fibers",
+        "A nociceptor located within the superficial skin layers"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. A muscle spindle located in the fleshy muscle fibers",
+      "id": 1
+    },
+    {
+      "question": "A patient maintains an erect posture while standing, despite the continuous gravitational pull on the antigravity muscles. Which component of the stretch reflex primarily contributes to this function?",
+      "options": [
+        "The dynamic phase producing a sudden tendon jerk",
+        "The inverse phase producing reflex muscular relaxation",
+        "The negative phase producing contraction-related relaxation",
+        "The static phase maintaining skeletal muscle tone"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. The static phase maintaining skeletal muscle tone",
+      "id": 2
+    },
+    {
+      "question": "During a neurological examination, a sudden tap is applied to a muscle tendon, producing a brief, visible contraction. Which phase of the stretch reflex is demonstrated?",
+      "options": [
+        "The static phase represented by maintained muscle tone",
+        "The dynamic phase represented by a tendon jerk",
+        "The inverse phase represented by reflex muscle relaxation",
+        "The negative phase represented by reduced muscle activity"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. The dynamic phase represented by a tendon jerk",
+      "id": 3
+    },
+    {
+      "question": "A researcher studies the sensory fibers arising from muscle spindles. Which fibers are associated with primary annulospiral endings?",
+      "options": [
+        "Type I afferent fibers entering through dorsal roots",
+        "Type II afferent fibers entering through ventral roots",
+        "Alpha efferent fibers leaving through dorsal roots",
+        "Gamma efferent fibers leaving through ventral roots"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Type I afferent fibers entering through dorsal roots",
+      "id": 4
+    },
+    {
+      "question": "What is the effect of gamma motor neurons stimulation on the muscle spindle?",
+      "options": [
+        "Contraction of intrafusal fibers",
+        "Contraction of extrafusal fibers",
+        "Relaxation of extrafusal fibers",
+        "Relaxation of intrafusal fibers"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Contraction of intrafusal fibers",
+      "id": 5
+    },
+    {
+      "question": "A student compares muscle tone with other skeletal muscle reflexes. Which characteristic is specifically associated with muscle tone?",
+      "options": [
+        "It is a superficial reflex requiring several interneurons",
+        "It is a deep spinal reflex with a monosynaptic pathway",
+        "It is a voluntary response controlled exclusively by the cortex",
+        "It is a polysynaptic response involving reverberating circuits"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. It is a deep spinal reflex with a monosynaptic pathway",
+      "id": 6
+    },
+    {
+      "question": "Which of the following are the sensory fibers arising from nuclear bag of the muscle spindles?",
+      "options": [
+        "Type I annulospiral afferent fibers",
+        "Type II flower spray afferent fibers",
+        "Alpha efferent fibers",
+        "Gamma efferent fibers"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Type I annulospiral afferent fibers",
+      "id": 7
+    },
+    {
+      "question": "A muscle is exposed to marked overstretch, triggering a reflex that reduces its contraction and helps protect it from rupture. Which reflex is responsible?",
+      "options": [
+        "The static stretch reflex",
+        "The dynamic stretch reflex",
+        "The inverse stretch reflex",
+        "The cerebellar stretch reflex"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. The inverse stretch reflex",
+      "id": 8
+    },
+    {
+      "question": "A researcher applies excessive stretch to a muscle, and the muscle responds by relaxing. Which receptor is primarily responsible for initiating this inverse stretch reflex?",
+      "options": [
+        "The muscle spindle in the fleshy part of the muscle",
+        "The Golgi tendon organ associated with the tendon",
+        "The primary ending associated with nuclear bag fibers",
+        "The secondary ending associated with nuclear chain fibers"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. The Golgi tendon organ associated with the tendon",
+      "id": 9
+    },
+    {
+      "question": "A muscle is exposed to marked overstretch, triggering a reflex that reduces its contraction and helps protect it from rupture. Which reflex is responsible?",
+      "options": [
+        "The static stretch reflex maintaining background muscle tone",
+        "The dynamic stretch reflex producing a tendon jerk",
+        "The inverse stretch reflex producing muscle inhibition",
+        "The cerebellar stretch reflex strengthening muscle contraction"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. The inverse stretch reflex producing muscle inhibition",
+      "id": 10
+    },
+    {
+      "question": "A researcher investigates how the cerebellum responds when an extra load is applied to a flexed forearm. Which of the following best describe this neural response",
+      "options": [
+        "Inhibitory impulses from the neocerebellum suppress gamma motor neurons",
+        "Sensory impulses from the tendon directly inhibit alpha motor neurons",
+        "Inhibitory impulses from the spinal cord relax the contracting muscle",
+        "Facilitatory impulses from the neocerebellum activate gamma motor neurons"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Facilitatory impulses from the neocerebellum activate gamma motor neurons",
+      "id": 11
+    },
+    {
+      "question": "A person lifts a heavy weight against gravity. Stretch of intrafusal fibers assists contraction of extrafusal fibers without requiring increased discharge from higher motor areas. Which function is illustrated?",
+      "options": [
+        "The damping function of the stretch reflex",
+        "The servo-assist function of the stretch reflex",
+        "The inverse function of the stretch reflex",
+        "The negative function of the stretch reflex"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. The servo-assist function of the stretch reflex",
+      "id": 12
+    },
+    {
+      "question": "During heavy lifting, a researcher investigates the interaction between alpha and gamma motor neurons. Which process describes the servo-assist mechanism?",
+      "options": [
+        "Gamma activity inhibits intrafusal fibers and reduces extrafusal force",
+        "Alpha activity suppresses spindle activity and prevents muscle contraction",
+        "Intrafusal stretch assists extrafusal contraction through alpha-gamma co-activation",
+        "Tendon inhibition replaces motor neuron activity during sustained contraction"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Intrafusal stretch assists extrafusal contraction through alpha-gamma co-activation",
+      "id": 13
+    }
+  ]
+}

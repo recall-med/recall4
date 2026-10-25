@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "physiology",
+    "subSubject": "vision",
+    "totalQuestions": 10
+  },
+  "questions": [
+    {
+      "question": "Which thalamic nucleus acts as the sensory relay station for visual impulses from both retina to the visual cortex?",
+      "options": [
+        "Lateral geniculate body",
+        "Medial geniculate body",
+        "Ventroposterolateral nucleus",
+        "Anterior thalamic nucleus"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Lateral geniculate body",
+      "id": 1
+    },
+    {
+      "question": "The Ishihara test is primarily used to assess which of the following?",
+      "options": [
+        "Visual acuity",
+        "Depth perception",
+        "Color vision",
+        "Visual field defects"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Color vision",
+      "id": 2
+    },
+    {
+      "question": "Which ganglion cell is responsible for Rod vision?",
+      "options": [
+        "W Cells",
+        "M Cells",
+        "Y Cells",
+        "P Cells"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. P Cells",
+      "id": 3
+    },
+    {
+      "question": "X ganglion cells responsible for color vision end in which neurons in the Lateral geniculate body of the thalamus?",
+      "options": [
+        "Parvocellular neurons",
+        "Magnocellular neurons",
+        "Diffuse thalamic neurons",
+        "Pretectal neurons"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Parvocellular neurons",
+      "id": 4
+    },
+    {
+      "question": "In the visual pathway, fibers from the nasal halves of the retinas:",
+      "options": [
+        "Remain uncrossed and join the ipsilateral optic tract",
+        "Cross at the optic chiasma to the opposite side",
+        "Terminate in the medial geniculate body",
+        "Carry impulses only from the nasal visual field"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Cross at the optic chiasma to the opposite side",
+      "id": 5
+    },
+    {
+      "question": "The secondary visual cortex (areas 18 and 19) is responsible for which of the following?",
+      "options": [
+        "Perception of raw visual sensations",
+        "Understanding the meaning of visual images and words",
+        "Transmission of visual impulses from retina",
+        "Control of pupillary reflex"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Understanding the meaning of visual images and words",
+      "id": 6
+    },
+    {
+      "question": "The primary visual cortex (area 17) is responsible for which of the following?",
+      "options": [
+        "Perception of raw visual sensations",
+        "Understanding the meaning of visual images and words",
+        "Transmission of visual impulses from retina",
+        "Control of pupillary reflex"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Perception of raw visual sensations",
+      "id": 7
+    },
+    {
+      "question": "A patient looks at an object situated in the nasal visual field. The image is projected onto which retinal region?",
+      "options": [
+        "The nasal half of the retina",
+        "The temporal half of the retina",
+        "The upper half of the retina",
+        "The lower half of the retina"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. The temporal half of the retina",
+      "id": 8
+    },
+    {
+      "question": "Which of the following explains positive after image phenomenon?",
+      "options": [
+        "Light retinal adaptation",
+        "Dark retinal adaptation",
+        "Reverberating circuits of the retinal",
+        "Trichromatic theory"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Reverberating circuits of the retinal",
+      "id": 9
+    },
+    {
+      "question": "Blindness of the opposite half of the visual field of both eyes caused by destruction of which of the following cortical area?",
+      "options": [
+        "Primary visual cortex (area 17)",
+        "Secondary visual cortex (area18)",
+        "Secondary visual cortex (area 19)",
+        "Frontal eye field area (area 8)"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Primary visual cortex (area 17)",
+      "id": 10
+    }
+  ]
+}

@@ -50,12 +50,13 @@
   <!-- Wordmark font (self-hosted, ~10 KB) -->
   <link rel="preload" href="assets/fonts/krona-one-400.woff2" as="font" type="font/woff2" crossorigin />
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="assets/css/styles.css" />
-
-  <!-- Preconnect for fonts -->
+  <!-- Preconnect for fonts, then load them alongside the stylesheet (not chained behind it) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&family=DM+Serif+Display&display=swap" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
 

@@ -424,6 +424,7 @@ All user progress is stored in the browser's LocalStorage under these keys:
 | `dqb_current_exam` | In-progress exam state |
 | `dqb_last_page` | Last visited page (for session restore) |
 | `dqb_settings` | User preferences |
+| `dqb_count_cache` | Remembered question counts per topic, so pages open instantly (not cleared by Reset Progress) |
 
 To **reset all data** (for development), open the browser console and run:
 ```javascript
@@ -438,6 +439,9 @@ Storage.resetAll(); location.reload();
 - Make sure the JSON file exists at the correct path.
 - Check the JSON is valid (use [jsonlint.com](https://jsonlint.com)).
 - Ensure you're running via a local server, not opening the file directly.
+
+**New questions don't show up straight away**
+- Question counts are remembered in the browser so pages open instantly. After you add questions, the next visit shows the old count for a moment, then the page refreshes by itself once it notices the change. A hard-refresh is not needed.
 
 **Changes don't appear after pushing to GitHub Pages**
 - GitHub Pages can take 1–2 minutes to rebuild. Hard-refresh the page (`Ctrl+Shift+R`).

@@ -9,9 +9,12 @@
     update "siteTitle" in config/modules.json.
 
     HOW TO CHANGE FAVICON: Replace assets/images/icon.png (header mark,
-    light theme) and icon-dark.png (header mark, dark theme), then
+    light theme) and icon-dark.png (header mark, dark theme; both are
+    108x108, 3x the 36px they are shown at, so keep them small), then
     regenerate favicon*.png / apple-touch-icon.png from it. Favicons
-    are navy with a thin white outline so they work on any tab colour.
+    are the logo on its navy background, cropped in a little, with rounded
+    corners. apple-touch-icon.png is left square on purpose: iOS rounds it
+    itself, and transparent corners would turn black.
 
     HOW TO CHANGE COLORS: Edit assets/css/styles.css :root {}
 
@@ -67,8 +70,8 @@
   <header class="site-header">
     <div class="site-header__inner">
       <a class="site-header__brand" data-nav="dashboard" data-params="{}" aria-label="Recall — Dashboard">
-        <img src="assets/images/icon.png" alt="" class="site-header__mark site-header__mark--light" width="36" height="36" />
-        <img src="assets/images/icon-dark.png" alt="" class="site-header__mark site-header__mark--dark" width="36" height="36" />
+        <img src="assets/images/icon.png" alt="" class="site-header__mark site-header__mark--light" width="36" height="36" fetchpriority="high" />
+        <img src="assets/images/icon-dark.png" alt="" class="site-header__mark site-header__mark--dark" width="36" height="36" fetchpriority="high" />
         <span class="site-header__wordmark">
           <span class="site-header__title">Recall</span>
           <span class="site-header__tagline">ZNU · MEDICINE</span>

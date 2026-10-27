@@ -336,6 +336,7 @@
 
   // ─── Applying server data locally ────────────────────────────────────────
   function setLocalStats(serverStats) {
+    S.lastStats = serverStats;
     var pend = S.outbox.reduce(function (a, x) {
       a.att += x.attempted; a.cor += x.correct; a.n += 1; a.t += x.timeSec; return a;
     }, { att: 0, cor: 0, n: 0, t: 0 });
@@ -567,8 +568,9 @@
 
   async function pull() {
     var res = await authed(function (force) { return api('/state', 'GET', undefined, { forceRefresh: force }); });
-    if (res.epoch > S.baseEpoch && !S.pendingReset) { await adoptRemoteReset(res); return; }
+    if (res.epoch > S.baseEpoch && !S.pendingReset) { await adoptRemoteReset(res); return res; }
     await applyState(res);
+    return res;
   }
 
   function handleSyncError(err) {
@@ -610,6 +612,142 @@
   }
   function guestBackupExists() { return !!lsGet('dqb_backup_guest'); }
 
+  // ─── Guest progress import (Phase 4) ─────────────────────────────────────
+  // The copy of the guest's progress lives in dqb_backup_guest (made at sign-in).
+  // Rules: a brand-new (empty, never reset) account receives it automatically;
+  // an account that already has data only receives it when the person asks, and
+  // import only ADDS what the account does not have. It never overwrites.
+  var BACKUP_KEY = 'dqb_backup_guest', BACKUP_DONE_KEY = 'dqb_backup_guest_imported';
+
+  function readBackup() {
+    var snap = parseJson(lsGet(BACKUP_KEY), null);
+    if (!isObj(snap) || !isObj(snap.data)) return null;
+    function g(k) { return parseJson(snap.data[STORAGE_KEYS[k]], null); }
+    var prog = g('PROGRESS'), inc = g('INCORRECT'), flg = g('FLAGGED'), hist = g('EXAM_HISTORY');
+    return {
+      at: snap.at || 0,
+      progress: isObj(prog) ? prog : {},
+      incorrect: Array.isArray(inc) ? inc : [],
+      flagged: Array.isArray(flg) ? flg : [],
+      history: Array.isArray(hist) ? hist.slice(0, 100) : []
+    };
+  }
+  function backupCounts() {
+    var b = readBackup();
+    if (!b) return null;
+    var c = { exams: b.history.length, incorrect: b.incorrect.length, flagged: b.flagged.length, topics: Object.keys(b.progress).length };
+    return (c.exams || c.incorrect || c.flagged || c.topics) ? c : null;
+  }
+  function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
+  function countsText(c) {
+    var parts = [];
+    if (c.exams) parts.push(plural(c.exams, 'exam'));
+    if (c.incorrect) parts.push(plural(c.incorrect, 'incorrect question'));
+    if (c.flagged) parts.push(plural(c.flagged, 'flagged question'));
+    if (c.topics) parts.push('progress in ' + plural(c.topics, 'topic'));
+    return parts.join(', ');
+  }
+
+  function importGuest() {
+    var b = readBackup();
+    if (!b || !tracking()) return null;
+    var raw = lsGet(BACKUP_KEY);
+    var done = { exams: 0, incorrect: 0, flagged: 0, topics: 0 };
+    function idOrNull(v) { return typeof v === 'string' && ID_RE.test(v) ? v : null; }
+    function has(root, scope, qid) { return !!(root[scope] && root[scope][qid]); }
+
+    // progress (one entry per topic)
+    Object.keys(b.progress).forEach(function (scope) {
+      var o = b.progress[scope];
+      if (!SCOPE_RE.test(scope) || !isObj(o) || S.meta.progress[scope]) return;
+      var p = scope.split('|'), data = {};
+      Object.keys(o).forEach(function (k) { if (k !== 'updatedAt' && k !== 'epoch' && k !== 'rev') data[k] = o[k]; });
+      Storage.setSubjectProgress(p[0], p[1], p[2], p[3], data);
+      done.topics++;
+    });
+
+    // incorrect questions
+    var haveInc = {};
+    Storage.getIncorrect().forEach(function (q) { haveInc[q.uid] = 1; });
+    b.incorrect.forEach(function (q) {
+      if (!isObj(q)) return;
+      var scope = scopeOf(q), qid = qidOf(q);
+      if (!scope || !qid) return;
+      var uid = scope + '|' + qid;
+      if (haveInc[uid] || has(S.meta.incorrect, scope, qid)) return; // cloud wins, including removals
+      Storage.addIncorrect(q); haveInc[uid] = 1; done.incorrect++;
+    });
+
+    // flags
+    var haveFlg = {};
+    Storage.getFlagged().forEach(function (q) { haveFlg[q.uid] = 1; });
+    b.flagged.forEach(function (q) {
+      if (!isObj(q)) return;
+      var scope = scopeOf(q), qid = qidOf(q);
+      if (!scope || !qid) return;
+      var uid = scope + '|' + qid;
+      if (haveFlg[uid] || has(S.meta.flags, scope, qid)) return;
+      if (Storage.toggleFlag(q)) { haveFlg[uid] = 1; done.flagged++; }
+    });
+
+    // exam history -> attempts (stats are derived on the server from these)
+    var hist = Storage.getExamHistory(), haveHist = {}, queued = {};
+    hist.forEach(function (h) { if (h.attemptId) haveHist[h.attemptId] = 1; });
+    S.outbox.forEach(function (a) { queued[a.attemptId] = 1; });
+    var dev = deviceId().replace(/[^A-Za-z0-9]/g, '').slice(0, 8);
+    b.history.forEach(function (h) {
+      if (!isObj(h) || !Number.isInteger(h.id) || h.id < 0) return;
+      var id = 'imp-' + dev + '-' + h.id;       // same exam imported twice = same id = stored once
+      if (haveHist[id] || queued[id]) return;
+      var total = h.total, correct = h.correct;
+      var attempted = Number.isInteger(h.attempted) ? h.attempted : total;
+      var timeSec = Number.isInteger(h.timeSec) ? Math.min(Math.max(h.timeSec, 0), 86400) : 0;
+      if (!Number.isInteger(total) || total < 0 || total > 1000) return;
+      if (!Number.isInteger(attempted) || attempted < 0 || attempted > total) return;
+      if (!Number.isInteger(correct) || correct < 0 || correct > attempted) return;
+      if (!Number.isInteger(h.score) || h.score < 0 || h.score > 100) return;
+      if (!ID_RE.test(String(h.module)) || !ID_RE.test(String(h.examType))) return;
+      S.outbox.push({
+        attemptId: id, module: h.module, examType: h.examType,
+        subject: idOrNull(h.subject), subSubject: idOrNull(h.subSubject),
+        scope: typeof h.scope === 'string' && /^[A-Za-z0-9_|-]{1,60}$/.test(h.scope) ? h.scope : null,
+        score: h.score, correct: correct, total: total, attempted: attempted,
+        timeSec: timeSec, clientTs: h.id, review: null
+      });
+      hist.push({
+        module: h.module, examType: h.examType, subject: h.subject, subSubject: h.subSubject, scope: h.scope,
+        score: h.score, correct: correct, total: total, attempted: attempted, timeSec: timeSec,
+        id: h.id, attemptId: id
+      });
+      done.exams++;
+    });
+    hist.sort(function (x, y) { return y.id - x.id; });
+    if (hist.length > 100) hist.length = 100;
+    Storage._set(STORAGE_KEYS.EXAM_HISTORY, hist);
+
+    // the copy is kept under a new name (never deleted) so the offer disappears
+    if (raw) lsSet(BACKUP_DONE_KEY, raw);
+    lsDel(BACKUP_KEY);
+    S.lastImport = { at: now(), exams: done.exams, incorrect: done.incorrect, flagged: done.flagged, topics: done.topics };
+    save();
+    setLocalStats(S.lastStats || { totalAttempted: 0, totalCorrect: 0, totalIncorrect: 0, completedExams: 0, totalTimeSpentSec: 0 });
+    schedule(500);
+    refreshView();
+    return done;
+  }
+
+  // Runs once, right after the first pull following a sign-in that found guest data on the device.
+  function handleGuestAfterPull(state) {
+    S.guestPending = false;
+    save();
+    var empty = !!state && state.epoch === 0 && !Object.keys(state.scopes || {}).length && !(state.attempts || []).length;
+    if (!empty) return;                       // existing account: offer only (button in the account window)
+    var done = importGuest();
+    if (done && (done.exams || done.incorrect || done.flagged || done.topics) && typeof UI !== 'undefined' && UI.toast) {
+      UI.toast('Your progress from before signing in was added to this account.', 'success');
+    }
+  }
+
   // ─── Auth hooks ──────────────────────────────────────────────────────────
   async function onAuth(u) {
     user = u ? { uid: u.uid, email: u.email || '', providerId: u.providerId || '' } : null;
@@ -621,15 +759,18 @@
         wipeLocalData(); S = freshStore();
       }
       if (!S.uid) {
-        if (hasLocalData()) snapshotLocal('guest');
+        var hadGuest = hasLocalData();
+        if (hadGuest) snapshotLocal('guest');
         wipeLocalData();
         S = freshStore(); S.uid = u.uid;
+        S.guestPending = hadGuest;   // decided right after the first pull (see handleGuestAfterPull)
       }
       S.profile = { email: u.email || '', providerId: u.providerId || '' };
       save();
       renderHeader();
       setStatus('syncing');
-      await pull();
+      var first = await pull();
+      if (S.guestPending) handleGuestAfterPull(first);
       setStatus('idle');
       refreshView();
       if (pendingCount()) schedule(500);
@@ -780,6 +921,23 @@
       '" autocomplete="' + auto + '" ' + (extra || '') + ' required></label>';
   }
 
+  function guestImportHtml() {
+    var c = backupCounts();
+    if (c) {
+      return '<p class="acct-note">Progress you made before signing in (' + esc(countsText(c)) + ') is saved on this device and is not in this account yet.</p>' +
+        '<div class="acct-actions"><button class="btn btn--ghost btn--sm" type="button" data-acct="to-import">Add it to this account</button></div>';
+    }
+    if (S.lastImport) {
+      var li = S.lastImport, parts = [];
+      if (li.exams) parts.push(plural(li.exams, 'exam'));
+      if (li.incorrect) parts.push(plural(li.incorrect, 'incorrect question'));
+      if (li.flagged) parts.push(plural(li.flagged, 'flagged question'));
+      if (li.topics) parts.push('progress in ' + plural(li.topics, 'topic'));
+      return '<p class="acct-note">' + (parts.length ? 'Added from this device: ' + esc(parts.join(', ')) + '.' : 'Nothing new to add from this device. This account already had it.') + '</p>';
+    }
+    return '';
+  }
+
   function renderAccount() {
     var box = $('account-view'); if (!box) return;
     var h = '';
@@ -823,6 +981,13 @@
       h = '<h2 class="acct-title" id="account-title">Check your email</h2>' +
         '<p class="acct-sub">If an account exists for that address, a reset link is on its way. It can take a few minutes, and it may land in spam.</p>' +
         '<div class="acct-actions"><button class="btn btn--primary" type="button" data-acct="to-signin">Back to sign in</button></div>';
+    } else if (view === 'confirm-import') {
+      var ic = backupCounts();
+      h = '<h2 class="acct-title" id="account-title">Add progress from this device?</h2>' +
+        '<p class="acct-sub">' + (ic ? 'This device has ' + esc(countsText(ic)) + ' from before you signed in. ' : '') +
+        'They will be added to this account. Anything this account already has is kept as it is and is never overwritten.</p>' +
+        '<div class="acct-actions acct-actions--row"><button class="btn btn--ghost" type="button" data-acct="to-account">Cancel</button>' +
+        '<button class="btn btn--primary" type="button" data-acct="import-go">Add progress</button></div>';
     } else if (view === 'confirm-signout') {
       var n = pendingCount();
       h = '<h2 class="acct-title" id="account-title">Sign out?</h2>' +
@@ -841,7 +1006,7 @@
         '<div class="acct-card"><div class="acct-card__label">Cloud sync</div>' +
         '<div class="acct-card__value" id="acct-status" aria-live="polite">' + esc(statusText()) + '</div>' +
         '<button class="btn btn--ghost btn--sm" type="button" data-acct="sync-now">Sync now</button></div>' +
-        (guestBackupExists() ? '<p class="acct-note">Progress you made before signing in is stored on this device and was not merged into this account.</p>' : '') +
+        guestImportHtml() +
         '<p class="acct-note">The admin dashboard shows combined usage totals only, such as exams per day.</p>' +
         '<p class="acct-error" id="acct-error" role="alert" aria-live="polite"></p>' +
         '<div class="acct-actions acct-actions--row">' +
@@ -886,6 +1051,23 @@
     } catch (e) { setBusyUi(false); setFormError(authMessage(e)); }
   }
 
+  // Manual import: first bring in the account's latest data (so nothing newer is overwritten), then add.
+  async function doImportClick() {
+    if (!tracking() || busy) return;
+    setBusyUi(true);
+    try {
+      if (!canSync()) throw new SyncError('offline', 0);
+      await pull();
+    } catch (e) {
+      setBusyUi(false); view = 'account'; renderAccount();
+      setFormError('Could not reach your account. Connect to the internet and try again.');
+      return;
+    }
+    var r = importGuest();
+    setBusyUi(false); view = 'account'; renderAccount();
+    if (UI && UI.toast) UI.toast(r && (r.exams || r.incorrect || r.flagged || r.topics) ? 'Progress added to this account.' : 'Nothing new to add.', 'success');
+  }
+
   function onClick(e) {
     var t = e.target;
     if (t.closest('#signin-btn')) { openModal('signin'); return; }
@@ -900,6 +1082,8 @@
     else if (a === 'to-signup') { view = 'signup'; renderAccount(); }
     else if (a === 'to-reset') { view = 'reset'; renderAccount(); }
     else if (a === 'to-account') { view = 'account'; renderAccount(); }
+    else if (a === 'to-import') { view = 'confirm-import'; renderAccount(); }
+    else if (a === 'import-go') doImportClick();
     else if (a === 'retry-load') { authLoadFailed = false; renderAccount(); loadAuthModule().then(renderAccount); }
     else if (a === 'sync-now') { setStatus('syncing'); syncNow('force'); }
     else if (a === 'signout') doSignOut(false);

@@ -196,7 +196,7 @@ Questions are organised as **module → exam type → subject → topic**. Each 
 
 1. Open the topic's JSON file, e.g. `data/CPM/final_exam/anatomy/larynx.json`.
 2. Add the new question objects at the end of the `"questions"` array.
-3. Give each one a unique `"id"` (continue from the last question's id).
+3. Give each one a unique `"id"` (continue from the last question's id; ids are permanent, so never renumber existing questions).
 4. Update `meta.totalQuestions` to the new total.
 5. Save and push.
 
@@ -248,7 +248,7 @@ Simply add multiple objects to the array, separated by commas:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | integer | Yes | Unique identifier within this file |
+| `id` | integer | Yes | Unique identifier within this file. **Permanent:** never renumber or reuse an id, and never move a question to another file, because signed-in students' flags and incorrect answers refer to questions by this id |
 | `question` | string | Yes | The question text |
 | `options` | string[] | Yes | Exactly 4 answer options (A, B, C, D) |
 | `answer` | integer | Yes | Index of the correct option: `0`=A, `1`=B, `2`=C, `3`=D |
@@ -426,6 +426,16 @@ All user progress is stored in the browser's LocalStorage under these keys:
 | `dqb_last_page` | Last visited page (for session restore) |
 | `dqb_settings` | User preferences |
 | `dqb_count_cache` | Remembered question counts per topic, so pages open instantly (not cleared by Reset Progress) |
+
+When cloud sync is on, three more keys appear:
+
+| Key | Contents |
+|-----|----------|
+| `dqb_sync` | Sync bookkeeping for the signed-in account (change versions, queued uploads) |
+| `dqb_device_id` | Random id for this browser, used so the server can tell devices apart |
+| `dqb_backup_guest` | Copy of progress made before signing in, kept on the device |
+
+Cloud sync is controlled by `config/sync-config.json`. While `cloudEnabled` is `false`, nobody sees a Sign in button. To try it on one device first, open the site once with `?cloud=1` added to the address (`?cloud=0` turns that off again).
 
 To **reset all data** (for development), open the browser console and run:
 ```javascript

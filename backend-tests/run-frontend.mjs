@@ -96,9 +96,12 @@ async function boot({ storage = {}, cloud = true, net = {} } = {}) {
     getToken: async () => token(dev.uid),
     signInGoogle: async () => {}, signInEmail: async () => {}, signUpEmail: async () => {}, resetPassword: async () => {},
     signOut: async () => { dev.uid = null; dev.cb && dev.cb(null); },
+    reauthEmail: async (pw) => { if (pw === 'wrong') { const e = new Error('bad'); e.code = 'auth/invalid-credential'; throw e; } dev.reauthed = (dev.reauthed || 0) + 1; },
+    reauthGoogle: async () => { dev.googleReauth = true; },
+    deleteAccount: async () => { if (dev.net.failDelete) throw new Error('could not delete'); dev.deletedFirebase = true; dev.uid = null; dev.cb && dev.cb(null); },
   };
   dev.w.Sync.attachAuth(dev.provider);
-  dev.signIn = async (uid, email = uid + '@example.com') => { dev.uid = uid; await dev.cb({ uid, email, providerId: 'password' }); };
+  dev.signIn = async (uid, email = uid + '@example.com', providerId = 'password') => { dev.uid = uid; await dev.cb({ uid, email, providerId }); };
   dev.storage = () => Object.fromEntries(Array.from({ length: dev.w.localStorage.length }, (_, i) => { const k = dev.w.localStorage.key(i); return [k, dev.w.localStorage.getItem(k)]; }));
   dev.S = () => lex('Storage');
   dev.flush = () => dev.w.Sync._flush();
@@ -370,6 +373,69 @@ try {
   await bad.signIn('uidP8', 'p8@example.com'); await until(() => att('uidP8').n === 1, 8000); await sleep(300);
   check('P8: damaged entries are skipped, the valid exam imports, no crash', J(att('uidP8')) === J({ n: 1, c: 2, a: 4 }) && bad.errors.filter((e) => !/Could not load|not implemented|fonts|navigation|import/i.test(e)).length === 0, J(att('uidP8')) + J(bad.errors.slice(0, 2)));
   [P1, P3, P6, P7, bad].forEach((d) => d.close());
+
+
+  // ===== Account window: reset progress, delete account =====
+  const wipeBtn = (d) => d.w.document.getElementById('wipe-history-btn');
+  const openAcct = async (d) => { hdr(d).acct.click(); await sleep(40); return d.w.document.getElementById('account-view'); };
+  const gd = await boot();
+  check('D1: guest still sees the header Reset Progress button', wipeBtn(gd).hidden === false);
+  await gd.signIn('uidD1', 'd1@example.com');
+  check('D1: signed in: header Reset Progress button is hidden', wipeBtn(gd).hidden === true);
+  await gd.exam('larynx', [1, 0, 2], [3]); await gd.flush();
+  let dv = await openAcct(gd);
+  check('D2: account window has Reset progress and Delete account', !!dv.querySelector('[data-acct=reset-progress]') && !!dv.querySelector('[data-acct=to-delete]'));
+  check('D2: account window keeps Reset password and Sign out', !!dv.querySelector('[data-acct=send-reset]') && !!dv.querySelector('[data-acct=signout]'));
+  dv.querySelector('[data-acct=reset-progress]').click(); await sleep(50);
+  check('D3: Reset progress closes the account window and opens the confirmation', gd.w.document.getElementById('account-modal').style.display === 'none' && gd.w.document.getElementById('wipe-modal').style.display === 'flex');
+  gd.w.document.getElementById('wipe-cancel-btn').click(); await sleep(30);
+  check('D3: cancelling resets nothing', gd.S().getExamHistory().length === 1 && sql(`SELECT reset_epoch e FROM users WHERE uid='uidD1'`)[0].e === 0);
+  dv = await openAcct(gd); dv.querySelector('[data-acct=reset-progress]').click(); await sleep(30);
+  gd.w.document.getElementById('wipe-confirm-btn').click();
+  await until(() => sql(`SELECT reset_epoch e FROM users WHERE uid='uidD1'`)[0].e === 1, 8000);
+  check('D3: confirming resets here and on the server, and keeps flags', gd.S().getExamHistory().length === 0 && gd.S().getFlagged().length === 1 && sql(`SELECT reset_epoch e FROM users WHERE uid='uidD1'`)[0].e === 1);
+
+  // delete account (password user)
+  await gd.exam('larynx', [1, 1]); await gd.flush();
+  dv = await openAcct(gd); dv.querySelector('[data-acct=to-delete]').click(); await sleep(30);
+  dv = gd.w.document.getElementById('account-view');
+  check('D4: delete explains it is permanent and asks for the password', !!dv.querySelector('input[name=password]') && /cannot be undone/.test(dv.textContent));
+  gd.w.document.querySelector('[data-acct=delete-go]').click(); await sleep(60);
+  check('D4: empty password is refused', /Enter your password/.test(gd.w.document.getElementById('acct-error').textContent) && sql(`SELECT COUNT(*) n FROM users WHERE uid='uidD1'`)[0].n === 1);
+  const pwIn = () => gd.w.document.getElementById('account-view').querySelector('input[name=password]');
+  pwIn().value = 'wrong'; gd.w.document.querySelector('[data-acct=delete-go]').click(); await sleep(300);
+  check('D4: wrong password: error shown, nothing deleted, still signed in', /Incorrect email or password/.test(gd.w.document.getElementById('acct-error').textContent) && sql(`SELECT COUNT(*) n FROM users WHERE uid='uidD1'`)[0].n === 1 && gd.w.Sync.owner() === 'uidD1');
+  pwIn().value = 'right'; gd.net.offline = true; gd.w.document.querySelector('[data-acct=delete-go]').click(); await sleep(900);
+  check('D5: offline: nothing deleted anywhere, local data intact, still signed in', /Nothing was deleted/.test(gd.w.document.getElementById('acct-error').textContent) && sql(`SELECT COUNT(*) n FROM users WHERE uid='uidD1'`)[0].n === 1 && gd.S().getFlagged().length === 1 && gd.w.Sync.owner() === 'uidD1');
+  gd.net.offline = false;
+  pwIn().value = 'right'; gd.w.document.querySelector('[data-acct=delete-go]').click();
+  await until(() => gd.w.Sync.owner() === 'guest', 8000); await sleep(200);
+  const gone = ['users', 'scopes', 'attempts'].map((t) => sql(`SELECT COUNT(*) n FROM ${t} WHERE uid='uidD1'`)[0].n);
+  check('D6: account deleted: server has no rows for it and the sign-in itself was deleted', J(gone) === J([0, 0, 0]) && gd.deletedFirebase === true, J(gone));
+  check('D6: this device is cleared: no history, flags, sync store or account backups', gd.S().getExamHistory().length === 0 && gd.S().getFlagged().length === 0 && !gd.w.localStorage.getItem('dqb_sync') && !Object.keys(gd.storage()).some((k) => k.startsWith('dqb_backup_account_')));
+  check('D6: header is back to guest (Sign in visible, Reset Progress visible)', visible(hdr(gd).signin) && !visible(hdr(gd).acct) && wipeBtn(gd).hidden === false);
+  check('D6: other accounts were not touched', att('uidP1').n === 3);
+
+  // Google user: confirms through Google, no password field
+  const gg = await boot();
+  await gg.signIn('uidD3', 'd3@gmail.com', 'google.com'); await gg.exam('larynx', [1, 1]); await gg.flush();
+  dv = await openAcct(gg); dv.querySelector('[data-acct=to-delete]').click(); await sleep(30);
+  check('D7: Google account: no password field, explains the Google confirmation', !gg.w.document.getElementById('account-view').querySelector('input[name=password]') && /Google again/.test(gg.w.document.getElementById('account-view').textContent));
+  gg.w.document.querySelector('[data-acct=delete-go]').click();
+  await until(() => gg.w.Sync.owner() === 'guest', 8000); await sleep(200);
+  check('D7: Google account deleted after re-confirming with Google', gg.googleReauth === true && sql(`SELECT COUNT(*) n FROM users WHERE uid='uidD3'`)[0].n === 0 && sql(`SELECT COUNT(*) n FROM attempts WHERE uid='uidD3'`)[0].n === 0);
+
+  // the sign-in removal fails after the data is gone: data stays deleted and the device is cleared
+  const gf = await boot();
+  await gf.signIn('uidD4', 'd4@example.com'); await gf.exam('larynx', [1, 1]); await gf.flush();
+  gf.net.failDelete = true;
+  dv = await openAcct(gf); dv.querySelector('[data-acct=to-delete]').click(); await sleep(30);
+  gf.w.document.getElementById('account-view').querySelector('input[name=password]').value = 'right';
+  gf.w.document.querySelector('[data-acct=delete-go]').click();
+  await until(() => gf.w.Sync.owner() === 'guest', 8000); await sleep(200);
+  check('D8: if removing the sign-in fails, the data is still deleted and this device is signed out and cleared', sql(`SELECT COUNT(*) n FROM users WHERE uid='uidD4'`)[0].n === 0 && gf.S().getExamHistory().length === 0 && !gf.w.localStorage.getItem('dqb_sync'));
+  check('D8: nothing re-uploads afterwards', (await sleep(1500), sql(`SELECT COUNT(*) n FROM users WHERE uid='uidD4'`)[0].n === 0));
+  [gd, gg, gf].forEach((d) => d.close());
 
   // F16 hostile email text is escaped
   await B.signIn('uid3', '<img src=x onerror=alert(1)>@e.com');

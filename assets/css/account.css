@@ -6,7 +6,7 @@
 
 /* Header: text button for guests, icon button once signed in */
 .account-signin { white-space: nowrap; }
-.account-signin[hidden], .account-btn[hidden] { display: none; }
+.account-signin[hidden], .account-btn[hidden], #wipe-history-btn[hidden] { display: none; }
 .account-btn { color: var(--accent-text); }
 
 /* Modal shell: reuses .modal-overlay / .modal-box, left-aligned for forms */
@@ -99,3 +99,11 @@
 @media (max-width: 480px) {
   .modal-box--account { padding: 1.5rem 1.25rem 1.25rem; width: 94%; }
 }
+
+/* Spacing: a button followed by a note, and the data-management block */
+.acct-actions + .acct-note { margin-top: .9rem; }
+.acct-manage { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.acct-manage .acct-note { margin: .45rem 0 0; }
+.acct-manage .acct-actions { margin-top: .85rem; }
+.acct-danger { color: var(--danger); border-color: var(--danger-border); }
+.acct-danger:hover { background: var(--danger-bg); }

@@ -99,6 +99,7 @@
   var unavailable = {};         // question uids whose question file no longer has them
   var fileCache = {};           // scope -> Promise of question list
   var busy = false;
+  var deleting = false;         // true while an account deletion is running: no syncing allowed
   var Orig = {};                // the unwrapped methods
 
   function tracking() { return !!S.uid; }
@@ -506,7 +507,7 @@
 
   // ─── Sync loop ───────────────────────────────────────────────────────────
   function canSync() {
-    return !!(active && provider && user && S.uid && user.uid === S.uid && navigator.onLine !== false);
+    return !!(active && !deleting && provider && user && S.uid && user.uid === S.uid && navigator.onLine !== false);
   }
   function schedule(ms) {
     if (!tracking() || !active) { renderStatusIfOpen(); return; }
@@ -830,10 +831,11 @@
   var ICON_G = '<svg class="acct-google__g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 010-9.4l-7.9-6.1a24 24 0 000 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2 1.4-4.9 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
 
   function renderHeader() {
-    var signIn = $('signin-btn'), acct = $('account-btn');
+    var signIn = $('signin-btn'), acct = $('account-btn'), wipe = $('wipe-history-btn');
     if (!signIn || !acct) return;
-    if (!active) { signIn.hidden = true; acct.hidden = true; return; }
+    if (!active) { signIn.hidden = true; acct.hidden = true; if (wipe) wipe.hidden = false; return; }
     var signedIn = !!(S.uid || user);
+    if (wipe) wipe.hidden = signedIn;   // signed-in people reset from the account window instead
     signIn.hidden = signedIn; acct.hidden = !signedIn;
     acct.title = signedIn ? 'Account' + (S.profile && S.profile.email ? ' (' + S.profile.email + ')' : '') : '';
   }
@@ -899,7 +901,9 @@
     'auth/operation-not-supported-in-this-environment': 'Google sign-in does not work inside this browser. Open the site in Chrome or Safari, or use email and password.',
     'auth/web-storage-unsupported': 'This browser blocks the storage sign-in needs. Turn off private mode or use another browser.',
     'auth/unauthorized-domain': 'This address is not allowed for sign-in yet.',
-    'auth/operation-not-allowed': 'This sign-in method is not turned on.'
+    'auth/operation-not-allowed': 'This sign-in method is not turned on.',
+    'auth/user-mismatch': 'That is not the account you are signed in with.',
+    'auth/requires-recent-login': 'Please sign in again, then try once more.'
   };
   function authMessage(e) {
     var c = e && e.code;
@@ -981,6 +985,16 @@
       h = '<h2 class="acct-title" id="account-title">Check your email</h2>' +
         '<p class="acct-sub">If an account exists for that address, a reset link is on its way. It can take a few minutes, and it may land in spam.</p>' +
         '<div class="acct-actions"><button class="btn btn--primary" type="button" data-acct="to-signin">Back to sign in</button></div>';
+    } else if (view === 'confirm-delete') {
+      var dpid = (S.profile && S.profile.providerId) || (user && user.providerId) || '';
+      var dg = dpid === 'google.com';
+      h = '<h2 class="acct-title" id="account-title">Delete account?</h2>' +
+        '<p class="acct-sub">This permanently deletes your account and everything stored for it: exams, progress, incorrect questions and flags. Progress saved on this device is removed too. This cannot be undone.</p>' +
+        (dg ? '<p class="acct-sub">You will be asked to sign in with Google again to confirm.</p>'
+            : field('Enter your password to confirm', 'password', 'password', 'current-password')) +
+        '<p class="acct-error" id="acct-error" role="alert" aria-live="polite"></p>' +
+        '<div class="acct-actions acct-actions--row"><button class="btn btn--ghost" type="button" data-acct="to-account">Cancel</button>' +
+        '<button class="btn btn--danger" type="button" data-acct="delete-go">Delete account</button></div>';
     } else if (view === 'confirm-import') {
       var ic = backupCounts();
       h = '<h2 class="acct-title" id="account-title">Add progress from this device?</h2>' +
@@ -1011,7 +1025,12 @@
         '<p class="acct-error" id="acct-error" role="alert" aria-live="polite"></p>' +
         '<div class="acct-actions acct-actions--row">' +
         (!viaGoogle && email ? '<button class="btn btn--ghost" type="button" data-acct="send-reset">Reset password</button>' : '') +
-        '<button class="btn btn--ghost acct-signout" type="button" data-acct="signout">Sign out</button></div>';
+        '<button class="btn btn--ghost acct-signout" type="button" data-acct="signout">Sign out</button></div>' +
+        '<div class="acct-manage"><div class="acct-card__label">Your data</div>' +
+        '<p class="acct-note">Reset progress clears your exam scores, progress and incorrect questions on all your devices. Flagged questions are kept. Delete account removes your account and everything stored for it.</p>' +
+        '<div class="acct-actions acct-actions--row">' +
+        '<button class="btn btn--ghost acct-danger" type="button" data-acct="reset-progress">Reset progress</button>' +
+        '<button class="btn btn--ghost acct-danger" type="button" data-acct="to-delete">Delete account</button></div></div>';
     }
     box.innerHTML = h;
     if (busy) setBusyUi(true);
@@ -1051,6 +1070,46 @@
     } catch (e) { setBusyUi(false); setFormError(authMessage(e)); }
   }
 
+  // Delete account: confirm identity, delete the cloud data, delete the sign-in, then clear this device.
+  async function doDeleteAccount() {
+    if (!provider || !tracking() || busy) return;
+    var pid = (S.profile && S.profile.providerId) || (user && user.providerId) || '';
+    var viaGoogle = pid === 'google.com';
+    var pwEl = $('account-view') && $('account-view').querySelector('input[name=password]');
+    var pw = pwEl ? pwEl.value : '';
+    if (!viaGoogle && !pw) { setFormError('Enter your password to confirm.'); return; }
+    setFormError(''); setBusyUi(true);
+    deleting = true; clearTimeout(timer);
+    try {
+      if (viaGoogle) await provider.reauthGoogle(); else await provider.reauthEmail(pw);
+    } catch (e) {
+      deleting = false; setBusyUi(false); setFormError(authMessage(e)); return;
+    }
+    for (var i = 0; i < 60 && syncing; i++) await new Promise(function (r) { setTimeout(r, 100); });
+    try {
+      await authed(function (force) { return api('/account', 'POST', { confirm: 'delete' }, { forceRefresh: true }); });
+    } catch (e) {
+      deleting = false; setBusyUi(false);
+      setFormError('Could not delete your account data. Nothing was deleted. Check your connection and try again.');
+      if (pendingCount()) schedule(3000);
+      return;
+    }
+    var uid = S.uid, signInRemoved = true;
+    try { await provider.deleteAccount(); } catch (e) {
+      signInRemoved = false;
+      try { await provider.signOut(); } catch (e2) { /* ignore */ }
+    }
+    wipeLocalData();
+    lsDel(STORE_KEY);
+    if (uid) lsDel('dqb_backup_account_' + String(uid).slice(0, 12));
+    S = freshStore(); user = null; fileCache = {}; unavailable = {};
+    deleting = false; busy = false; closeModal(); renderHeader();
+    if (typeof UI !== 'undefined' && UI.toast) {
+      UI.toast(signInRemoved ? 'Your account was deleted.' : 'Your data was deleted, but removing the sign-in itself failed. Sign in again and choose Delete account to finish.', 'success');
+    }
+    if (typeof App !== 'undefined') App.navigate('dashboard');
+  }
+
   // Manual import: first bring in the account's latest data (so nothing newer is overwritten), then add.
   async function doImportClick() {
     if (!tracking() || busy) return;
@@ -1083,6 +1142,13 @@
     else if (a === 'to-reset') { view = 'reset'; renderAccount(); }
     else if (a === 'to-account') { view = 'account'; renderAccount(); }
     else if (a === 'to-import') { view = 'confirm-import'; renderAccount(); }
+    else if (a === 'to-delete') { view = 'confirm-delete'; renderAccount(); }
+    else if (a === 'delete-go') doDeleteAccount();
+    else if (a === 'reset-progress') {
+      closeModal();
+      var wm = document.getElementById('wipe-modal');
+      if (wm) wm.style.display = 'flex';   // the same confirmation the old header button opened
+    }
     else if (a === 'import-go') doImportClick();
     else if (a === 'retry-load') { authLoadFailed = false; renderAccount(); loadAuthModule().then(renderAccount); }
     else if (a === 'sync-now') { setStatus('syncing'); syncNow('force'); }

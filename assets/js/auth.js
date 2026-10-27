@@ -12,7 +12,8 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/fireba
 import {
   getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
-  sendPasswordResetEmail, signOut
+  sendPasswordResetEmail, signOut,
+  deleteUser, reauthenticateWithCredential, reauthenticateWithPopup, EmailAuthProvider
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 
 const firebaseConfig = {
@@ -49,7 +50,24 @@ const provider = {
   async signInEmail(email, password) { await signInWithEmailAndPassword(auth, email, password); },
   async signUpEmail(email, password) { await createUserWithEmailAndPassword(auth, email, password); },
   async resetPassword(email) { await sendPasswordResetEmail(auth, email); },
-  async signOut() { await signOut(auth); }
+  async signOut() { await signOut(auth); },
+  // Account deletion: Firebase only allows it shortly after a fresh sign-in, so the person confirms first.
+  async reauthEmail(password) {
+    const u = auth.currentUser;
+    if (!u || !u.email) throw new Error('signed_out');
+    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, password));
+  },
+  async reauthGoogle() {
+    const u = auth.currentUser;
+    if (!u) throw new Error('signed_out');
+    const g = new GoogleAuthProvider();
+    g.setCustomParameters({ prompt: 'select_account', login_hint: u.email || '' });
+    await reauthenticateWithPopup(u, g);
+  },
+  async deleteAccount() {
+    if (!auth.currentUser) throw new Error('signed_out');
+    await deleteUser(auth.currentUser);
+  }
 };
 
 window.Sync.attachAuth(provider);

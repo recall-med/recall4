@@ -45,7 +45,13 @@ async function api(p, { method = 'GET', tok, body, raw, headers = {} } = {}) {
   const h = { ...headers };
   if (tok) h.Authorization = 'Bearer ' + tok;
   if (body !== undefined || raw !== undefined) h['Content-Type'] = 'application/json';
-  const res = await fetch(BASE + p, { method, headers: h, body: raw !== undefined ? raw : body !== undefined ? J(body) : undefined });
+  const doFetch = () => fetch(BASE + p, { method, headers: h, body: raw !== undefined ? raw : body !== undefined ? J(body) : undefined });
+  let res;
+  try { res = await doFetch(); }
+  catch (e) { // a reused idle connection can be closed by the local server between slow database checks; try once more
+    if (!/other side closed|ECONNRESET/i.test(String((e && e.cause) || e))) throw e;
+    res = await doFetch();
+  }
   let data = null;
   try { data = await res.json(); } catch (e) { /* non-json */ }
   return { status: res.status, data };
@@ -133,7 +139,7 @@ try {
   check('alg HS256 token -> 401', r.status === 401);
   r = await api('/api/state', { tok: t });
   check('valid token -> 200 with empty state', r.status === 200 && r.data.epoch === 0 && Object.keys(r.data.scopes).length === 0);
-  for (const [m, pth] of [['POST', '/api/sync'], ['POST', '/api/reset'], ['PUT', '/api/session'], ['GET', '/api/session'], ['GET', '/api/admin/summary']]) {
+  for (const [m, pth] of [['POST', '/api/sync'], ['POST', '/api/reset'], ['PUT', '/api/session'], ['GET', '/api/session'], ['GET', '/api/admin/summary'], ['POST', '/api/account']]) {
     const rr = await api(pth, { method: m, body: m === 'GET' ? undefined : {} });
     check(`every route needs a token: ${m} ${pth} -> 401`, rr.status === 401);
   }
@@ -201,6 +207,29 @@ try {
   await api('/api/sync', { method: 'POST', tok: tF, body: { baseEpoch: 0, deviceId: dev(), scopes: { [SCOPE]: { progress: prog(1, Date.now() + 10 * 86400000) } } } });
   const fut = (await api('/api/state', { tok: tF })).data.scopes[SCOPE].progress;
   check('a client timestamp from the future is clamped to server time', fut.updatedAt <= Date.now() + 5000, J(fut.updatedAt));
+
+  // ===== delete account =====
+  const tDel = await token('delUser'), tKeep = await token('keepUser');
+  const delSeed = { baseEpoch: 0, deviceId: dev(), attempts: [attempt()], scopes: { [SCOPE]: { progress: prog(3, Date.now() - 300),
+    incorrect: { 7: { epoch: 0, rev: 1, updatedAt: Date.now() - 300, userAnswer: 1, addedAt: Date.now() - 300 } },
+    flags: { 8: { epoch: 0, rev: 1, updatedAt: Date.now() - 300, flaggedAt: Date.now() - 300 } } } } };
+  await api('/api/sync', { method: 'POST', tok: tDel, body: delSeed });
+  await api('/api/sync', { method: 'POST', tok: tKeep, body: { ...delSeed, attempts: [attempt()] } });
+  const cntRows = async (uid) => ({ u: (await sql(`SELECT COUNT(*) n FROM users WHERE uid='${uid}'`))[0].n,
+    s: (await sql(`SELECT COUNT(*) n FROM scopes WHERE uid='${uid}'`))[0].n, a: (await sql(`SELECT COUNT(*) n FROM attempts WHERE uid='${uid}'`))[0].n });
+  check('delete setup: both users have data', J(await cntRows('delUser')) === J({ u: 1, s: 1, a: 1 }) && J(await cntRows('keepUser')) === J({ u: 1, s: 1, a: 1 }));
+  r = await api('/api/account', { method: 'GET', tok: tDel });
+  check('delete account: GET is refused (405)', r.status === 405);
+  r = await api('/api/account', { method: 'POST', tok: tDel, body: {} });
+  check('delete account: missing confirm is refused and deletes nothing', r.status === 400 && (await cntRows('delUser')).u === 1);
+  r = await api('/api/account', { method: 'POST', tok: tDel, body: { confirm: 'yes' } });
+  check('delete account: wrong confirm value is refused', r.status === 400 && (await cntRows('delUser')).u === 1);
+  r = await api('/api/account', { method: 'POST', tok: tDel, body: { confirm: 'delete', uid: 'keepUser' } });
+  check('delete account: removes only the token owner\'s rows (a uid in the body is ignored)', r.status === 200 && r.data.deleted === true && J(await cntRows('delUser')) === J({ u: 0, s: 0, a: 0 }) && J(await cntRows('keepUser')) === J({ u: 1, s: 1, a: 1 }), J(await cntRows('keepUser')));
+  r = await api('/api/account', { method: 'POST', tok: tDel, body: { confirm: 'delete' } });
+  check('delete account: repeating it is harmless', r.status === 200 && (await cntRows('keepUser')).u === 1);
+  r = await api('/api/state', { tok: tDel });
+  check('after deletion a new sign-in starts from an empty account', r.status === 200 && r.data.epoch === 0 && Object.keys(r.data.scopes).length === 0 && r.data.attempts.length === 0);
 
   // ===== reset, stale offline device, flags survive =====
   const tR = await token('resetUser');

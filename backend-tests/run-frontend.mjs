@@ -437,6 +437,27 @@ try {
   check('D8: nothing re-uploads afterwards', (await sleep(1500), sql(`SELECT COUNT(*) n FROM users WHERE uid='uidD4'`)[0].n === 0));
   [gd, gg, gf].forEach((d) => d.close());
 
+  // ===== Signing in to an account that was reset before: no false 'reset on another device' notice =====
+  const R1 = await boot();
+  await R1.signIn('uidR1', 'r1@example.com');
+  await R1.exam('larynx', [1, 1]); await R1.flush();
+  R1.S().wipeHistory(); await R1.flush();                    // account is now at reset count 1
+  await R1.exam('pharynx', [1, 1, 1]); await R1.flush();     // fresh data after the reset
+  await signOut(R1);
+  const R2 = await boot();
+  const toasts = []; { const U = R2.lex('UI'); const o = U.toast; U.toast = function (m) { toasts.push(String(m)); return o.apply(U, arguments); }; }
+  await R2.signIn('uidR1', 'r1@example.com'); await until(() => R2.S().getExamHistory().length === 1, 8000); await sleep(300);
+  check('R: first sign-in to a reset account shows its data and NO "reset on another device" notice', R2.S().getExamHistory().length === 1 && R2.S().getStats().completedExams === 1 && !toasts.some((m) => /another device/.test(m)), J(toasts));
+  // a real reset from another device is still announced on a device that already had the account loaded
+  R1.close();
+  const R3 = await boot();
+  await R3.signIn('uidR1', 'r1@example.com'); await until(() => R3.S().getExamHistory().length === 1, 8000);
+  R2.S().wipeHistory(); await R2.flush();
+  const toasts3 = []; { const U = R3.lex('UI'); const o = U.toast; U.toast = function (m) { toasts3.push(String(m)); return o.apply(U, arguments); }; }
+  await R3.exam('larynx', [1]); await R3.flush(); await sleep(300);
+  check('R: a real reset on another device is still announced, and this device follows it', toasts3.some((m) => /another device/.test(m)) && R3.S().getExamHistory().length === 0, J(toasts3) + ' hist=' + R3.S().getExamHistory().length);
+  [R2, R3].forEach((d) => d.close());
+
   // F16 hostile email text is escaped
   await B.signIn('uid3', '<img src=x onerror=alert(1)>@e.com');
   B.w.document.getElementById('account-btn').click(); await sleep(20);

@@ -569,7 +569,8 @@
 
   async function pull() {
     var res = await authed(function (force) { return api('/state', 'GET', undefined, { forceRefresh: force }); });
-    if (res.epoch > S.baseEpoch && !S.pendingReset) { await adoptRemoteReset(res); return res; }
+    // A device that has never pulled this account yet (just signed in) is empty anyway: no 'reset on another device' notice.
+    if (res.epoch > S.baseEpoch && !S.pendingReset && S.lastPull > 0) { await adoptRemoteReset(res); return res; }
     await applyState(res);
     return res;
   }

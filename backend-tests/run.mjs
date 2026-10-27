@@ -317,7 +317,7 @@ try {
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.name === 'node_modules' || e.name === '.git' ? [] : e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
   const files = walk(repo).map((f) => path.relative(repo, f));
   const refs = files.filter((f) => fs.readFileSync(path.join(repo, f), 'utf8').includes('TEST_JWKS'));
-  check('repo: TEST_JWKS appears only in auth.js and this test file', refs.every((f) => ['functions/_lib/auth.js', 'backend-tests/run.mjs'].includes(f.replaceAll('\\', '/'))), J(refs));
+  check('repo: TEST_JWKS appears only in auth.js and this test file', refs.every((f) => ['functions/_lib/auth.js', 'backend-tests/run.mjs', 'backend-tests/run-frontend.mjs'].includes(f.replaceAll('\\', '/'))), J(refs));
   check('repo: no wrangler.toml or .dev.vars committed', !files.some((f) => /(^|\/)(wrangler\.toml|\.dev\.vars)$/.test(f)));
   check('repo: .gitignore excludes .dev.vars and node_modules', /\.dev\.vars/.test(fs.readFileSync(path.join(repo, '.gitignore'), 'utf8')) && /node_modules/.test(fs.readFileSync(path.join(repo, '.gitignore'), 'utf8')));
   const authSrc = fs.readFileSync(path.join(repo, 'functions/_lib/auth.js'), 'utf8');

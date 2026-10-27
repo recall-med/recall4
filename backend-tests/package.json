@@ -2,6 +2,12 @@
   "name": "recall-backend-tests",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node run.mjs" },
-  "devDependencies": { "jose": "^5.9.6", "wrangler": "^4.0.0" }
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "devDependencies": {
+    "jose": "^5.9.6",
+    "jsdom": "^24.1.3",
+    "wrangler": "^4.0.0"
+  }
 }

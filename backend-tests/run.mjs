@@ -139,7 +139,7 @@ try {
   check('alg HS256 token -> 401', r.status === 401);
   r = await api('/api/state', { tok: t });
   check('valid token -> 200 with empty state', r.status === 200 && r.data.epoch === 0 && Object.keys(r.data.scopes).length === 0);
-  for (const [m, pth] of [['POST', '/api/sync'], ['POST', '/api/reset'], ['PUT', '/api/session'], ['GET', '/api/session'], ['GET', '/api/admin/summary'], ['POST', '/api/account']]) {
+  for (const [m, pth] of [['POST', '/api/sync'], ['POST', '/api/reset'], ['PUT', '/api/session'], ['GET', '/api/session'], ['GET', '/api/admin/summary'], ['POST', '/api/account'], ['POST', '/api/profile']]) {
     const rr = await api(pth, { method: m, body: m === 'GET' ? undefined : {} });
     check(`every route needs a token: ${m} ${pth} -> 401`, rr.status === 401);
   }
@@ -337,6 +337,63 @@ try {
   check('session: owner can clear it when the exam ends', r.status === 200 && (await api('/api/session', { tok: tS })).data.session === null);
   r = await api('/api/session', { method: 'PUT', tok: tS, body: { deviceId: dev2, baseEpoch: 0, sessionVersion: 1, session: { pad: 'x'.repeat(70 * 1024) } } });
   check('session: payload over 64 KB rejected', r.status === 413 || r.status === 400);
+
+
+  // ===== profile name (first required, last optional, not unique, changeable, small blocklist) =====
+  {
+    const tN = await token('nameUser');
+    r = await api('/api/profile', { method: 'POST', tok: tN, body: { firstName: 'Kareem', lastName: 'Mohamed' } });
+    check('profile: saves first and last name', r.status === 200 && r.data.profile.firstName === 'Kareem' && r.data.profile.lastName === 'Mohamed', J(r.data));
+    r = await api('/api/state', { tok: tN });
+    check('profile: /api/state returns the saved name', r.data.profile && r.data.profile.firstName === 'Kareem' && r.data.profile.lastName === 'Mohamed');
+    r = await api('/api/profile', { method: 'POST', tok: tN, body: { firstName: '  Karim   ', lastName: '' } });
+    check('profile: changeable; spaces tidied; last name optional', r.status === 200 && r.data.profile.firstName === 'Karim' && r.data.profile.lastName === '');
+    r = await api('/api/state', { tok: tN });
+    check('profile: change is stored (empty last name stays empty)', r.data.profile.firstName === 'Karim' && r.data.profile.lastName === '');
+    r = await api('/api/profile', { method: 'POST', tok: tN, body: { firstName: 'Karim' } });
+    check('profile: last name may be left out entirely; repeating the same name is harmless', r.status === 200);
+    r = await api('/api/profile', { method: 'POST', tok: await token('nameUser2'), body: { firstName: 'Karim', lastName: '' } });
+    check('profile: names are not unique (a second account may use the same name)', r.status === 200);
+    for (const [label, body] of [
+      ['empty first name', { firstName: '   ' }], ['missing first name', { lastName: 'X' }], ['31-character first name', { firstName: 'a'.repeat(31) }],
+      ['digits', { firstName: 'Kareem2' }], ['symbols', { firstName: 'Ka<b>reem' }], ['number type', { firstName: 5 }],
+      ['blocked word', { firstName: 'Fuck' }], ['blocked word spread with spaces', { firstName: 'f u c k' }], ['blocked word stretched', { firstName: 'Fuuuck' }],
+      ['blocked whole word in last name', { firstName: 'Sam', lastName: 'Ass' }], ['blocked Arabic word', { firstName: '\u0634\u0631\u0645\u0648\u0637' }],
+    ]) {
+      r = await api('/api/profile', { method: 'POST', tok: tN, body });
+      check(`profile: rejected (400): ${label}`, r.status === 400, `${r.status} ${J(r.data)}`);
+    }
+    r = await api('/api/state', { tok: tN });
+    check('profile: rejected attempts changed nothing', r.data.profile.firstName === 'Karim');
+    for (const [fn, ln] of [['Hassan', 'Assad'], ['Scott', 'Cockburn'], ["Sinead", "O'Connor"], ['Jean-Luc', 'Picard'], ['\u0643\u0631\u064a\u0645', '\u0645\u062d\u0645\u062f'], ['\u00c9lodie', 'Fran\u00e7ois']]) {
+      r = await api('/api/profile', { method: 'POST', tok: await token('nameOk'), body: { firstName: fn, lastName: ln } });
+      check(`profile: real name accepted: ${fn} ${ln}`, r.status === 200, `${r.status} ${J(r.data)}`);
+    }
+    r = await api('/api/profile', { method: 'GET', tok: tN });
+    check('profile: GET is not allowed (405)', r.status === 405);
+    r = await api('/api/state', { tok: await token('userNoName') });
+    check('profile: a new account has no name yet (null)', r.data.profile === null);
+    // reset keeps the name; account deletion removes it
+    const ep = (await api('/api/state', { tok: tN })).data.epoch;
+    await api('/api/reset', { method: 'POST', tok: tN, body: { fromEpoch: ep } });
+    r = await api('/api/state', { tok: tN });
+    check('profile: reset progress keeps the name', r.data.profile && r.data.profile.firstName === 'Karim');
+    r = await api('/api/account', { method: 'POST', tok: tN, body: { confirm: 'delete' } });
+    const gone = await sql(`SELECT COUNT(*) n FROM users WHERE uid='nameUser'`);
+    check('profile: delete account removes the name with the user row', r.status === 200 && gone[0].n === 0);
+
+    // the browser copy and the server copy of the rules must agree
+    const srvN = await import(path.join(repo, 'functions/_lib/names.js'));
+    globalThis.window = undefined;
+    const cliSrc = fs.readFileSync(path.join(repo, 'assets/js/names.js'), 'utf8');
+    new Function(cliSrc)();   // sets globalThis.RecallNames
+    const cli = globalThis.RecallNames;
+    const probes = [['Kareem', 'Mohamed'], ['', 'x'], ['x'.repeat(31), ''], ['Fuck', ''], ['f.u.c.k', ''], ['Fuuuck', 'x'], ['Sam', 'Ass'], ['Hassan', 'Assad'],
+      ['Ka<b>', ''], ['Jean-Luc', "O'Brien"], ['\u0643\u0631\u064a\u0645', '\u0645\u062d\u0645\u062f'], ['\u0634\u0631\u0645\u0648\u0637', ''], ['\u062e\u0648\u0644', 'x'], ['  Ann  ', '  Lee  '], ['Dick', ''], ['Scunthorpe', ''], ['Bi tch', ''], ['Nazi', 'x']];
+    const mismatch = probes.filter(([a, b]) => J(srvN.cleanName(a, b)) !== J(cli.clean(a, b)));
+    check('names: browser rules and server rules give identical answers on every probe', mismatch.length === 0, J(mismatch));
+    delete globalThis.RecallNames;
+  }
 
   // ===== admin =====
   r = await api('/api/admin/summary', { tok: await token('student1') });

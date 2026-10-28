@@ -32,7 +32,7 @@ try { auth.useDeviceLanguage(); } catch (e) { /* optional */ }
 function describe(u) {
   if (!u) return null;
   const google = (u.providerData || []).some((p) => p.providerId === 'google.com');
-  return { uid: u.uid, email: u.email || '', providerId: google ? 'google.com' : 'password' };
+  return { uid: u.uid, email: u.email || '', displayName: u.displayName || '', providerId: google ? 'google.com' : 'password' };
 }
 
 const provider = {

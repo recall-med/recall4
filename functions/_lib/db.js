@@ -61,6 +61,7 @@ export async function buildState(db, user) {
     sessionVersion: user.session_version,
     settings: settings && settings.data ? settings : null,
     session: parseJson(user.session, null),
+    profile: user.first_name ? { firstName: user.first_name, lastName: user.last_name || '' } : null,
     scopes,
     stats,
     attempts: attemptRows.results,

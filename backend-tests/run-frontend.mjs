@@ -489,6 +489,124 @@ try {
   check('S: with a fresh sign-in the same deletion goes through', sql(`SELECT COUNT(*) n FROM users WHERE uid='uidSD'`)[0].n === 0);
   SD.close();
 
+
+  // ===== Account name, navy avatar, animation hooks, Sync now cooldown =====
+  {
+    const submit = (d, form) => form.dispatchEvent(new d.w.Event('submit', { bubbles: true, cancelable: true }));
+    const setVals = (form, v) => Object.entries(v).forEach(([k, x]) => { form.elements[k].value = x; });
+    const nameRow = (uid) => (sql(`SELECT first_name f, last_name l FROM users WHERE uid='${uid}'`) || [])[0];
+
+    // -- sign-up form and validation
+    const NM = await boot();
+    NM.signUps = 0;
+    NM.provider.signUpEmail = async (email) => { NM.signUps++; await NM.signIn('uidNM', email); };
+    hdr(NM).signin.click(); await sleep(50);
+    NM.w.document.querySelector('[data-acct=to-signup]').click(); await sleep(30);
+    let form = NM.w.document.getElementById('acct-form');
+    const order = Array.from(form.elements).map((e) => e.name).filter(Boolean);
+    check('N: sign-up asks for first name (required) and last name (optional), before the email',
+      order.indexOf('first') === 0 && order.indexOf('last') === 1 && order.indexOf('email') === 2 && form.elements.first.required && !form.elements.last.required &&
+      form.elements.first.getAttribute('autocomplete') === 'given-name' && form.elements.last.getAttribute('autocomplete') === 'family-name');
+    setVals(form, { first: '  ', last: '', email: 'nm@example.com', password: 'secret1', confirm: 'secret1' }); submit(NM, form); await sleep(60);
+    check('N: blank first name is refused before any account is created', /first name/i.test(NM.w.document.getElementById('acct-error').textContent) && NM.signUps === 0);
+    setVals(form, { first: 'Fuck', last: '' }); submit(NM, form); await sleep(60);
+    check('N: a blocked name is refused before any account is created', /different name/i.test(NM.w.document.getElementById('acct-error').textContent) && NM.signUps === 0);
+    setVals(form, { first: 'Kareem', last: 'Mohamed' }); submit(NM, form);
+    await until(() => nameRow('uidNM') && nameRow('uidNM').f === 'Kareem', 6000); await sleep(300);
+    check('N: sign-up creates the account and the server stores the name', NM.signUps === 1 && J(nameRow('uidNM')) === J({ f: 'Kareem', l: 'Mohamed' }), J(nameRow('uidNM')));
+    check('N: the queued name is cleared once saved', NM.w.localStorage.getItem('dqb_pending_name') === null);
+
+    // -- account window: navy generic avatar, Dr. name, email
+    let av2 = await openAcct(NM);
+    const avatar = av2.querySelector('.acct-avatar');
+    check('N: avatar is a generic user icon, not a letter', !!avatar && !!avatar.querySelector('svg') && avatar.textContent.trim() === '');
+    check('N: account shows "Dr. Kareem Mohamed" with the email under it', (av2.querySelector('.acct-name') || {}).textContent === 'Dr. Kareem Mohamed' && /nm@example\.com/.test(av2.querySelector('.acct-email').textContent));
+    check('N: opening the window does not replay the view-change animation, but the window itself animates in CSS',
+      !av2.classList.contains('acct-swap') && /@keyframes acct-pop/.test(fs.readFileSync(path.join(SITE_DIR, 'assets/css/account.css'), 'utf8')) && /prefers-reduced-motion/.test(fs.readFileSync(path.join(SITE_DIR, 'assets/css/account.css'), 'utf8')));
+
+    // -- a second device shows the same name
+    const NB = await boot(); await NB.signIn('uidNM', 'nm@example.com'); await sleep(200);
+    av2 = await openAcct(NB);
+    check('N: another device shows the same name after signing in', (av2.querySelector('.acct-name') || {}).textContent === 'Dr. Kareem Mohamed');
+    NB.close();
+
+    // -- editing: prefilled, last name optional, blocked names refused, server updated
+    NM.w.document.querySelector('[data-acct=to-edit-name]').click(); await sleep(30);
+    form = NM.w.document.getElementById('acct-form');
+    check('N: edit form is prefilled and the window plays its settle-in animation class', form.elements.first.value === 'Kareem' && form.elements.last.value === 'Mohamed' && NM.w.document.getElementById('account-view').classList.contains('acct-swap'));
+    setVals(form, { first: 'Kareem', last: 'Shit' }); submit(NM, form); await sleep(80);
+    check('N: edit: blocked name refused, server unchanged', /different name/i.test(NM.w.document.getElementById('acct-error').textContent) && nameRow('uidNM').l === 'Mohamed');
+    setVals(form, { first: 'Karim', last: '' }); submit(NM, form);
+    await until(() => nameRow('uidNM').f === 'Karim', 5000); await sleep(100);
+    check('N: edit: saved (last name removed); the account view shows "Dr. Karim"', J(nameRow('uidNM')) === J({ f: 'Karim', l: null }) && (NM.w.document.querySelector('.acct-name') || {}).textContent === 'Dr. Karim', J(nameRow('uidNM')));
+
+    // -- Google sign-in has no stored name: offer to add one, prefilled from the Google name
+    const GN = await boot();
+    GN.uid = 'uidGN'; await GN.cb({ uid: 'uidGN', email: 'gn@example.com', providerId: 'google.com', displayName: 'Sara Ali Hassan' }); await sleep(200);
+    av2 = await openAcct(GN);
+    check('N: Google account without a name: "Add your name" is offered, no empty name line', !av2.querySelector('.acct-name') && /Add your name/.test(av2.textContent));
+    av2.querySelector('[data-acct=to-edit-name]').click(); await sleep(30);
+    form = GN.w.document.getElementById('acct-form');
+    check('N: the Google name is only a prefill (first / rest), nothing is saved until Save', form.elements.first.value === 'Sara' && form.elements.last.value === 'Ali Hassan' && !(nameRow('uidGN') && nameRow('uidGN').f));
+    GN.close();
+
+    // -- sign-up while offline: the name waits and is saved on the next sign-in
+    const NO = await boot(); NO.signUps = 0;
+    NO.provider.signUpEmail = async (email) => { NO.signUps++; await NO.signIn('uidNO', email); };
+    NO.net.offline = true;
+    hdr(NO).signin.click(); await sleep(40); NO.w.document.querySelector('[data-acct=to-signup]').click(); await sleep(30);
+    form = NO.w.document.getElementById('acct-form');
+    setVals(form, { first: 'Omar', last: '', email: 'no@example.com', password: 'secret1', confirm: 'secret1' }); submit(NO, form); await sleep(400);
+    check('N: offline sign-up keeps the name queued (nothing lost)', !!JSON.parse(NO.w.localStorage.getItem('dqb_pending_name') || 'null') && !nameRow('uidNO'));
+    NO.net.offline = false; await NO.signIn('uidNO', 'no@example.com');
+    await until(() => nameRow('uidNO') && nameRow('uidNO').f === 'Omar', 6000); await sleep(300);
+    check('N: queued name is saved after reconnecting, then cleared', !!nameRow('uidNO') && nameRow('uidNO').f === 'Omar' && NO.w.localStorage.getItem('dqb_pending_name') === null);
+    NO.close();
+
+    // -- a queued name is never given to a different account
+    const NX = await boot({ storage: { dqb_pending_name: J({ email: 'someone@example.com', first: 'Zed', last: '' }) } });
+    await NX.signIn('uidNX', 'other@example.com'); await sleep(500);
+    check('N: a queued name for one email is not applied to another account', !(nameRow('uidNX') && nameRow('uidNX').f));
+    NX.close();
+
+    // -- Sync now cooldown (button only)
+    const SN = await boot({ storage: { dqb_manual_sync_at: '0' } });
+    await SN.signIn('uidSN', 'sn@example.com'); await sleep(200);
+    let avs = await openAcct(SN);
+    let btn = SN.w.document.getElementById('acct-sync-btn');
+    check('C: Sync now is available when it has not been used', !!btn && !btn.disabled && btn.textContent === 'Sync now');
+    const stateCalls = () => SN.calls.filter((c) => c.url.includes('/api/state')).length;
+    const c0 = stateCalls();
+    btn.click(); await sleep(400);
+    btn = SN.w.document.getElementById('acct-sync-btn');
+    check('C: pressing it syncs once and starts a countdown (disabled, shows seconds left)', stateCalls() === c0 + 1 && btn.disabled && /^Sync now \((29|30)s\)$/.test(btn.textContent), `${stateCalls() - c0} ${btn.textContent}`);
+    btn.dispatchEvent(new SN.w.MouseEvent('click', { bubbles: true })); await sleep(300);
+    check('C: a stray click during the cooldown does nothing (no extra request)', stateCalls() === c0 + 1);
+    SN.w.document.getElementById('account-close').click(); await sleep(30);
+    avs = await openAcct(SN); btn = SN.w.document.getElementById('acct-sync-btn');
+    check('C: closing and reopening the window does not reset the cooldown', btn.disabled && /^Sync now \(\d+s\)$/.test(btn.textContent));
+    await SN.exam('larynx', [1, 0]);
+    const during = await SN.flush();
+    check('C: normal syncing is untouched during the cooldown (exam uploads, nothing pending)', during === true && SN.w.Sync.pending() === 0 && sql(`SELECT COUNT(*) n FROM attempts WHERE uid='uidSN'`)[0].n === 1);
+    check('C: the cooldown time is remembered across a reload (stored, not trusted beyond 30 s)', Number(SN.w.localStorage.getItem('dqb_manual_sync_at')) > Date.now() - 5000);
+    SN.close();
+    const SR = await boot({ storage: { dqb_manual_sync_at: String(Date.now() - 12000) } });
+    await SR.signIn('uidSR', 'sr@example.com'); await sleep(200);
+    await openAcct(SR);
+    const secs = () => Number((/\((\d+)s\)/.exec(SR.w.document.getElementById('acct-sync-btn').textContent) || [])[1]);
+    const s1 = secs();
+    check('C: a recent press stored before a reload keeps the button locked with the right time left', SR.w.document.getElementById('acct-sync-btn').disabled && s1 >= 8 && s1 <= 18, String(s1));
+    await sleep(2300);
+    check('C: the countdown ticks down by itself without redrawing the window', secs() <= s1 - 2, `${s1} -> ${secs()}`);
+    SR.close();
+    const SE = await boot({ storage: { dqb_manual_sync_at: String(Date.now() - 27000) } });
+    await SE.signIn('uidSE', 'se@example.com'); await sleep(200);
+    await openAcct(SE);
+    check('C: when the 30 s are over the button comes back on its own', await until(() => { const x = SE.w.document.getElementById('acct-sync-btn'); return x && !x.disabled && x.textContent === 'Sync now'; }, 9000, 100));
+    SE.close();
+    NM.close();
+  }
+
   // F16 hostile email text is escaped
   await B.signIn('uid3', '<img src=x onerror=alert(1)>@e.com');
   B.w.document.getElementById('account-btn').click(); await sleep(20);

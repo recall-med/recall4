@@ -1,6 +1,6 @@
 # Recall backend guide and handoff
 
-Last updated 2026-10-28. This file explains how the cloud side of Recall works, how to add features to it, where the project stands, and how to continue in a new chat. The older handoff files (`Recall_Cloud_Sync_Handoff_Phase3a_Status.md`, the original plan and `Recall_Security_Update_for_Next_Chat.md`) are superseded by this one where they disagree. The security update is merged into section 11.
+Last updated 2026-10-28 (account name, navy avatar, Sync now cooldown added). This file explains how the cloud side of Recall works, how to add features to it, where the project stands, and how to continue in a new chat. The older handoff files (`Recall_Cloud_Sync_Handoff_Phase3a_Status.md`, the original plan and `Recall_Security_Update_for_Next_Chat.md`) are superseded by this one where they disagree. The security update is merged into section 11.
 
 Confidence tags used below: **[Certain]** checked in code or tests, **[Likely]** strong inference, **[Guessing]** not measured.
 
@@ -37,6 +37,7 @@ functions/
   _lib/http.js                  json(), readJson(), HttpError, errorResponse()
   _lib/merge.js                 the conflict rule (server copy)
   _lib/validate.js              LIMITS and input checks
+  _lib/names.js                 name rules and the small blocklist (server copy)
   api/_middleware.js            runs before every /api route: checks the token, sets data.uid and data.authTime
   api/health.js                 public check
   api/state.js                  full account state
@@ -44,8 +45,10 @@ functions/
   api/reset.js                  reset progress
   api/session.js                in-progress exam transfer (server done, no front end yet)
   api/account.js                POST {confirm:"delete"}: delete everything for the user
+  api/profile.js                POST {firstName, lastName?}: save the display name
   api/admin/summary.js          admin totals (server done, no front end yet)
-assets/js/sync.js               sync engine, account window, guest import, reset/delete flows
+assets/js/sync.js               sync engine, account window, guest import, reset/delete flows, name, Sync now cooldown
+assets/js/names.js              name rules and blocklist (browser copy, generated from _lib/names.js; a test checks they agree)
 assets/js/auth.js               Firebase provider (loaded on demand)
 assets/css/account.css          account window, loading cover and toast colours (additive file)
 backend-tests/run.mjs           backend tests (local Worker + local D1)
@@ -59,7 +62,7 @@ backend-tests/run-frontend.mjs  front-end tests (jsdom, fake sign-in provider)
 ## 3. Data model
 
 ```
-users(uid PK, reset_epoch, session_version, created_at, last_seen, settings, session)
+users(uid PK, reset_epoch, session_version, created_at, last_seen, settings, session, first_name, last_name)
 scopes(uid, scope_key, progress, incorrect, flags, version, PK(uid, scope_key))
 attempts(uid, attempt_id, epoch, created_at, client_ts, module, exam_type, subject, sub_subject,
          scope, score, correct, total, attempted, time_sec, review, PK(uid, attempt_id))
@@ -68,7 +71,7 @@ attempts(uid, attempt_id, epoch, created_at, client_ts, module, exam_type, subje
 - `scope_key` = `MODULE|examType|subject|subSubject`, four parts, each `[A-Za-z0-9_-]{1,40}`.
 - The cloud stores **question ids only**, never question text. Text is rebuilt from `data/**.json`. **Question ids are permanent**: never renumber or reuse one, or students' incorrect and flagged lists point at the wrong questions.
 - Statistics are **derived from attempts** on the server. There are no client-side counters to double count. `attempt_id` is the primary key and inserts use `INSERT OR IGNORE`, so a resent exam is stored once.
-- The server stores **no email addresses**. Emails live only in Firebase.
+- The server stores **no email addresses**. Emails live only in Firebase. It does store the **display name** (`first_name` required, `last_name` optional). Names are not unique, can be changed any time, are kept by Reset progress, and are removed by Delete account. The admin route never returns them. A future leaderboard can read them from `users`.
 
 ### Conflict rule (same code on server `merge.js` and client `sync.js`)
 
@@ -91,6 +94,7 @@ All JSON. Everything except health needs `Authorization: Bearer <Firebase ID tok
 | `POST /api/sync` | Body `{baseEpoch, deviceId, scopes?, attempts?, settings?}`. Returns merged scopes, stats, accepted and rejected attempt ids |
 | `POST /api/reset` | Body `{fromEpoch}` |
 | `GET/PUT /api/session` | In-progress exam transfer with explicit takeover. Server tested, **no front end yet** |
+| `POST /api/profile` | Body `{firstName, lastName?}`. Letters, spaces, hyphen, apostrophe, period; 1 to 30 characters each; a small blocklist (`functions/_lib/names.js`) answers 400 `bad_name`. `/api/state` returns `profile` (or `null`). |
 | `POST /api/account` | Body `{confirm:"delete"}`. Needs a sign-in no older than 10 minutes (otherwise 403 `recent_login_required`). Deletes attempts, scopes and the user row in one atomic batch. Repeating it is harmless |
 | `GET /api/admin/summary[?refresh=1]` | Admin only (uid listed in `ADMIN_UIDS`). Aggregates only, cached 10 minutes. **No front end yet** |
 
@@ -123,11 +127,15 @@ Algorithm RS256, `kid` present in Google's key list, signature, issuer `https://
 
 **Add a new endpoint.** Create `functions/api/<name>.js` exporting `onRequest({request, env, data})`. The middleware already verifies the token and gives you `data.uid`. Copy the shape of `functions/api/account.js`: check the method, validate the body, run D1 queries with `.bind(...)` (never string-concatenate input), return `json(...)`, and wrap everything in `try/catch` that returns `errorResponse(err)`. Add it to the "must be refused without a token" list and write tests in `backend-tests/run.mjs`.
 
+**Column added for the name (run once in the D1 console, BEFORE uploading the new code):** `ALTER TABLE users ADD COLUMN first_name TEXT;` then `ALTER TABLE users ADD COLUMN last_name TEXT;`
+
 **Add a column or table.** Edit `db/schema.sql` so new installs match, **and** run the matching `ALTER TABLE` / `CREATE TABLE` in the Cloudflare D1 console for the live database (the schema file is not re-applied automatically). Use `CREATE TABLE IF NOT EXISTS`. Remember every extra row written per exam counts against the free write cap.
 
 **Add a new kind of synced data.** Decide whether it fits an existing scope entry. If not, add validation in `validate.js`, merge handling in `merge.js` **and** the matching client code in `sync.js` (the two merge implementations must stay identical), then extend both test suites.
 
 **Add an admin metric.** Add a query in `functions/api/admin/summary.js`. Keep it aggregated (no per-person data) and cheap, because the result is cached for 10 minutes and each load scans attempt rows.
+
+**Change the blocklist.** Edit the lists in `functions/_lib/names.js`, then copy the same change into `assets/js/names.js` (or regenerate it from the server file). The backend test fails if the two disagree.
 
 **Change a limit.** Edit `LIMITS` in `validate.js`. Keep the client in step (it chunks attempts at 30 per call).
 
@@ -156,8 +164,8 @@ Both suites start a **local** Worker and a **local** database with `wrangler pag
 ```
 git clone https://github.com/recall-med/recall4.git site && cd site/backend-tests
 npm install
-node run.mjs            # backend: expect 83 passed, 0 failed
-node run-frontend.mjs   # front end in jsdom: expect 98 passed, 0 failed
+node run.mjs            # backend: expect 113 passed, 0 failed
+node run-frontend.mjs   # front end in jsdom: expect 124 passed, 0 failed
 ```
 
 The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand.
@@ -175,11 +183,12 @@ The front-end suite uses a fake sign-in provider and a simulated browser (jsdom)
 | 4 | Guest progress import | Done, live, both paths verified on a real phone |
 | 4+ | Reset progress moved to the account window; Delete account (`/api/account`); false "reset on another device" notice fixed; loading cover; navy notifications | Built and tested in the sandbox; Reset progress in the account window and the last three still need a phone check |
 | 4++ | Security hardening: safe headers file, recent sign-in required to delete an account, retention line in the account window | Built and tested in the sandbox; needs the sign-in re-test after upload |
+| 4+++ | Display name at sign-up and in the account window (shown as Dr. First Last), generic navy avatar, opening animation, 30 s "Sync now" cooldown (button only; automatic syncing untouched). Needs two `ALTER TABLE` lines in the D1 console before the upload (section 6) | Built and tested in the sandbox; needs a phone check |
 | 3b | Service worker (offline caching) and the full Content-Security-Policy | Not started |
 | 5 | Cross-device exam resume, past-attempt review, admin dashboard front end | Not started (server parts exist) |
 | 6 | Pilot with 20 to 30 students, then announce | Not started |
 
-Test status: backend 83 of 83, front end 98 of 98 (jsdom).
+Test status: backend 113 of 113, front end 124 of 124 (jsdom).
 
 ### Verified on real devices
 Email sign-up and sign-in, studying uploads data, second-device pull, automatic import for a new account, offered import for an existing account, sign-out and sign-in, Delete account with a password (the real Firebase deletion).

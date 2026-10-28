@@ -6,7 +6,9 @@ CREATE TABLE users (
   created_at INTEGER NOT NULL,
   last_seen INTEGER NOT NULL,
   settings TEXT NOT NULL DEFAULT '{}',
-  session TEXT
+  session TEXT,
+  first_name TEXT,
+  last_name TEXT
 );
 
 CREATE TABLE scopes (

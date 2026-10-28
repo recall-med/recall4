@@ -101,6 +101,13 @@
   var busy = false;
   var deleting = false;         // true while an account deletion is running: no syncing allowed
   var loadingEl = null, loadingTimer = null;
+  // Account name: a sign-up name waits here until the server has saved it (kept in storage so a reload cannot lose it).
+  var PENDING_NAME_KEY = 'dqb_pending_name';
+  var pendingName = parseJson(lsGet(PENDING_NAME_KEY), null), nameFlushing = false;
+  // The "Sync now" button only: at most one press every 30 s. Automatic syncing is not affected.
+  var MANUAL_SYNC_GAP_MS = 30000, MANUAL_SYNC_KEY = 'dqb_manual_sync_at';
+  var lastManualSync = Number(lsGet(MANUAL_SYNC_KEY)) || 0, cooldownTimer = null, lastView = null;
+  if (lastManualSync > Date.now()) lastManualSync = 0;   // clock was changed: ignore a time in the future
 
   // Full-screen "Loading your progress" cover shown only while a freshly signed-in device fetches its account,
   // so the empty dashboard never flashes. Always removed when the pull ends (success or failure) and after 8 s.
@@ -489,6 +496,7 @@
 
   async function applyState(state) {
     S.baseEpoch = state.epoch;
+    if (state.profile && state.profile.firstName) S.name = { firstName: state.profile.firstName, lastName: state.profile.lastName || '' };
     var ch = applyScopes(state.scopes);
     ch = mergeHistory(state.attempts) || ch;
     if (state.settings && state.settings.updatedAt > (S.settingsAt || 0) && !S.settingsDirty) {
@@ -770,7 +778,7 @@
 
   // ─── Auth hooks ──────────────────────────────────────────────────────────
   async function onAuth(u) {
-    user = u ? { uid: u.uid, email: u.email || '', providerId: u.providerId || '' } : null;
+    user = u ? { uid: u.uid, email: u.email || '', providerId: u.providerId || '', displayName: u.displayName || '' } : null;
     if (!u) { renderHeader(); renderStatusIfOpen(); return; }
     try {
       if (S.uid && S.uid !== u.uid) {
@@ -800,6 +808,7 @@
     } catch (err) {
       handleSyncError(err);
     }
+    flushPendingName();
     renderHeader();
     renderStatusIfOpen();
   }
@@ -834,7 +843,7 @@
       if (!force && pendingCount()) { busy = false; view = 'confirm-signout'; renderAccount(); return; }
       await provider.signOut();
       wipeLocalData();
-      lsDel(STORE_KEY); S = freshStore(); user = null; fileCache = {}; unavailable = {};
+      lsDel(STORE_KEY); clearPendingName(); S = freshStore(); user = null; fileCache = {}; unavailable = {};
       busy = false; closeModal();
       renderHeader();
       if (typeof UI !== 'undefined' && UI.toast) UI.toast('Signed out.', 'success');
@@ -842,6 +851,73 @@
     } catch (e) {
       busy = false; view = 'account'; renderAccount(); setFormError(authMessage(e));
     }
+  }
+
+  // ─── Account name (first name required, last name optional) ──────────────
+  function setPendingName(email, nm) {
+    pendingName = { email: String(email || '').toLowerCase(), first: nm.firstName, last: nm.lastName };
+    lsSet(PENDING_NAME_KEY, JSON.stringify(pendingName));
+  }
+  function clearPendingName() { pendingName = null; lsDel(PENDING_NAME_KEY); }
+  function displayName() {
+    var n = S.name;
+    return n && n.firstName ? 'Dr. ' + n.firstName + (n.lastName ? ' ' + n.lastName : '') : '';
+  }
+  function nameDraft() { // what the edit form starts with: the saved name, else the Google name split in two
+    if (S.name && S.name.firstName) return { first: S.name.firstName, last: S.name.lastName || '' };
+    var parts = String((user && user.displayName) || '').trim().split(/\s+/).filter(Boolean);
+    return { first: parts[0] || '', last: parts.slice(1).join(' ') };
+  }
+  async function saveName(nm) { // throws on failure; keeps the name in the sync store on success
+    var r = await authed(function (force) { return api('/profile', 'POST', { firstName: nm.firstName, lastName: nm.lastName }, { forceRefresh: force }); });
+    S.name = { firstName: r.profile.firstName, lastName: r.profile.lastName || '' };
+    save();
+    return S.name;
+  }
+  // Saves the name typed at sign-up. Failures are quiet: it stays queued and is retried at the next sign-in or page load.
+  async function flushPendingName() {
+    var p = pendingName;
+    if (!p || nameFlushing || !provider || !user || !S.uid || user.uid !== S.uid) return;
+    if (String(user.email || '').toLowerCase() !== p.email) return;   // never give one person's name to another account
+    nameFlushing = true;
+    try {
+      await saveName({ firstName: p.first, lastName: p.last });
+      clearPendingName();
+      if (modalOpen() && view === 'account') renderAccount();
+    } catch (e) {
+      if (e instanceof SyncError && e.status === 400) clearPendingName();   // refused for good: do not retry forever
+    } finally { nameFlushing = false; }
+  }
+  async function doSaveName(form) {
+    var nm = window.RecallNames.clean(form.elements.first.value, form.elements.last.value);
+    if (!nm.ok) { setFormError(nm.error); return; }
+    if (!provider || !user || !S.uid || navigator.onLine === false) { setFormError('Connect to the internet to save your name.'); return; }
+    setFormError(''); setBusyUi(true);
+    try {
+      await saveName(nm);
+      setBusyUi(false); view = 'account'; renderAccount();
+      if (typeof UI !== 'undefined' && UI.toast) UI.toast('Name saved.', 'success');
+    } catch (e) {
+      setBusyUi(false);
+      setFormError(e instanceof SyncError && e.code === 'bad_name' ? ((e.data && e.data.message) || 'Please choose a different name.')
+        : 'Could not save your name. Check your connection and try again.');
+    }
+  }
+
+  // ─── \"Sync now\" cooldown (button only) ────────────────────────────────────
+  function cooldownLeft() {
+    var left = MANUAL_SYNC_GAP_MS - (now() - lastManualSync);
+    return left > 0 ? Math.ceil(left / 1000) : 0;
+  }
+  function applyCooldownUi() {
+    var btn = $('acct-sync-btn');
+    var left = btn ? cooldownLeft() : 0;
+    if (btn) {
+      btn.disabled = !!busy || left > 0;
+      btn.textContent = left > 0 ? 'Sync now (' + left + 's)' : 'Sync now';
+    }
+    if (left > 0 && btn && !cooldownTimer) cooldownTimer = setInterval(applyCooldownUi, 1000);
+    if ((left <= 0 || !btn || !modalOpen()) && cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
   }
 
   // ─── Interface ───────────────────────────────────────────────────────────
@@ -866,6 +942,7 @@
     if (!active) return;
     var m = $('account-modal'); if (!m) return;
     view = v || ((S.uid || user) ? 'account' : 'signin');
+    lastView = view;
     m.style.display = 'flex';
     renderAccount();
     if (!provider && !authLoadFailed) loadAuthModule().then(renderAccount);
@@ -936,15 +1013,21 @@
     busy = on;
     var m = $('account-modal'); if (!m) return;
     m.querySelectorAll('button, input').forEach(function (b) { if (b.id !== 'account-close') b.disabled = on; });
+    applyCooldownUi();
   }
 
   function googleBtn(label) {
     return '<button class="btn btn--ghost acct-google" type="button" data-acct="google">' + ICON_G + '<span>' + label + '</span></button>' +
       '<div class="acct-or"><span>or</span></div>';
   }
-  function field(label, name, type, auto, extra) {
+  function field(label, name, type, auto, extra, optional, value) {
     return '<label class="acct-field"><span>' + label + '</span><input class="acct-input" name="' + name + '" type="' + type +
-      '" autocomplete="' + auto + '" ' + (extra || '') + ' required></label>';
+      '" autocomplete="' + auto + '" ' + (extra || '') + (value ? ' value="' + esc(value) + '"' : '') + (optional ? '' : ' required') + '></label>';
+  }
+  function nameFields(first, last) {
+    return '<div class="acct-row">' +
+      field('First name', 'first', 'text', 'given-name', 'maxlength="30" autocapitalize="words"', false, first) +
+      field('Last name (optional)', 'last', 'text', 'family-name', 'maxlength="30" autocapitalize="words"', true, last) + '</div>';
   }
 
   function guestImportHtml() {
@@ -989,6 +1072,7 @@
         '<p class="acct-sub">Free. Your progress will sync across your devices.</p>' +
         googleBtn('Sign up with Google') +
         '<form id="acct-form" data-mode="signup" novalidate>' +
+        nameFields('', '') +
         field('Email', 'email', 'email', 'email', 'inputmode="email" autocapitalize="off"') +
         field('Password', 'password', 'password', 'new-password', 'minlength="6"') +
         field('Confirm password', 'confirm', 'password', 'new-password', 'minlength="6"') +
@@ -1003,6 +1087,14 @@
         '<p class="acct-error" id="acct-error" role="alert" aria-live="polite"></p>' +
         '<button class="btn btn--primary acct-submit" type="submit">Send reset link</button></form>' +
         '<div class="acct-links acct-links--center"><button class="acct-link" type="button" data-acct="to-signin">Back to sign in</button></div>';
+    } else if (view === 'edit-name') {
+      var nd = nameDraft();
+      h = '<h2 class="acct-title" id="account-title">Your name</h2>' +
+        '<p class="acct-sub">Shown on your account as Dr. followed by your name. It does not have to be unique, and you can change it any time.</p>' +
+        '<form id="acct-form" data-mode="name" novalidate>' + nameFields(nd.first, nd.last) +
+        '<p class="acct-error" id="acct-error" role="alert" aria-live="polite"></p>' +
+        '<div class="acct-actions acct-actions--row"><button class="btn btn--ghost" type="button" data-acct="to-account">Cancel</button>' +
+        '<button class="btn btn--primary" type="submit">Save</button></div></form>';
     } else if (view === 'reset-sent') {
       h = '<h2 class="acct-title" id="account-title">Check your email</h2>' +
         '<p class="acct-sub">If an account exists for that address, a reset link is on its way. It can take a few minutes, and it may land in spam.</p>' +
@@ -1034,14 +1126,16 @@
       var email = (S.profile && S.profile.email) || (user && user.email) || '';
       var pid = (S.profile && S.profile.providerId) || (user && user.providerId) || '';
       var viaGoogle = pid === 'google.com';
-      var initial = (email || '?').trim().charAt(0).toUpperCase();
+      var dn = displayName();
       h = '<h2 class="acct-title" id="account-title">Account</h2>' +
-        '<div class="acct-head"><div class="acct-avatar" aria-hidden="true">' + esc(initial) + '</div>' +
-        '<div class="acct-id"><div class="acct-email">' + esc(email || 'Signed in') + '</div>' +
-        '<div class="acct-meta">' + (viaGoogle ? 'Signed in with Google' : 'Signed in with email') + '</div></div></div>' +
+        '<div class="acct-head"><div class="acct-avatar" aria-hidden="true">' + ICON_USER + '</div>' +
+        '<div class="acct-id">' + (dn ? '<div class="acct-name">' + esc(dn) + '</div>' : '') +
+        '<div class="acct-email">' + esc(email || 'Signed in') + '</div>' +
+        '<div class="acct-meta">' + (viaGoogle ? 'Signed in with Google' : 'Signed in with email') + '</div>' +
+        '<button class="acct-link acct-editname" type="button" data-acct="to-edit-name">' + (dn ? 'Edit name' : 'Add your name') + '</button></div></div>' +
         '<div class="acct-card"><div class="acct-card__label">Cloud sync</div>' +
         '<div class="acct-card__value" id="acct-status" aria-live="polite">' + esc(statusText()) + '</div>' +
-        '<button class="btn btn--ghost btn--sm" type="button" data-acct="sync-now">Sync now</button></div>' +
+        '<button class="btn btn--ghost btn--sm" type="button" id="acct-sync-btn" data-acct="sync-now">Sync now</button></div>' +
         guestImportHtml() +
         '<p class="acct-note">The admin dashboard shows combined usage totals only, such as exams per day. Your progress is kept until you delete your account.</p>' +
         '<p class="acct-error" id="acct-error" role="alert" aria-live="polite"></p>' +
@@ -1055,14 +1149,26 @@
         '<button class="btn btn--ghost acct-danger" type="button" data-acct="to-delete">Delete account</button></div></div>';
     }
     box.innerHTML = h;
+    box.classList.remove('acct-swap');
+    if (lastView !== view) {   // a quick settle-in only when the window changes view (not on first open, busy or status redraws)
+      lastView = view;
+      void box.offsetWidth; box.classList.add('acct-swap');
+    }
     if (busy) setBusyUi(true);
+    applyCooldownUi();
   }
 
   async function submitForm(form) {
     var mode = form.getAttribute('data-mode');
+    if (mode === 'name') { doSaveName(form); return; }
     var email = (form.elements.email.value || '').trim();
     var pw = form.elements.password ? form.elements.password.value : '';
     setFormError('');
+    var nm = null;
+    if (mode === 'signup') {
+      nm = window.RecallNames.clean(form.elements.first.value, form.elements.last.value);
+      if (!nm.ok) { setFormError(nm.error); return; }
+    }
     if (!email) { setFormError('Enter your email address.'); return; }
     if (mode !== 'reset' && !pw) { setFormError('Enter your password.'); return; }
     if (mode === 'signup') {
@@ -1072,12 +1178,13 @@
     setBusyUi(true);
     try {
       if (mode === 'signin') await provider.signInEmail(email, pw);
-      else if (mode === 'signup') await provider.signUpEmail(email, pw);
+      else if (mode === 'signup') { setPendingName(email, nm); await provider.signUpEmail(email, pw); }
       else { await provider.resetPassword(email); setBusyUi(false); view = 'reset-sent'; renderAccount(); return; }
       setBusyUi(false); closeModal();
       if (typeof UI !== 'undefined' && UI.toast) UI.toast(mode === 'signup' ? 'Account created.' : 'Signed in.', 'success');
     } catch (e) {
       setBusyUi(false);
+      if (mode === 'signup') clearPendingName();
       if (mode === 'reset' && e && (e.code === 'auth/user-not-found')) { view = 'reset-sent'; renderAccount(); return; }
       setFormError(authMessage(e));
     }
@@ -1124,7 +1231,7 @@
       try { await provider.signOut(); } catch (e2) { /* ignore */ }
     }
     wipeLocalData();
-    lsDel(STORE_KEY);
+    lsDel(STORE_KEY); clearPendingName();
     if (uid) lsDel('dqb_backup_account_' + String(uid).slice(0, 12));
     S = freshStore(); user = null; fileCache = {}; unavailable = {};
     deleting = false; busy = false; closeModal(); renderHeader();
@@ -1165,6 +1272,7 @@
     else if (a === 'to-signup') { view = 'signup'; renderAccount(); }
     else if (a === 'to-reset') { view = 'reset'; renderAccount(); }
     else if (a === 'to-account') { view = 'account'; renderAccount(); }
+    else if (a === 'to-edit-name') { view = 'edit-name'; renderAccount(); var fi = $('account-view').querySelector('input'); if (fi) fi.focus(); }
     else if (a === 'to-import') { view = 'confirm-import'; renderAccount(); }
     else if (a === 'to-delete') { view = 'confirm-delete'; renderAccount(); }
     else if (a === 'delete-go') doDeleteAccount();
@@ -1175,7 +1283,11 @@
     }
     else if (a === 'import-go') doImportClick();
     else if (a === 'retry-load') { authLoadFailed = false; renderAccount(); loadAuthModule().then(renderAccount); }
-    else if (a === 'sync-now') { setStatus('syncing'); syncNow('force'); }
+    else if (a === 'sync-now') {
+      if (cooldownLeft() > 0) return;   // button is disabled during the cooldown; this also covers a stray click
+      lastManualSync = now(); lsSet(MANUAL_SYNC_KEY, String(lastManualSync)); applyCooldownUi();
+      setStatus('syncing'); syncNow('force');
+    }
     else if (a === 'signout') doSignOut(false);
     else if (a === 'signout-force') doSignOut(true);
     else if (a === 'send-reset') {

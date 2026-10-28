@@ -66,8 +66,8 @@ async function importKey(jwk, cacheable) {
 
 const unauthorized = (why) => new HttpError(401, 'unauthorized', why);
 
-// Returns the verified user id, or throws a 401.
-export async function verifyRequest(request, env) {
+// Returns the verified token claims, or throws a 401.
+export async function verifyClaims(request, env) {
   const projectId = env.FIREBASE_PROJECT_ID;
   if (!projectId) throw new HttpError(500, 'server_misconfigured', 'Auth is not configured');
 
@@ -111,5 +111,10 @@ export async function verifyRequest(request, env) {
   if (typeof claims.sub !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(claims.sub)) {
     throw unauthorized('Bad subject');
   }
-  return claims.sub;
+  return claims;
+}
+
+// Returns the verified user id, or throws a 401.
+export async function verifyRequest(request, env) {
+  return (await verifyClaims(request, env)).sub;
 }

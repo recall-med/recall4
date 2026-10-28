@@ -31,7 +31,7 @@ const goodJwk = { ...(await exportJWK(good.publicKey)), kid: 'test-key-1', alg: 
 
 async function token(uid, o = {}) {
   const now = Math.floor(Date.now() / 1000);
-  let jwt = new SignJWT({ auth_time: now - 5 })
+  let jwt = new SignJWT({ auth_time: o.authTime ?? now - 5 })
     .setProtectedHeader({ alg: o.alg || 'RS256', kid: o.kid || 'test-key-1' })
     .setSubject(uid)
     .setIssuer(o.iss || `https://securetoken.google.com/${PROJECT}`)
@@ -218,6 +218,11 @@ try {
   const cntRows = async (uid) => ({ u: (await sql(`SELECT COUNT(*) n FROM users WHERE uid='${uid}'`))[0].n,
     s: (await sql(`SELECT COUNT(*) n FROM scopes WHERE uid='${uid}'`))[0].n, a: (await sql(`SELECT COUNT(*) n FROM attempts WHERE uid='${uid}'`))[0].n });
   check('delete setup: both users have data', J(await cntRows('delUser')) === J({ u: 1, s: 1, a: 1 }) && J(await cntRows('keepUser')) === J({ u: 1, s: 1, a: 1 }));
+  const nowS2 = Math.floor(Date.now() / 1000);
+  r = await api('/api/account', { method: 'POST', tok: await token('delUser', { authTime: nowS2 - 3600 }), body: { confirm: 'delete' } });
+  check('delete account: refused (403) when the sign-in is older than 10 minutes, and nothing is deleted', r.status === 403 && r.data.error === 'recent_login_required' && (await cntRows('delUser')).u === 1);
+  r = await api('/api/state', { tok: await token('delUser', { authTime: nowS2 - 3600 }) });
+  check('an old sign-in still works for everything else (only deletion needs a recent one)', r.status === 200);
   r = await api('/api/account', { method: 'GET', tok: tDel });
   check('delete account: GET is refused (405)', r.status === 405);
   r = await api('/api/account', { method: 'POST', tok: tDel, body: {} });

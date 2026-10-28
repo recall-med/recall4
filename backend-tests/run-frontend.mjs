@@ -49,9 +49,9 @@ const server = spawn(wr, ['pages', 'dev', '.', '--port', String(PORT), '--ip', '
 let slog = ''; server.stdout.on('data', (d) => (slog += d)); server.stderr.on('data', (d) => (slog += d));
 function sql(q) { const r = spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--json', '--command', q], { cwd: tmp, encoding: 'utf8' }); try { return JSON.parse(r.stdout)[0].results; } catch (e) { return null; } }
 
-async function token(uid) {
+async function token(uid, authAge = 5) {
   const n = Math.floor(Date.now() / 1000);
-  return new SignJWT({ auth_time: n - 5 }).setProtectedHeader({ alg: 'RS256', kid: 'k1' }).setSubject(uid)
+  return new SignJWT({ auth_time: n - authAge }).setProtectedHeader({ alg: 'RS256', kid: 'k1' }).setSubject(uid)
     .setIssuer('https://securetoken.google.com/' + PROJECT).setAudience(PROJECT).setIssuedAt(n - 5).setExpirationTime(n + 3600).sign(good.privateKey);
 }
 
@@ -94,7 +94,7 @@ async function boot({ storage = {}, cloud = true, net = {} } = {}) {
   await until(() => lex('typeof App !== "undefined" && App.currentPage') && dev.w.document.querySelector('#app .dashboard, #app .error-screen'));
   dev.provider = {
     onChange(cb) { dev.cb = cb; },
-    getToken: async () => token(dev.uid),
+    getToken: async () => token(dev.uid, dev.authAge || 5),
     signInGoogle: async () => {}, signInEmail: async () => {}, signUpEmail: async () => {}, resetPassword: async () => {},
     signOut: async () => { dev.uid = null; dev.cb && dev.cb(null); },
     reauthEmail: async (pw) => { if (pw === 'wrong') { const e = new Error('bad'); e.code = 'auth/invalid-credential'; throw e; } dev.reauthed = (dev.reauthed || 0) + 1; },
@@ -474,6 +474,20 @@ try {
   L1.net.delayMs = 0; await L1.signIn('uidP1', 'p1@example.com'); await sleep(200);
   check('L: no cover on later syncs of an already-loaded device', !L1.w.document.getElementById('sync-loading'));
   [L1, L2].forEach((d) => d.close());
+
+  // ===== Deleting needs a recent sign-in (checked by the server) =====
+  const SD = await boot();
+  await SD.signIn('uidSD', 'sd@example.com'); await SD.exam('larynx', [1, 1]); await SD.flush();
+  SD.authAge = 3600;                                          // the sign-in is an hour old
+  dv = await openAcct(SD); dv.querySelector('[data-acct=to-delete]').click(); await sleep(30);
+  SD.w.document.getElementById('account-view').querySelector('input[name=password]').value = 'right';
+  SD.w.document.querySelector('[data-acct=delete-go]').click(); await sleep(900);
+  check('S: an old sign-in cannot delete: clear message, nothing deleted, still signed in', /sign out, sign in again/.test(SD.w.document.getElementById('acct-error').textContent) && sql(`SELECT COUNT(*) n FROM users WHERE uid='uidSD'`)[0].n === 1 && SD.w.Sync.owner() === 'uidSD');
+  SD.authAge = 5;                                             // after signing in again
+  SD.w.document.querySelector('[data-acct=delete-go]').click();
+  await until(() => SD.w.Sync.owner() === 'guest', 8000); await sleep(200);
+  check('S: with a fresh sign-in the same deletion goes through', sql(`SELECT COUNT(*) n FROM users WHERE uid='uidSD'`)[0].n === 0);
+  SD.close();
 
   // F16 hostile email text is escaped
   await B.signIn('uid3', '<img src=x onerror=alert(1)>@e.com');

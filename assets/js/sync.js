@@ -1043,7 +1043,7 @@
         '<div class="acct-card__value" id="acct-status" aria-live="polite">' + esc(statusText()) + '</div>' +
         '<button class="btn btn--ghost btn--sm" type="button" data-acct="sync-now">Sync now</button></div>' +
         guestImportHtml() +
-        '<p class="acct-note">The admin dashboard shows combined usage totals only, such as exams per day.</p>' +
+        '<p class="acct-note">The admin dashboard shows combined usage totals only, such as exams per day. Your progress is kept until you delete your account.</p>' +
         '<p class="acct-error" id="acct-error" role="alert" aria-live="polite"></p>' +
         '<div class="acct-actions acct-actions--row">' +
         (!viaGoogle && email ? '<button class="btn btn--ghost" type="button" data-acct="send-reset">Reset password</button>' : '') +
@@ -1112,7 +1112,9 @@
       await authed(function (force) { return api('/account', 'POST', { confirm: 'delete' }, { forceRefresh: true }); });
     } catch (e) {
       deleting = false; setBusyUi(false);
-      setFormError('Could not delete your account data. Nothing was deleted. Check your connection and try again.');
+      setFormError(e instanceof SyncError && e.code === 'recent_login_required'
+        ? 'For your safety, sign out, sign in again, then delete your account. Nothing was deleted.'
+        : 'Could not delete your account data. Nothing was deleted. Check your connection and try again.');
       if (pendingCount()) schedule(3000);
       return;
     }

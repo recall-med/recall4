@@ -1,7 +1,7 @@
 # Recall (previously Dept. Q. Bank)
 
 A professional, offline-first medical question bank for ZNU Med students.
-Built with plain HTML, CSS, and JavaScript — no build step, no backend, no dependencies.
+Built with plain HTML, CSS, and JavaScript, with no build step. It works fully as a guest in the browser. Optional accounts and cloud sync run on Cloudflare Pages Functions, a Cloudflare D1 database and Firebase sign-in (see [Cloud Sync and Accounts](#cloud-sync-and-accounts)).
 
 ---
 
@@ -11,7 +11,8 @@ Built with plain HTML, CSS, and JavaScript — no build step, no backend, no dep
 - [Features](#features)
 - [Live Demo](#live-demo)
 - [Installation](#installation)
-- [Deployment to GitHub Pages](#deployment-to-github-pages)
+- [Deployment](#deployment-to-github-pages)
+- [Cloud Sync and Accounts](#cloud-sync-and-accounts)
 - [Repository Structure](#repository-structure)
 - [Adding Questions](#adding-questions)
 - [Crediting a Professor](#crediting-a-professor)
@@ -61,8 +62,9 @@ All question content lives in plain JSON files. Adding or updating questions req
 - Search functionality
 - Light and dark themes
 - Mobile-first responsive design
-- Fully offline after first load, with no backend
-- All progress saved in browser LocalStorage
+- Works without an account (guest mode); progress is saved in browser LocalStorage
+- Optional accounts (Google or email) with cloud sync of progress, incorrect questions, flags and exam history across devices
+- Guest progress can be added to an account when signing in; Reset progress and Delete account are in the account window
 
 ---
 
@@ -105,6 +107,8 @@ See [Deployment to GitHub Pages](#deployment-to-github-pages).
 
 ## Deployment to GitHub Pages
 
+The question bank itself runs on any static host, including GitHub Pages. **Accounts and cloud sync need Cloudflare Pages** (the `functions/` folder only runs there). The live site is `https://recall-med.pages.dev`, deployed automatically from the `main` branch of `recall-med/recall4`. Cloudflare Pages needs no build step for this project.
+
 1. Fork or push this repository to your GitHub account.
 
 2. Go to your repository on GitHub, then Settings, then Pages.
@@ -131,16 +135,25 @@ See [Deployment to GitHub Pages](#deployment-to-github-pages).
 │
 ├── assets/
 │   ├── css/
-│   │   └── styles.css      All styles (edit colours, fonts here)
+│   │   ├── styles.css      All styles (edit colours, fonts here)
+│   │   └── account.css     Account window, loading cover and notification colours
 │   └── js/
 │       ├── app.js          Main application controller and navigation
+│       ├── sync.js         Cloud sync engine and account window (loads after exam.js)
+│       ├── auth.js         Firebase sign-in (loaded on demand by sync.js)
 │       ├── storage.js      LocalStorage persistence layer
 │       ├── exam.js         Exam engine (loading, scoring, state)
 │       ├── ui.js           UI rendering functions
 │       └── ui-skeletons.js Loading skeletons (adds to UI; loads after ui.js)
 │
 ├── config/
-│   └── modules.json        Site configuration, modules, subjects
+│   ├── modules.json        Site configuration, modules, subjects
+│   └── sync-config.json    Cloud sync on/off switch (cloudEnabled)
+│
+├── functions/              Cloudflare Pages Functions (the /api backend)
+├── db/schema.sql           Database tables for Cloudflare D1
+├── backend-tests/          Automated tests for the backend and the sync front end
+├── BACKEND_GUIDE.md        How the backend works, how to extend it, project status
 │
 └── data/
     └── <MODULE>/                       e.g. CPM, GIT, CNS, ENDO_REPRO, URINARY
@@ -427,13 +440,17 @@ All user progress is stored in the browser's LocalStorage under these keys:
 | `dqb_settings` | User preferences |
 | `dqb_count_cache` | Remembered question counts per topic, so pages open instantly (not cleared by Reset Progress) |
 
-When cloud sync is on, three more keys appear:
+When cloud sync is on, more keys appear:
 
 | Key | Contents |
 |-----|----------|
 | `dqb_sync` | Sync bookkeeping for the signed-in account (change versions, queued uploads) |
 | `dqb_device_id` | Random id for this browser, used so the server can tell devices apart |
-| `dqb_backup_guest` | Copy of progress made before signing in, kept on the device |
+| `dqb_cloud_preview` | Set by opening the site with `?cloud=1`; shows the sign-in button on this device only |
+| `dqb_backup_guest` | Copy of progress made before signing in, kept until it is added to an account |
+| `dqb_backup_guest_prev` | The previous guest copy, kept as a safety net |
+| `dqb_backup_guest_imported` | The guest copy after it was added to an account (never deleted automatically) |
+| `dqb_backup_account_<id>` | Leftovers of a different account that was signed in on this device |
 
 Cloud sync is controlled by `config/sync-config.json`. While `cloudEnabled` is `false`, nobody sees a Sign in button. To try it on one device first, open the site once with `?cloud=1` added to the address (`?cloud=0` turns that off again).
 
@@ -459,12 +476,36 @@ Storage.resetAll(); location.reload();
 
 **Progress was lost**
 - Check that browser LocalStorage is enabled (not blocked by private mode or extensions).
+- If you were signed in, sign in again: your progress is stored in your account.
+
+**Sign in says it cannot reach the account, or sync is paused**
+- Your progress is safe on the device and uploads automatically when the connection or the daily service limit recovers. Use Sync now in the account window to retry.
+- Google sign-in can fail inside in-app browsers (Telegram, Instagram). Open the site in Chrome or Safari, or use email sign-in.
+
+---
+
+## Cloud Sync and Accounts
+
+Accounts are optional. Guests keep using the app exactly as before, with progress in the browser.
+
+- **Sign in:** Google or email and password, from the header. No approval step and no university-email restriction.
+- **What syncs:** per-topic progress, incorrect questions, flagged questions and exam history. Statistics are calculated from exam history on the server, so a resent exam is never counted twice.
+- **Guest progress:** signing in to a brand-new account adds the progress made as a guest. Signing in to an account that already has data keeps the account's data and offers "Add it to this account" in the account window. Nothing is overwritten.
+- **Reset progress:** once signed in it moves from the header to the account window and clears scores, progress and incorrect questions on all devices (flagged questions are kept).
+- **Delete account:** in the account window. It asks for your password (or Google), then permanently deletes your cloud data and your sign-in.
+- **Privacy:** the server stores question ids and exam results, not email addresses. Administrators see combined usage totals only.
+- **Switch:** while `cloudEnabled` in `config/sync-config.json` is `false`, nobody sees a Sign in button. Open the site once with `?cloud=1` to try it on one device (`?cloud=0` turns that off).
+
+How it works, the API, the database, how to add features and the project status are in [BACKEND_GUIDE.md](BACKEND_GUIDE.md).
 
 ---
 
 ## Roadmap
 
 Recently added:
+
+- Optional accounts and cloud sync (Google or email), guest progress import, Reset progress and Delete account in the account window
+- Navy notifications that match the app in light and dark mode
 
 - Redesigned dashboard stats (questions solved, accuracy, study time)
 - Per-module progress rings with average score
@@ -477,8 +518,9 @@ Planned:
 - [ ] Question difficulty tags
 - [ ] Notes on individual questions
 - [ ] PDF export of results
-- [ ] Offline PWA support
-- [ ] Cloud sync (optional)
+- [ ] Offline PWA support (service worker)
+- [ ] Resume an in-progress exam on another device
+- [ ] Admin usage dashboard (the server side exists, the page does not)
 
 ---
 

@@ -78,6 +78,7 @@ async function boot({ storage = {}, cloud = true, net = {} } = {}) {
         const url = new URL(input, BASE).href;
         const isApi = url.includes('/api/');
         if (isApi) calls.push({ url: url.replace(BASE, ''), method: init.method || 'GET' });
+        if (isApi && dev.net.delayMs) await sleep(dev.net.delayMs);
         if (isApi && dev.net.offline) throw new TypeError('Failed to fetch');
         if (isApi && dev.net.htmlFallthrough) return new Response('<!doctype html><title>x</title>', { status: 200, headers: { 'content-type': 'text/html' } });
         const res = await fetch(url, init);
@@ -457,6 +458,22 @@ try {
   await R3.exam('larynx', [1]); await R3.flush(); await sleep(300);
   check('R: a real reset on another device is still announced, and this device follows it', toasts3.some((m) => /another device/.test(m)) && R3.S().getExamHistory().length === 0, J(toasts3) + ' hist=' + R3.S().getExamHistory().length);
   [R2, R3].forEach((d) => d.close());
+
+  // ===== Loading cover while a freshly signed-in device fetches its account =====
+  const L1 = await boot();
+  L1.net.delayMs = 900;
+  const lp = L1.signIn('uidP1', 'p1@example.com');
+  await sleep(350);
+  check('L: a cover is shown while the account loads (no empty-dashboard flash)', !!L1.w.document.getElementById('sync-loading') && /Loading your progress/.test(L1.w.document.getElementById('sync-loading').textContent));
+  await lp; await until(() => !L1.w.document.getElementById('sync-loading'), 4000);
+  check('L: the cover is gone once the data has loaded, and the data is there', !L1.w.document.getElementById('sync-loading') && L1.S().getExamHistory().length >= 1);
+  const L2 = await boot();
+  L2.net.offline = true;
+  await L2.signIn('uidP1', 'p1@example.com'); await sleep(300);
+  check('L: signing in while offline never leaves the cover stuck', !L2.w.document.getElementById('sync-loading'));
+  L1.net.delayMs = 0; await L1.signIn('uidP1', 'p1@example.com'); await sleep(200);
+  check('L: no cover on later syncs of an already-loaded device', !L1.w.document.getElementById('sync-loading'));
+  [L1, L2].forEach((d) => d.close());
 
   // F16 hostile email text is escaped
   await B.signIn('uid3', '<img src=x onerror=alert(1)>@e.com');

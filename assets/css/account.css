@@ -107,3 +107,25 @@
 .acct-manage .acct-actions { margin-top: .85rem; }
 .acct-danger { color: var(--danger); border-color: var(--danger-border); }
 .acct-danger:hover { background: var(--danger-bg); }
+
+/* Notifications: navy to match the app, readable in light and dark mode.
+   (The base toast used the text colour as its background, which is near-white in dark mode.) */
+.toast, .toast--success { background: var(--primary); color: #fff; border: 1px solid rgba(255, 255, 255, .14); }
+.toast--error { background: var(--danger); }
+[data-theme="dark"] .toast, [data-theme="dark"] .toast--success { background: #1f4180; border-color: rgba(255, 255, 255, .18); }
+[data-theme="dark"] .toast--error { background: var(--danger); }
+
+/* Shown while a freshly signed-in device loads its account (hides the empty-dashboard flash) */
+.sync-loading {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+}
+.sync-loading__box { display: flex; align-items: center; gap: 12px; font-size: .9rem; font-weight: 500; color: var(--text-2); }
+.sync-loading__spin {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--primary-light);
+  animation: sync-spin .8s linear infinite;
+}
+@keyframes sync-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sync-loading__spin { animation: none; border-top-color: var(--primary-light); } }

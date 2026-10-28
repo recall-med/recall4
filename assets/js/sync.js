@@ -100,6 +100,24 @@
   var fileCache = {};           // scope -> Promise of question list
   var busy = false;
   var deleting = false;         // true while an account deletion is running: no syncing allowed
+  var loadingEl = null, loadingTimer = null;
+
+  // Full-screen "Loading your progress" cover shown only while a freshly signed-in device fetches its account,
+  // so the empty dashboard never flashes. Always removed when the pull ends (success or failure) and after 8 s.
+  function showLoading() {
+    if (loadingEl || typeof document === 'undefined' || !document.body) return;
+    var el = document.createElement('div');
+    el.id = 'sync-loading'; el.className = 'sync-loading'; el.setAttribute('role', 'status');
+    el.innerHTML = '<div class="sync-loading__box"><span class="sync-loading__spin" aria-hidden="true"></span><span>Loading your progress\u2026</span></div>';
+    document.body.appendChild(el);
+    loadingEl = el;
+    clearTimeout(loadingTimer);
+    loadingTimer = setTimeout(hideLoading, 8000);
+  }
+  function hideLoading() {
+    clearTimeout(loadingTimer);
+    if (loadingEl) { loadingEl.remove(); loadingEl = null; }
+  }
   var Orig = {};                // the unwrapped methods
 
   function tracking() { return !!S.uid; }
@@ -771,7 +789,10 @@
       save();
       renderHeader();
       setStatus('syncing');
-      var first = await pull();
+      var firstLoad = !S.lastPull;
+      if (firstLoad) showLoading();
+      var first;
+      try { first = await pull(); } finally { hideLoading(); }
       if (S.guestPending) handleGuestAfterPull(first);
       setStatus('idle');
       refreshView();

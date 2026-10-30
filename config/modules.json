@@ -262,6 +262,12 @@
               "label": "Scalp and Face",
               "icon": "🧠",
               "professor": "Prof. Samaa"
+            },
+            {
+              "id": "limbic_system_grey_white_matter",
+              "label": "Limbic System, Grey & White Matter",
+              "icon": "🧠",
+              "professor": "Prof. Samaa"
             }
           ],
           "physiology": [

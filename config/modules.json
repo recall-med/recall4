@@ -314,6 +314,12 @@
               "label": "Meninges & Ear",
               "icon": "🧠",
               "professor": "Prof. Abeer"
+            },
+            {
+              "id": "ear",
+              "label": "Ear",
+              "icon": "🧠",
+              "professor": "Prof. Hala"
             }
           ]
         },

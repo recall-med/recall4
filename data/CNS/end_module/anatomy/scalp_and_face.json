@@ -1,0 +1,215 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "anatomy",
+    "subSubject": "scalp_and_face",
+    "totalQuestions": 17
+  },
+  "questions": [
+    {
+      "question": "A 25-year-old man presents to the emergency department after sustaining a deep scalp injury. The wound bleeds profusely because the injured blood vessels cannot retract due to their attachment to fibrous septa. Which layer of the scalp is involved?",
+      "options": [
+        "Skin",
+        "Dense connective tissue",
+        "Loose areolar tissue",
+        "Pericranium"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Dense connective tissue",
+      "id": 1
+    },
+    {
+      "question": "A patient develops a scalp infection. The infection spreads through emissary veins to the intracranial dural venous sinuses, causing a potentially fatal complication. Which scalp layer is responsible for this spread?",
+      "options": [
+        "Skin",
+        "Dense connective tissue",
+        "Loose areolar tissue",
+        "Epicranial aponeurosis"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Loose areolar tissue",
+      "id": 2
+    },
+    {
+      "question": "Following a head injury, a patient develops generalized swelling of the scalp. Blood tracks down into the upper eyelids, producing bilateral black eyes. Which layer is the most likely site of the hematoma?",
+      "options": [
+        "Skin",
+        "Dense connective tissue",
+        "Loose areolar tissue",
+        "Pericranium"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Loose areolar tissue",
+      "id": 3
+    },
+    {
+      "question": "A patient is unable to close his right eye tightly following a facial nerve injury. Examination reveals that gentle blinking and forceful eye closure are both affected. Which muscle is primarily responsible for these actions?",
+      "options": [
+        "Buccinator",
+        "Orbicularis oculi",
+        "Orbicularis oris",
+        "Occipitofrontalis"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Orbicularis oculi",
+      "id": 4
+    },
+    {
+      "question": "A 40-year-old patient complains that food accumulates between his cheek and gums during chewing. He is also unable to blow out his cheeks. Which muscle is most likely paralyzed?",
+      "options": [
+        "Orbicularis oris",
+        "Orbicularis oculi",
+        "Buccinator",
+        "Frontal belly of occipitofrontalis"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Buccinator",
+      "id": 5
+    },
+    {
+      "question": "A patient presents with severe, sudden, electric shock-like facial pain involving the lower lip and lower teeth. Which nerve division is most likely involved?",
+      "options": [
+        "Ophthalmic division (V1)",
+        "Maxillary division (V2)",
+        "Mandibular division (V3)",
+        "Facial nerve (VII)"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Mandibular division (V3)",
+      "id": 6
+    },
+    {
+      "question": "A surgeon examines a patient with a facial nerve lesion. The patient has paralysis of the frontal belly of occipitofrontalis and cannot produce normal transverse wrinkles on the forehead. Which nerve is responsible for motor supply to this region of the scalp?",
+      "options": [
+        "Supraorbital nerve",
+        "Temporal branch of facial nerve",
+        "Great auricular nerve",
+        "Greater occipital nerve"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Temporal branch of facial nerve",
+      "id": 7
+    },
+    {
+      "question": "During clinical examination, a physician palpates an artery immediately anterior to the tragus of the auricle and detects its pulsation. Which artery is being examined?",
+      "options": [
+        "Occipital artery",
+        "Posterior auricular artery",
+        "Superficial temporal artery",
+        "Facial artery"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Superficial temporal artery",
+      "id": 8
+    },
+    {
+      "question": "A young man develops an infection from a pimple near the root of his nose. The infection spreads through venous communications and may reach the cavernous sinus. Which anatomical region is involved?",
+      "options": [
+        "Dangerous area of the face",
+        "Parotid region",
+        "Temporal region",
+        "Submandibular region"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Dangerous area of the face",
+      "id": 9
+    },
+    {
+      "question": "A patient with facial nerve palsy presents with inability to whistle, slurred speech, and escape of saliva from the angle of the mouth. Which muscle paralysis best explains these oral findings?",
+      "options": [
+        "Buccinator",
+        "Orbicularis oculi",
+        "Occipitofrontalis",
+        "Orbicularis oris"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Orbicularis oris",
+      "id": 10
+    },
+    {
+      "question": "A 25-year-old patient presents with a deep laceration over the lower border of the mandible. During examination, the doctor identifies a pulsation just anterior to the masseter muscle. Which artery is being palpated?",
+      "options": [
+        "Superficial temporal artery",
+        "Facial artery",
+        "Maxillary artery",
+        "Lingual artery"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Facial artery",
+      "id": 11
+    },
+    {
+      "question": "During facial surgery, a surgeon needs to identify the facial artery as it enters the face. At which anatomical location does it cross the lower border of the mandible?",
+      "options": [
+        "Anterior to the masseter muscle",
+        "Posterior to the masseter muscle",
+        "Anterior to the sternocleidomastoid muscle",
+        "Posterior to the parotid gland"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Anterior to the masseter muscle",
+      "id": 12
+    },
+    {
+      "question": "A patient develops a severe infection after squeezing a pimple on the upper lip. The infection spreads intracranially and causes cavernous sinus thrombosis. Which venous pathway is most likely responsible?",
+      "options": [
+        "Facial vein → Angular vein → Superior ophthalmic vein → Cavernous sinus",
+        "Facial vein → External jugular vein → Subclavian vein",
+        "Retromandibular vein → Internal jugular vein → Cavernous sinus",
+        "Facial vein → Lingual vein → Internal jugular vein"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Facial vein → Angular vein → Superior ophthalmic vein → Cavernous sinus",
+      "id": 13
+    },
+    {
+      "question": "A medical student is asked why infections in the upper lip and nose region can spread to the cavernous sinus. Which anatomical feature best explains this risk?",
+      "options": [
+        "The facial artery has no muscular wall.",
+        "The facial veins communicate with intracranial veins and lack valves.",
+        "The facial muscles are supplied by the trigeminal nerve.",
+        "The skin of the face has a poor blood supply."
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. The facial veins communicate with intracranial veins and lack valves.",
+      "id": 14
+    },
+    {
+      "question": "A 22-year-old patient develops a severe scalp infection following a penetrating injury. The infection spreads through emissary veins toward the intracranial venous sinuses. Which layer of the scalp is primarily involved?",
+      "options": [
+        "Skin",
+        "Dense connective tissue",
+        "Loose areolar tissue",
+        "Pericranium"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Loose areolar tissue",
+      "id": 15
+    },
+    {
+      "question": "A patient presents with a scalp wound that becomes infected. The physician is concerned about intracranial complications because of venous connections between the scalp and cranial cavity. Which structure provides this communication?",
+      "options": [
+        "Diploic veins",
+        "Emissary veins",
+        "Superficial temporal artery",
+        "External jugular vein"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Emissary veins",
+      "id": 16
+    },
+    {
+      "question": "During surgery in the submandibular region, a surgeon identifies an artery that curves around the lower border of the mandible and supplies the face. From which artery does it arise?",
+      "options": [
+        "Internal carotid artery",
+        "Maxillary artery",
+        "External carotid artery",
+        "Superficial temporal artery"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. External carotid artery",
+      "id": 17
+    }
+  ]
+}

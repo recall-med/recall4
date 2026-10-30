@@ -256,6 +256,12 @@
               "label": "CSF Circulation",
               "icon": "🧠",
               "professor": "Prof. Samaa"
+            },
+            {
+              "id": "scalp_and_face",
+              "label": "Scalp and Face",
+              "icon": "🧠",
+              "professor": "Prof. Samaa"
             }
           ],
           "physiology": [

@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "physiology",
+    "subSubject": "vestibular_apparatus",
+    "totalQuestions": 10
+  },
+  "questions": [
+    {
+      "question": "A patient is examined for vestibular function. Which structure detects angular acceleration?",
+      "options": [
+        "Macula",
+        "Semicircular canals",
+        "Cochlea",
+        "Otolith membrane",
+        "Auditory nerve"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Semicircular canals",
+      "id": 1
+    },
+    {
+      "question": "A hair cell is stimulated by bending its stereocilia. Which direction causes depolarization?",
+      "options": [
+        "Away from the kinocilium",
+        "Toward the kinocilium",
+        "Perpendicular to the kinocilium",
+        "Toward the cochlea"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Toward the kinocilium",
+      "id": 2
+    },
+    {
+      "question": "A person is rotating at a constant speed. What happens to the sensation of rotation after some time?",
+      "options": [
+        "It continuously increases",
+        "It changes into hearing sensation",
+        "It disappears",
+        "It becomes stronger after 20 seconds"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. It disappears",
+      "id": 3
+    },
+    {
+      "question": "A person suddenly stops rotating. Which sensation is expected?",
+      "options": [
+        "Rotation in the same direction",
+        "Counter-rotation",
+        "Complete loss of balance without vertigo",
+        "Hearing loss"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Counter-rotation",
+      "id": 4
+    },
+    {
+      "question": "After rotation stops, persistent endolymph movement produces which clinical effect?",
+      "options": [
+        "Vertigo",
+        "Deafness",
+        "Tremor",
+        "Spastic gait"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Deafness",
+      "id": 5
+    },
+    {
+      "question": "Regarding utricle, what is its function?",
+      "options": [
+        "Detection of angular acceleration",
+        "Detection of linear vertical acceleration",
+        "Detection of side-to-side head tilt",
+        "Detection of backward head tilt"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Detection of backward head tilt",
+      "id": 6
+    },
+    {
+      "question": "How can the brain detect that your head is upright?",
+      "options": [
+        "Impulses increase from macula of utricle and decrease from macula of saccule",
+        "Impulses decrease from macula of utricle and increase from macula of saccule",
+        "Impulses discharge is minimal and equal tonic from the maculae of both sides",
+        "Impulses decrease from lateral semicircular canals on both sides"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Impulses discharge is minimal and equal tonic from the maculae of both sides",
+      "id": 7
+    },
+    {
+      "question": "During forward horizontal acceleration, what are the changes that occur in impulses discharged from vestibular apparatus?",
+      "options": [
+        "The otoliths move forward leading to bending of the cilia and a sensation of falling backwards",
+        "The otoliths move backwards leading to bending of the cilia and a sensation of falling forwards",
+        "The otoliths move forwards leading to bending of the cilia and a sensation of falling forwards",
+        "The otoliths move backwards leading to bending of the cilia and a sensation of falling backwards"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. The otoliths move backwards leading to bending of the cilia and a sensation of falling backwards",
+      "id": 8
+    },
+    {
+      "question": "What does jerky to & fro movement of the eyes refer to?",
+      "options": [
+        "Tremor",
+        "Ataxia",
+        "Rigidity",
+        "Nystagmus"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Nystagmus",
+      "id": 9
+    },
+    {
+      "question": "Regarding the hair cell in the cristae, what is their structure?",
+      "options": [
+        "Many small kinocilia and one large stiff stereocilium",
+        "Many small stereocilia and one large stiff kinocilium",
+        "Single stereocilium and single kinocilium",
+        "Multiple stereocilia and multiple kinocilia"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Many small stereocilia and one large stiff kinocilium",
+      "id": 10
+    }
+  ]
+}

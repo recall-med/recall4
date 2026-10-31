@@ -305,6 +305,12 @@
               "id": "vision",
               "label": "Vision",
               "icon": "🧠"
+            },
+            {
+              "id": "vestibular_apparatus",
+              "label": "Vestibular Apparatus",
+              "icon": "🧠",
+              "professor": "Prof. Nanees"
             }
           ],
           "biochemistry": [],

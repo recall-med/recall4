@@ -4,7 +4,7 @@
     "examType": "end_module",
     "subject": "physiology",
     "subSubject": "vestibular_apparatus",
-    "totalQuestions": 10
+    "totalQuestions": 9
   },
   "questions": [
     {
@@ -55,18 +55,6 @@
       "answer": 1,
       "explanation": "Correct answer: B. Counter-rotation",
       "id": 4
-    },
-    {
-      "question": "After rotation stops, persistent endolymph movement produces which clinical effect?",
-      "options": [
-        "Vertigo",
-        "Deafness",
-        "Tremor",
-        "Spastic gait"
-      ],
-      "answer": 1,
-      "explanation": "Correct answer: B. Deafness",
-      "id": 5
     },
     {
       "question": "Regarding utricle, what is its function?",

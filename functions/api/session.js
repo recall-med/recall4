@@ -11,7 +11,7 @@ import { LIMITS, reqInt, reqId } from '../_lib/validate.js';
 export async function onRequest({ request, env, data }) {
   try {
     const now = Date.now();
-    const user = await touchUser(env.DB, data.uid, now);
+    const user = await touchUser(env.DB, data.uid, now, data.email);
     if (request.method === 'GET') {
       return json({ ok: true, session: parseJson(user.session, null), sessionVersion: user.session_version });
     }

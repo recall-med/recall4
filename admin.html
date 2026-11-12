@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Recall admin</title>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('dqb_theme') || 'light');</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" />
+<link rel="stylesheet" href="assets/css/styles.css" />
+<link rel="stylesheet" href="assets/css/account.css" />
+<style>
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); margin: 0; }
+.ad { max-width: 1040px; margin: 0 auto; padding: 20px 16px 48px; }
+.ad-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.ad-top h1 { font: 400 1.6rem 'DM Serif Display', Georgia, serif; margin: 0; }
+.ad-sub { font-size: .78rem; color: var(--text-3); }
+.ad-tabs { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; }
+.ad-tab { border: 1.5px solid var(--border); background: var(--surface-solid); color: var(--text-2); border-radius: 99px; padding: 6px 14px; font: 600 .82rem var(--font-body); cursor: pointer; white-space: nowrap; }
+.ad-tab[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+.ad-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.ad-kpi, .ad-card { background: var(--surface-solid); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 12px 14px; min-width: 0; }
+.ad-kpi b { display: block; font-size: 1.55rem; line-height: 1.2; }
+.ad-kpi span, .ad-card h2 { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); margin: 0; }
+.ad-kpi small { display: block; font-size: .72rem; color: var(--text-3); margin-top: 2px; }
+.ad-card { margin-bottom: 14px; }
+.ad-card h2 { margin-bottom: 8px; }
+.ad-card p { font-size: .8rem; color: var(--text-3); margin: 6px 0 0; line-height: 1.5; }
+.ad-scroll { overflow-x: auto; }
+table.ad-t { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.ad-t th { text-align: left; font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); padding: 4px 8px 6px 0; white-space: nowrap; }
+.ad-t td { padding: 7px 8px 7px 0; border-top: 1px solid var(--border); vertical-align: top; }
+.ad-t td.n, .ad-t th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.ad-q { max-width: 460px; }
+.ad-q small { display: block; color: var(--text-3); font-size: .72rem; }
+.ad-low { color: var(--text-4); }
+.ad-bad { color: var(--danger); font-weight: 600; }
+.ad-heat { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; }
+.ad-heat i { display: block; height: 26px; border-radius: 4px; background: var(--primary); }
+.ad-hl { display: flex; justify-content: space-between; font-size: .68rem; color: var(--text-3); margin-top: 4px; }
+.ad-msg { padding: 28px 0; text-align: center; color: var(--text-3); font-size: .9rem; }
+.ad-signin { max-width: 380px; margin: 60px auto; }
+.ad-links a { color: var(--accent-text); font-weight: 600; font-size: .85rem; display: inline-block; margin: 0 14px 6px 0; }
+.ad-modal { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.ad-modal > div { background: var(--surface-solid); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; max-width: 560px; width: 100%; max-height: 90vh; overflow: auto; }
+.ad-modal textarea.acct-input { min-height: 70px; resize: vertical; font-family: inherit; }
+.ad-ok { color: var(--success); font-weight: 600; font-size: .85rem; }
+.ad-act { background: none; border: 0; padding: 0; font: 600 .78rem var(--font-body); cursor: pointer; color: var(--accent-text); }
+.ad-act.warn { color: var(--danger); }
+.ad-bar { height: 8px; border-radius: 4px; background: var(--primary); display: inline-block; vertical-align: middle; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="ad" id="root"><div class="ad-msg">Loading…</div></div>
+<script>
+window.Sync = { attachAuth: function (p) { window.__prov = p; p.onChange(function (u) { window.__onUser && window.__onUser(u); }); } };
+</script>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString('en-US'));
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
+const root = $('root');
+let data = null, tab = 'overview', loading = false;
+const questionFiles = {}; // path -> Promise of { id: question }
+
+// ---- sign-in (reuses the app's Firebase module) ----
+window.__onUser = (u) => { if (u) load(false); else showSignin(); };
+function showSignin(msg) {
+  root.innerHTML = '<div class="ad-card ad-signin"><h2>Recall admin</h2><p style="margin:0 0 12px">Sign in with the administrator account.</p>' +
+    '<button class="btn btn--ghost acct-google" id="g" type="button" style="width:100%;justify-content:center">Continue with Google</button>' +
+    '<div class="acct-or"><span>or</span></div><form id="f"><label class="acct-field"><span>Email</span><input class="acct-input" name="e" type="email" autocomplete="email" required></label>' +
+    '<label class="acct-field"><span>Password</span><input class="acct-input" name="p" type="password" autocomplete="current-password" required></label>' +
+    '<p class="acct-error" id="err">' + esc(msg || '') + '</p><button class="btn btn--primary acct-submit" type="submit">Sign in</button></form></div>';
+  const fail = (e) => { $('err').textContent = e && e.code === 'auth/popup-closed-by-user' ? 'Sign-in was cancelled.' : 'Could not sign in. Check the details and try again.'; };
+  $('g').onclick = () => window.__prov.signInGoogle().catch(fail);
+  $('f').onsubmit = (ev) => { ev.preventDefault(); window.__prov.signInEmail(ev.target.e.value.trim(), ev.target.p.value).catch(fail); };
+}
+import('./assets/js/auth.js').catch(() => { root.innerHTML = '<div class="ad-msg">Sign-in could not load. Check your connection and reload.</div>'; });
+
+// ---- data ----
+async function load(refresh) {
+  if (loading) return; loading = true;
+  try {
+    const call = async (force) => {
+      const t = await window.__prov.getToken(force);
+      return fetch('/api/admin/summary' + (refresh ? '?refresh=1' : ''), { headers: { Authorization: 'Bearer ' + t } });
+    };
+    let res = await call(false);
+    if (res.status === 401) res = await call(true);
+    const j = await res.json().catch(() => null);
+    if (res.status === 403) { root.innerHTML = '<div class="ad-msg">This account is not an administrator.<br><button class="btn btn--ghost" id="so" style="margin-top:12px">Sign out</button></div>'; $('so').onclick = () => window.__prov.signOut(); return; }
+    if (!j || !j.ok) throw new Error('bad');
+    data = j; render();
+  } catch (e) {
+    root.innerHTML = '<div class="ad-msg">Could not load the dashboard. Check your connection.<br><button class="btn btn--ghost" id="rt" style="margin-top:12px">Try again</button></div>';
+    $('rt').onclick = () => load(true);
+  } finally { loading = false; }
+}
+async function adminFetch(url, opts) {
+  const call = async (force) => fetch(url, { ...(opts || {}), headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await window.__prov.getToken(force)) } });
+  let res = await call(false); if (res.status === 401) res = await call(true);
+  return { status: res.status, body: await res.json().catch(() => ({})) };
+}
+function qfile(path) {
+  if (!questionFiles[path]) {
+    questionFiles[path] = fetch(path).then((r) => (r.ok ? r.json() : { questions: [] })).catch(() => ({ questions: [] }))
+      .then((d) => Object.fromEntries((d.questions || []).map((q) => [String(q.id), q])));
+  }
+  return questionFiles[path];
+}
+// Joins the server's answer counts with the question files (the answer key never leaves the public data folder).
+async function questionStats() {
+  const keys = new Set([...(data.items || []).map((i) => i.key), ...(data.flagged || []).map((f) => f.qk)]);
+  const out = {};
+  await Promise.all([...keys].map(async (k) => {
+    const p = k.split('|'); if (p.length !== 5) return;
+    const q = (await qfile('data/' + p.slice(0, 4).join('/') + '.json'))[p[4]];
+    if (q) out[k] = { q, scope: p.slice(0, 4), id: p[4], key: k };
+  }));
+  const rows = [];
+  for (const it of data.items || []) {
+    const m = out[it.key]; if (!m) continue;
+    const counts = Object.entries(it.counts).filter(([a]) => Number(a) >= 0);
+    const n = counts.reduce((s, [, c]) => s + c, 0); if (!n) continue;
+    const right = it.counts[m.q.answer] || 0;
+    const top = counts.sort((x, y) => y[1] - x[1])[0];
+    rows.push({ ...m, key: it.key, n, right, correctPct: pct(right, n), topOpt: Number(top[0]), topPct: pct(top[1], n) });
+  }
+  return { meta: out, rows };
+}
+const REPO = 'recall-med/recall4';
+const qCell = (m) => '<div class="ad-q">' + esc(String(m.q.question).slice(0, 120)) + (m.q.question.length > 120 ? '…' : '') + '<small>' + esc(m.scope.join(' / ')) + ' · #' + esc(m.id) + ' · <button class="ad-act" data-edit="' + esc(m.key) + '">Edit here</button> · <a href="https://github.com/' + REPO + '/edit/main/data/' + esc(m.scope.join('/')) + '.json" target="_blank" rel="noopener" style="color:var(--accent-text)">Edit on GitHub</a></small></div>';
+const letter = (i) => String.fromCharCode(65 + i);
+
+// ---- views ----
+function kpi(label, value, sub) { return '<div class="ad-kpi"><span>' + label + '</span><b>' + value + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>'; }
+function overview() {
+  const d = data, days = [];
+  for (let i = 29; i >= 0; i--) { const t = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10); const r = d.examsPerDay.find((x) => x.day === t); days.push({ t, n: r ? r.exams : 0 }); }
+  const max = Math.max(1, ...days.map((x) => x.n));
+  const bars = days.map((x, i) => '<rect x="' + (i * 20 + 2) + '" y="' + (80 - (x.n / max) * 76) + '" width="16" height="' + Math.max(1, (x.n / max) * 76) + '" rx="3" fill="var(--primary-light)"><title>' + x.t + ': ' + x.n + ' exams</title></rect>').join('');
+  const cairoH = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', hour12: false }).format(new Date())) % 24;
+  const off = (cairoH - new Date().getUTCHours() + 24) % 24, hrs = Array(24).fill(0);
+  d.examsPerHourUtc.forEach((r) => { hrs[(r.h + off) % 24] += r.n; });
+  const hmax = Math.max(1, ...hrs);
+  const heat = hrs.map((n, h) => '<i title="' + h + ':00 Cairo: ' + n + ' exams" style="opacity:' + (0.08 + 0.92 * (n / hmax)).toFixed(2) + '"></i>').join('');
+  const att = d.accuracy.reduce((s, r) => s + (r.attempted || 0), 0), cor = d.accuracy.reduce((s, r) => s + (r.correct || 0), 0);
+  const mods = d.examsPerModule.map((m) => '<tr><td>' + esc(m.module) + '</td><td class="n">' + fmt(m.exams) + '</td><td><span class="ad-bar" style="width:' + Math.round((m.exams / d.examsPerModule[0].exams) * 100) + 'px"></span></td></tr>').join('');
+  const subs = d.accuracy.map((r) => '<tr><td>' + esc(r.module) + ' / ' + esc(r.subject || 'whole module') + '</td><td class="n">' + fmt(r.exams) + '</td><td class="n">' + fmt(r.attempted) + '</td><td class="n' + (r.accuracyPct != null && r.accuracyPct < 50 ? ' ad-bad' : '') + '">' + (r.accuracyPct == null ? '–' : r.accuracyPct + '%') + '</td></tr>').join('');
+  return '<div class="ad-grid">' + kpi('Accounts', fmt(d.accounts), fmt(d.newWeek) + ' new in 7 days · ' + fmt(d.newToday) + ' today') +
+    kpi('Studying today', fmt(d.studyingToday), 'finished an exam · 7 days: ' + fmt(d.studyingWeek)) +
+    kpi('Studying (30 days)', fmt(d.studyingMonth), 'stickiness ' + (pct(d.studyingToday, d.studyingMonth) ?? '–') + '% (today ÷ 30 days)') +
+    kpi('Exams (30 days)', fmt(d.examsTotal), 'average ' + Math.round((d.avgTimeSec || 0) / 60) + ' min each') +
+    kpi('Accuracy (30 days)', att ? pct(cor, att) + '%' : '–', fmt(att) + ' answers') + '</div>' +
+    '<div class="ad-card"><h2>Exams per day (UTC dates)</h2><svg viewBox="0 0 600 84" width="100%" role="img" aria-label="Exams per day">' + bars + '</svg></div>' +
+    '<div class="ad-card"><h2>When students study (Cairo time, 30 days)</h2><div class="ad-heat">' + heat + '</div><div class="ad-hl"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div><p>Darker is busier. Cloudflare daily limits reset at 00:00 UTC.</p></div>' +
+    '<div class="ad-card ad-scroll"><h2>Exams by module (30 days)</h2><table class="ad-t"><tbody>' + (mods || '<tr><td class="ad-low">No exams yet.</td></tr>') + '</tbody></table></div>' +
+    '<div class="ad-card ad-scroll"><h2>Accuracy by subject (30 days)</h2><table class="ad-t"><thead><tr><th>Subject</th><th class="n">Exams</th><th class="n">Answers</th><th class="n">Correct</th></tr></thead><tbody>' + (subs || '<tr><td class="ad-low" colspan="4">No exams yet.</td></tr>') + '</tbody></table></div>';
+}
+async function questions() {
+  const { meta, rows } = await questionStats();
+  const MIN = 20, ok = rows.filter((r) => r.n >= MIN);
+  const flagged = (data.flagged || []).map((f) => ({ f, m: meta[f.qk], s: rows.find((r) => r.key === f.qk) })).filter((x) => x.m);
+  const ft = flagged.map((x) => '<tr><td>' + qCell(x.m) + '</td><td class="n">' + x.f.students + '</td><td class="n' + (!x.s || x.s.n < MIN ? ' ad-low' : '') + '">' + (x.s ? x.s.correctPct + '% of ' + x.s.n : 'no data') + '</td></tr>').join('');
+  const hard = [...ok].sort((a, b) => a.correctPct - b.correctPct).slice(0, 15);
+  const wrong = ok.filter((r) => r.topOpt !== r.q.answer && r.topPct >= 50 && r.correctPct < 25);
+  const list = (arr, cols) => arr.map((r) => '<tr><td>' + qCell(r) + '</td>' + cols(r) + '</tr>').join('');
+  return '<div class="ad-card ad-scroll"><h2>Most flagged by students</h2><table class="ad-t"><thead><tr><th>Question</th><th class="n">Students</th><th class="n">Answered correctly</th></tr></thead><tbody>' +
+      (ft || '<tr><td class="ad-low" colspan="3">Nothing is flagged yet.</td></tr>') + '</tbody></table><p>Flags often mean a typo or a wrong key. Check these first.</p></div>' +
+    '<div class="ad-card ad-scroll"><h2>Possible wrong answer key</h2><table class="ad-t"><thead><tr><th>Question</th><th class="n">Key</th><th class="n">Most chosen</th><th class="n">n</th></tr></thead><tbody>' +
+      (list(wrong, (r) => '<td class="n">' + letter(r.q.answer) + ' (' + r.correctPct + '%)</td><td class="n ad-bad">' + letter(r.topOpt) + ' (' + r.topPct + '%)</td><td class="n">' + r.n + '</td>') || '<tr><td class="ad-low" colspan="4">None found.</td></tr>') +
+    '</tbody></table><p>Most students chose one other option and few chose the key. This is an inference: confirm the key in the question file before changing anything.</p></div>' +
+    '<div class="ad-card ad-scroll"><h2>Hardest questions</h2><table class="ad-t"><thead><tr><th>Question</th><th class="n">Correct</th><th class="n">Most chosen</th><th class="n">n</th></tr></thead><tbody>' +
+      (list(hard, (r) => '<td class="n">' + r.correctPct + '%</td><td class="n">' + letter(r.topOpt) + ' (' + r.topPct + '%)</td><td class="n">' + r.n + '</td>') || '<tr><td class="ad-low" colspan="4">Needs at least ' + MIN + ' answers per question.</td></tr>') +
+    '</tbody></table><p>Shown only for questions answered at least ' + MIN + ' times in the last 90 days, from exams with a stored review. Imported guest exams and exams over 300 questions are not included.</p></div>';
+}
+function retention() {
+  const a = data.activation, cr = data.cohorts.map((c) => '<tr><td>' + new Date(c.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + '</td><td class="n">' + c.size + '</td>' +
+    c.retained.map((n) => '<td class="n' + (n == null ? ' ad-low' : '') + '">' + (n == null ? '–' : n + ' (' + pct(n, c.size) + '%)') + '</td>').join('') + '</tr>').join('');
+  return '<div class="ad-grid">' + kpi('Studied at least once', pct(a.ever, a.signups) == null ? '–' : pct(a.ever, a.signups) + '%', 'of ' + a.signups + ' signups, last 8 weeks') +
+    kpi('First exam within 24 h', pct(a.within24h, a.eligible24h) == null ? '–' : pct(a.within24h, a.eligible24h) + '%', 'of signups older than a day') +
+    kpi('First exam within 7 days', pct(a.within7d, a.eligible7d) == null ? '–' : pct(a.within7d, a.eligible7d) + '%', 'of signups older than a week') +
+    kpi('Median time to first exam', a.medianHours == null ? '–' : a.medianHours + ' h', 'after signing up') + '</div>' +
+    '<div class="ad-card ad-scroll"><h2>Weekly signup cohorts: studied again in week…</h2><table class="ad-t"><thead><tr><th>Week of</th><th class="n">Signed up</th><th class="n">Week 0</th><th class="n">Week 1</th><th class="n">Week 2</th><th class="n">Week 3</th></tr></thead><tbody>' +
+    (cr || '<tr><td class="ad-low" colspan="6">No signups in the last 8 weeks.</td></tr>') + '</tbody></table><p>"Studied" means finished at least one exam that week. Weeks run Thursday to Wednesday (UTC). With few students, treat single percentages loosely.</p></div>';
+}
+function system() {
+  const t = data.totals, next = new Date(); next.setUTCHours(24, 0, 0, 0);
+  const hrs = Math.round((next - Date.now()) / 36e5 * 10) / 10;
+  return '<div class="ad-grid">' + kpi('Users', fmt(t.users)) + kpi('Exams stored', fmt(t.attempts)) + kpi('Topic rows', fmt(t.scopes)) + kpi('Daily limits reset in', hrs + ' h', '00:00 UTC') + '</div>' +
+    '<div class="ad-card ad-links"><h2>Live usage (needs your Cloudflare and Firebase login)</h2>' +
+    '<a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare: Workers &amp; Pages, Usage</a><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare: D1, Metrics</a>' +
+    '<a href="https://console.firebase.google.com/project/recall-med/authentication/users" target="_blank" rel="noopener">Firebase: Authentication</a>' +
+    '<p>Request counts and database reads and writes are not available here, because reading them would need an extra secret. Editing questions uses a GitHub token stored only as an encrypted Cloudflare variable. Free-plan reminders: 60 exam uploads per hour per account; D1 allows 100,000 row writes per day.</p></div>';
+}
+const day = (t) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '–');
+const studentRows = (list, f) => {
+  f = String(f || '').trim().toLowerCase();
+  return list.filter((s) => !f || [s.email, s.first_name, s.last_name, s.uid].join(' ').toLowerCase().includes(f)).map((s) =>
+    '<tr><td>' + (esc([s.first_name, s.last_name].filter(Boolean).join(' ')) || '<span class="ad-low">no name</span>') + '<small style="display:block;color:var(--text-3);font-size:.72rem">' + esc(s.uid) + '</small></td>' +
+    '<td>' + (s.email ? esc(s.email) : '<span class="ad-low">not yet on file</span>') + '</td><td>' + day(s.created_at) + '</td><td>' + day(s.last_exam) + '</td>' +
+    '<td class="n">' + s.exams + '</td><td class="n">' + (s.attempted ? Math.round((s.correct / s.attempted) * 100) + '%' : '–') + '</td>' +
+    '<td>' + (s.blocked ? '<span class="ad-bad">Removed</span> <button class="ad-act" data-ub="' + esc(s.uid) + '">Unblock</button>' : '<button class="ad-act warn" data-rm="' + esc(s.uid) + '">Remove</button>') + '</td></tr>').join('');
+};
+let studentList = [];
+async function students() {
+  const r = await adminFetch('/api/admin/students');
+  if (r.status !== 200 || !r.body.ok) return '<div class="ad-msg">Could not load the student list.</div>';
+  studentList = r.body.students;
+  return '<div class="ad-card"><input class="acct-input" id="sq" type="search" placeholder="Search name, email or id" aria-label="Search students"><p>' + studentList.length + ' accounts. Emails appear once a person has signed in after the email update.</p></div>' +
+    '<div class="ad-card ad-scroll"><table class="ad-t"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Last exam</th><th class="n">Exams</th><th class="n">Correct</th><th></th></tr></thead><tbody id="sb">' + studentRows(studentList, '') + '</tbody></table>' +
+    '<p>Remove deletes their cloud data and blocks the account from syncing. Their login stays in Firebase until you delete it there (Authentication, Users).</p></div>';
+}
+const TABS = { overview: ['Overview', overview], questions: ['Questions', questions], students: ['Students', students], retention: ['Retention', retention], system: ['System', system] };
+const qFileOf = (k) => k.split('|').slice(0, 4);
+function modal(html) { closeModal(); const m = document.createElement('div'); m.className = 'ad-modal'; m.id = 'edm'; m.innerHTML = '<div role="dialog" aria-modal="true">' + html + '</div>'; m.addEventListener('click', (e) => { if (e.target === m) closeModal(); }); document.body.appendChild(m); return m; }
+function closeModal() { const m = $('edm'); if (m) m.remove(); }
+async function openEditor(key) {
+  const sc = qFileOf(key), id = key.split('|')[4], path = 'data/' + sc.join('/') + '.json';
+  const m = modal('<p class="ad-sub">Loading…</p>');
+  const r = await adminFetch('/api/admin/question?path=' + encodeURIComponent(path) + '&id=' + encodeURIComponent(id));
+  if (r.status !== 200 || !r.body.ok) { m.firstChild.innerHTML = '<h2>Edit question</h2><p class="acct-error" style="display:block">' + esc(r.body.message || 'Could not open the question.') + '</p><button class="btn btn--ghost" type="button" id="edx">Close</button>'; $('edx').onclick = closeModal; return; }
+  const q = r.body.question, sha = r.body.sha;
+  if (!Array.isArray(q.options) || !q.options.every((o) => typeof o === 'string')) { m.firstChild.innerHTML = '<h2>Edit question</h2><p>This question stores its options in a format the editor does not change. Use Edit on GitHub.</p><button class="btn btn--ghost" type="button" id="edx">Close</button>'; $('edx').onclick = closeModal; return; }
+  m.firstChild.innerHTML = '<h2 style="margin:0 0 10px;font-size:1.1rem">Edit question</h2><div class="ad-sub" style="margin-bottom:10px">' + esc(sc.join(' / ')) + ' · #' + esc(id) + '</div><form id="edf">' +
+    '<label class="acct-field"><span>Question</span><textarea class="acct-input" name="question">' + esc(q.question) + '</textarea></label>' +
+    q.options.map((o, i) => '<label class="acct-field"><span>Option ' + letter(i) + '</span><input class="acct-input" name="o' + i + '" value="' + esc(o) + '"></label>').join('') +
+    '<label class="acct-field"><span>Correct answer</span><select class="acct-input" name="answer">' + q.options.map((_, i) => '<option value="' + i + '"' + (i === q.answer ? ' selected' : '') + '>' + letter(i) + '</option>').join('') + '</select></label>' +
+    '<label class="acct-field"><span>Explanation</span><textarea class="acct-input" name="explanation">' + esc(q.explanation || '') + '</textarea></label>' +
+    '<p class="acct-error" id="ederr" role="alert"></p><p class="ad-ok" id="edok" hidden>Saved to GitHub. The site updates in about a minute.</p>' +
+    '<div class="acct-actions acct-actions--row"><button class="btn btn--ghost" type="button" id="edx">Close</button><button class="btn btn--primary" type="submit" id="eds">Save to GitHub</button></div></form>';
+  $('edx').onclick = closeModal;
+  $('edf').onsubmit = async (ev) => {
+    ev.preventDefault(); const f = ev.target.elements; $('ederr').textContent = ''; $('eds').disabled = true;
+    const body = { path, id, sha, question: f.question.value, options: q.options.map((_, i) => f['o' + i].value), answer: Number(f.answer.value), explanation: f.explanation.value };
+    const s = await adminFetch('/api/admin/question', { method: 'POST', body: JSON.stringify(body) });
+    if (s.status === 200 && s.body.ok) { $('edok').hidden = false; delete questionFiles['data/' + sc.join('/') + '.json']; return; }
+    $('ederr').textContent = s.body.message || 'Could not save.'; $('eds').disabled = false;
+  };
+}
+root.addEventListener('input', (e) => { if (e.target.id === 'sq' && $('sb')) $('sb').innerHTML = studentRows(studentList, e.target.value); });
+root.addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-edit],[data-rm],[data-ub]'); if (!t) return;
+  if (t.dataset.edit) return openEditor(t.dataset.edit);
+  const uid = t.dataset.rm || t.dataset.ub, remove = !!t.dataset.rm, s = studentList.find((x) => x.uid === uid);
+  const who = (s && (s.email || [s.first_name, s.last_name].filter(Boolean).join(' '))) || uid;
+  if (remove && !confirm('Remove ' + who + '?\n\nTheir cloud progress is deleted and the account is blocked from syncing. Their Firebase login stays until you delete it there.')) return;
+  const r = await adminFetch('/api/admin/student', { method: 'POST', body: JSON.stringify({ uid, action: remove ? 'remove' : 'unblock' }) });
+  if (r.status !== 200) { alert(r.body.message || 'That did not work.'); return; }
+  render();
+});
+async function render() {
+  const tabs = Object.entries(TABS).map(([k, v]) => '<button class="ad-tab" role="tab" data-t="' + k + '" aria-selected="' + (k === tab) + '">' + v[0] + '</button>').join('');
+  root.innerHTML = '<div class="ad-top"><div><h1>Recall admin</h1><div class="ad-sub">Administrator only · updated ' + new Date(data.generatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + (data.cached ? ' (cached up to 10 min)' : '') + '</div></div>' +
+    '<div style="display:flex;gap:8px"><button class="btn btn--ghost btn--sm" id="rf">Refresh</button><button class="btn btn--ghost btn--sm" id="so">Sign out</button></div></div>' +
+    '<div class="ad-tabs" role="tablist">' + tabs + '</div><div id="pane"><div class="ad-msg">Loading…</div></div><p class="ad-sub" style="margin-top:8px">' + esc(data.note) + '</p>';
+  root.querySelectorAll('.ad-tab').forEach((b) => { b.onclick = () => { tab = b.dataset.t; render(); }; });
+  $('rf').onclick = () => load(true); $('so').onclick = () => window.__prov.signOut();
+  const html = await TABS[tab][1](); if ($('pane')) $('pane').innerHTML = html;
+}
+</script>
+</body>
+</html>

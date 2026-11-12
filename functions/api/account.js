@@ -18,6 +18,8 @@ export async function onRequest({ request, env, data }) {
       throw new HttpError(403, 'recent_login_required', 'Sign in again before deleting your account');
     }
     const uid = data.uid;
+    const row = await env.DB.prepare('SELECT blocked FROM users WHERE uid = ?').bind(uid).first();
+    if (row && row.blocked) throw new HttpError(403, 'account_blocked', 'This account has been disabled by the administrator');
     await env.DB.batch([
       env.DB.prepare('DELETE FROM attempts WHERE uid = ?').bind(uid),
       env.DB.prepare('DELETE FROM scopes WHERE uid = ?').bind(uid),

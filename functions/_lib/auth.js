@@ -24,7 +24,7 @@ function parseJsonPart(part) {
   catch (e) { return null; }
 }
 
-function isLocalHost(request) {
+export function isLocalHost(request) {
   const h = new URL(request.url).hostname;
   return h === 'localhost' || h === '127.0.0.1';
 }

@@ -8,7 +8,9 @@ CREATE TABLE users (
   settings TEXT NOT NULL DEFAULT '{}',
   session TEXT,
   first_name TEXT,
-  last_name TEXT
+  last_name TEXT,
+  email TEXT,
+  blocked INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE scopes (

@@ -16,7 +16,7 @@ export async function onRequest({ request, env, data }) {
     }
     const n = cleanName(body.firstName, body.lastName);
     if (!n.ok) throw new HttpError(400, 'bad_name', n.error);
-    const user = await touchUser(env.DB, data.uid, Date.now());
+    const user = await touchUser(env.DB, data.uid, Date.now(), data.email);
     const same = (user.first_name || '') === n.firstName && (user.last_name || '') === n.lastName;
     if (!same) {
       await env.DB.prepare('UPDATE users SET first_name = ?, last_name = ? WHERE uid = ?')

@@ -12,6 +12,7 @@ export async function onRequest(context) {
     if (!env.DB) throw new HttpError(500, 'server_misconfigured', 'Database is not bound');
     const claims = await verifyClaims(request, env);
     data.uid = claims.sub;
+    data.email = typeof claims.email === 'string' ? claims.email.trim().toLowerCase().slice(0, 254) : '';
     data.authTime = typeof claims.auth_time === 'number' ? claims.auth_time : 0;   // seconds; when the person last signed in
     return await next();
   } catch (err) {

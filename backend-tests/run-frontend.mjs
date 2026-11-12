@@ -33,6 +33,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'recall-fe-'));
 fs.cpSync(path.join(repo, 'functions'), path.join(tmp, 'functions'), { recursive: true });
 for (const d of ['assets', 'config']) fs.cpSync(path.join(SITE_DIR, d), path.join(tmp, d), { recursive: true });
 fs.copyFileSync(path.join(SITE_DIR, 'index.html'), path.join(tmp, 'index.html'));
+fs.copyFileSync(path.join(SITE_DIR, 'admin.html'), path.join(tmp, 'admin.html'));
 // small synthetic question files (the real question bank is not needed)
 function qfile(sub, n) {
   const dir = path.join(tmp, 'data/CPM/final_exam/anatomy'); fs.mkdirSync(dir, { recursive: true });
@@ -605,6 +606,70 @@ try {
     check('C: when the 30 s are over the button comes back on its own', await until(() => { const x = SE.w.document.getElementById('acct-sync-btn'); return x && !x.disabled && x.textContent === 'Sync now'; }, 9000, 100));
     SE.close();
     NM.close();
+  }
+
+
+  // ===== Admin dashboard page (admin.html) with seeded data =====
+  {
+    const now = Date.now(), Q = 'CPM|final_exam|anatomy|pharynx';
+    const flagE = (x, id = 3) => J({ [id]: { epoch: 0, rev: 1, updatedAt: 1, flaggedAt: 1, ...x } }).replace(/'/g, "''");
+    let q = '';
+    for (let i = 1; i <= 25; i++) {
+      const rev = J({ keys: [Q + '|3', Q + '|4'], answers: [i <= 22 ? 0 : 1, 1] });
+      q += `INSERT INTO users (uid, created_at, last_seen) VALUES ('ad${i}', ${now - 2 * 864e5}, ${now});` +
+        `INSERT INTO attempts (uid, attempt_id, epoch, created_at, module, exam_type, subject, sub_subject, scope, score, correct, total, attempted, time_sec, review) VALUES ('ad${i}', 'att-${i}-aaaaaaaa', 0, ${now - 3600000}, 'CPM', 'final_exam', 'anatomy', 'pharynx', '${Q}', 50, ${i <= 22 ? 1 : 2}, 2, 2, 120, '${rev}');`;
+    }
+    for (let i = 1; i <= 3; i++) q += `INSERT INTO scopes (uid, scope_key, flags) VALUES ('ad${i}', '${Q}', '${flagE({})}');`;
+    q += `INSERT INTO scopes (uid, scope_key, flags) VALUES ('ad4', '${Q}', '${flagE({ removed: true }, 4)}');`;
+    spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--command', q], { cwd: tmp, encoding: 'utf8' });
+
+    const html = fs.readFileSync(path.join(tmp, 'admin.html'), 'utf8');
+    const mod = /<script type="module">([\s\S]*?)<\/script>/.exec(html)[1].replace(/^import\('\.\/assets\/js\/auth\.js'\).*$/m, '');
+    const page = async (uid) => {
+      const dom = new JSDOM('<!doctype html><body><div id="root" class="ad"></div></body>', { url: BASE + '/admin.html', runScripts: 'outside-only', pretendToBeVisual: true });
+      const w = dom.window; w.fetch = (u, i) => fetch(new URL(u, BASE).href, i);
+      w.eval("window.Sync = { attachAuth: function (p) { window.__prov = p; p.onChange(function (u) { window.__onUser && window.__onUser(u); }); } };");
+      w.eval(mod);
+      w.Sync.attachAuth({ onChange: (cb) => cb({ uid }), getToken: async () => token(uid), signOut: async () => {}, signInGoogle: async () => {}, signInEmail: async () => {} });
+      await until(() => w.document.querySelector('.ad-tabs') || /not an administrator/.test(w.document.body.textContent), 8000);
+      return w;
+    };
+    const tabText = async (w, name) => { Array.from(w.document.querySelectorAll('.ad-tab')).find((b) => b.dataset.t === name).click(); await sleep(700); return w.document.getElementById('pane').textContent; };
+    const A = await page('admin1');
+    const ov = A.document.getElementById('pane').textContent;
+    check('admin page: overview shows accounts, studying counts, exams and the per-day chart', /Accounts/.test(ov) && /Studying today/.test(ov) && /25/.test(ov) && !!A.document.querySelector('#pane svg rect') && /Exams by module/.test(ov), ov.slice(0, 200));
+    const qs = await tabText(A, 'questions');
+    check('admin page: flagged list counts 3 students and ignores the removed flag', /pharynx · #3 · Edit here · Edit on GitHub\s*3\d*%|pharynx · #3 · Edit here · Edit on GitHub3/.test(qs.split('Possible wrong answer key')[0]) && !/pharynx · #4 · Edit here · Edit on GitHub/.test(qs.split('Possible wrong answer key')[0]), qs.slice(0, 300));
+    check('admin page: likely wrong key found (key B about 12-15%, most chosen A about 85-88%, n at least 25)', /Possible wrong answer key[\s\S]*pharynx · #3 · Edit here · Edit on GitHubB \(1\d%\)A \(8\d%\)2\d/.test(qs));
+    check('admin page: hardest list shows the hard question first with its n', /Hardest questions[\s\S]*pharynx · #3 · Edit here · Edit on GitHub1\d%A \(8\d%\)2\d[\s\S]*pharynx · #4 · Edit here · Edit on GitHub100%/.test(qs));
+    const rt = await tabText(A, 'retention');
+    check('admin page: retention shows a cohort table and activation figures', /Weekly signup cohorts/.test(rt) && Number((/Signed up[\s\S]*?\d+ \w+(\d+)/.exec(rt) || [])[1] || 0) >= 0 && /Median time to first exam/.test(rt));
+    const sy = await tabText(A, 'system');
+    check('admin page: system tab shows totals and the reset countdown', /Exams stored/.test(sy) && /Daily limits reset in/.test(sy));
+    check('admin page: no emails anywhere in the page', !/@/.test(A.document.body.textContent.replace(/@media/g, '')));
+    // students tab: email shown, search, remove with confirmation; editor wiring
+    spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--command', `UPDATE users SET email='ad1@example.com', first_name='Ada', last_name='One' WHERE uid='ad1'`], { cwd: tmp, encoding: 'utf8' });
+    let st = await tabText(A, 'students');
+    check('admin page: Students tab lists accounts with name and email', /ad1@example\.com/.test(st) && /Ada One/.test(st) && /not yet on file/.test(st) && /Remove/.test(st), st.slice(0, 200));
+    const si = A.document.getElementById('sq'); si.value = 'ad1@'; si.dispatchEvent(new A.Event('input', { bubbles: true }));
+    check('admin page: search narrows the list', A.document.querySelectorAll('#sb tr').length === 1);
+    si.value = ''; si.dispatchEvent(new A.Event('input', { bubbles: true }));
+    let asked = ''; A.confirm = (m) => { asked = m; return true; };
+    A.document.querySelector('[data-rm="ad7"]').click(); await sleep(900);
+    check('admin page: Remove asks first, then blocks the account and shows it as Removed', /Remove ad7/.test(asked) && sql(`SELECT blocked FROM users WHERE uid='ad7'`)[0].blocked === 1 && /Removed/.test(A.document.getElementById('pane').textContent) && !!A.document.querySelector('[data-ub="ad7"]'));
+    A.confirm = () => false;
+    A.document.querySelector('[data-rm="ad8"]').click(); await sleep(400);
+    check('admin page: cancelling the confirmation removes nobody', sql(`SELECT blocked FROM users WHERE uid='ad8'`)[0].blocked === 0);
+    await tabText(A, 'questions');
+    check('admin page: every question row offers Edit here and an Edit on GitHub link to the right file', !!A.document.querySelector('[data-edit]') && !!A.document.querySelector('a[href^="https://github.com/recall-med/recall4/edit/main/data/CPM/final_exam/anatomy/"]'));
+    A.document.querySelector('[data-edit]').click(); await sleep(900);
+    check('admin page: the editor opens and says plainly when GitHub is not set up yet', !!A.document.getElementById('edm') && /GITHUB_TOKEN is not set/.test(A.document.getElementById('edm').textContent));
+    A.document.getElementById('edx').click();
+    check('admin page: the editor closes', !A.document.getElementById('edm'));
+    A.close();
+    const N = await page('student-not-admin');
+    check('admin page: a non-admin account is told so and sees no data', /not an administrator/.test(N.document.body.textContent) && !/Accounts/.test(N.document.body.textContent));
+    N.close();
   }
 
   // F16 hostile email text is escaped

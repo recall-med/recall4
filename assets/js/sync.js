@@ -605,6 +605,7 @@
     var code = err && err.code, st = err && err.status;
     if (code === 'resource_exhausted' || (st === 503 && code !== 'busy')) setStatus('paused');
     else if (st === 401) setStatus('auth');
+    else if (code === 'account_blocked') { setStatus('blocked'); return; }   // removed by the administrator: nothing to retry
     else if (navigator.onLine === false || !(err instanceof SyncError)) setStatus('offline');
     else setStatus('error', code);
     if (st === 401) return; // needs the person; do not hammer
@@ -970,6 +971,7 @@
       case 'offline': return 'Offline. ' + (n ? n + ' change' + (n === 1 ? '' : 's') + ' will upload when you are back online.' : 'Changes will upload when you are back online.');
       case 'paused': return 'Cloud sync is paused. Your progress is saved on this device and will upload automatically.';
       case 'auth': return 'Please sign in again to continue syncing.';
+      case 'blocked': return 'This account has been disabled by the administrator. Your progress stays on this device.';
       case 'error': return 'Sync hit a problem and will retry shortly.';
       default:
         if (n) return n + ' change' + (n === 1 ? '' : 's') + ' waiting to upload.';

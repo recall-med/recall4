@@ -12,7 +12,7 @@ export async function onRequest({ request, env, data }) {
     if (request.method !== 'POST') throw new HttpError(405, 'method_not_allowed', 'Use POST');
     const body = await readJson(request);
     const fromEpoch = reqInt(body.fromEpoch, 'fromEpoch', 0, 1e6);
-    const user = await touchUser(env.DB, data.uid, Date.now());
+    const user = await touchUser(env.DB, data.uid, Date.now(), data.email);
     if (user.reset_epoch !== fromEpoch) {
       return json({ ok: true, epoch: user.reset_epoch, already: true });
     }

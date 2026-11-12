@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import http from 'node:http';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -31,7 +32,7 @@ const goodJwk = { ...(await exportJWK(good.publicKey)), kid: 'test-key-1', alg: 
 
 async function token(uid, o = {}) {
   const now = Math.floor(Date.now() / 1000);
-  let jwt = new SignJWT({ auth_time: o.authTime ?? now - 5 })
+  let jwt = new SignJWT({ auth_time: o.authTime ?? now - 5, ...(o.email ? { email: o.email } : {}) })
     .setProtectedHeader({ alg: o.alg || 'RS256', kid: o.kid || 'test-key-1' })
     .setSubject(uid)
     .setIssuer(o.iss || `https://securetoken.google.com/${PROJECT}`)
@@ -65,7 +66,25 @@ fs.writeFileSync(path.join(tmp, 'wrangler.toml'),
   'name = "recall-test"\npages_build_output_dir = "."\ncompatibility_date = "2026-10-24"\n' +
   '[[d1_databases]]\nbinding = "DB"\ndatabase_name = "recall-db"\ndatabase_id = "00000000-0000-0000-0000-000000000000"\n');
 fs.writeFileSync(path.join(tmp, '.dev.vars'),
-  `FIREBASE_PROJECT_ID=${PROJECT}\nADMIN_UIDS=admin1\nTEST_JWKS=${J({ keys: [goodJwk] })}\n`);
+  `FIREBASE_PROJECT_ID=${PROJECT}\nADMIN_UIDS=admin1\nTEST_JWKS=${J({ keys: [goodJwk] })}\nGITHUB_TOKEN=test-gh-token-not-real\nGITHUB_API=http://127.0.0.1:8799\n`);
+
+// A tiny fake GitHub (contents API) so the question editor can be tested without any real token.
+const GH_PATH = '/repos/recall-med/recall4/contents/data/CPM/final_exam/anatomy/pharynx.json';
+const gh = { text: JSON.stringify({ questions: [1, 2, 3, 4].map((i) => ({ id: i, question: `Q${i}?`, options: ['A', 'B', 'C', 'D'], answer: 1, explanation: 'Because B.', image: 'keep.png' })) }, null, 2) + '\n', sha: 'sha-1', puts: [], auth: [] };
+const ghServer = http.createServer((req, res) => {
+  gh.auth.push(req.headers.authorization);
+  const url = new URL(req.url, 'http://x');
+  const send = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+  if (url.pathname !== GH_PATH) return send(404, { message: 'Not Found' });
+  if (req.method === 'GET') return send(200, { sha: gh.sha, content: Buffer.from(gh.text).toString('base64'), encoding: 'base64' });
+  let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => {
+    const j = JSON.parse(b);
+    if (j.sha !== gh.sha) return send(409, { message: 'conflict' });
+    gh.puts.push(j); gh.text = Buffer.from(j.content, 'base64').toString('utf8'); gh.sha = 'sha-' + (gh.puts.length + 1);
+    send(200, { content: { sha: gh.sha } });
+  });
+});
+await new Promise((r) => ghServer.listen(8799, '127.0.0.1', r));
 const wr = path.join(here, 'node_modules', '.bin', 'wrangler');
 const schema = path.join(repo, 'db', 'schema.sql');
 const ex = spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--file', schema], { cwd: tmp, encoding: 'utf8' });
@@ -395,11 +414,77 @@ try {
     delete globalThis.RecallNames;
   }
 
+
+  // ===== emails from the token, removing students, blocking, question editor (fake GitHub) =====
+  {
+    const tA = await token('admin1'), tS = await token('stu1', { email: 'Stu.One@Example.com' });
+    await api('/api/state', { tok: tS });
+    let rows = (await sql(`SELECT email, blocked FROM users WHERE uid='stu1'`))[0];
+    check('email: stored (lower-cased) from the verified token at sign-in', rows.email === 'stu.one@example.com' && rows.blocked === 0, J(rows));
+    await api('/api/state', { tok: await token('stu1', { email: 'new.mail@example.com' }) });
+    check('email: updated when it changes', (await sql(`SELECT email FROM users WHERE uid='stu1'`))[0].email === 'new.mail@example.com');
+    await api('/api/state', { tok: await token('stu1') });
+    check('email: a token without an email never erases the stored one', (await sql(`SELECT email FROM users WHERE uid='stu1'`))[0].email === 'new.mail@example.com');
+
+    r = await api('/api/admin/students', { tok: tS });
+    check('students list: refused for a non-admin (403)', r.status === 403);
+    r = await api('/api/admin/students', { tok: tA });
+    const me = r.data.students.find((x) => x.uid === 'stu1');
+    check('students list: admin sees email, status and activity per account', r.status === 200 && me && me.email === 'new.mail@example.com' && me.blocked === 0 && typeof me.exams === 'number', J(me));
+
+    // exam data first, so the removal has something to delete
+    const nowMs = Date.now();
+    await sql(`INSERT INTO attempts (uid, attempt_id, epoch, created_at, module, exam_type, subject, sub_subject, scope, score, correct, total, attempted, time_sec) VALUES ('stu1','blk-att-aaaa',0,${nowMs},'CPM','final_exam','anatomy','larynx','CPM|final_exam|anatomy|larynx',50,1,2,2,60)`);
+    r = await api('/api/admin/student', { method: 'POST', tok: tS, body: { uid: 'stu1', action: 'remove' } });
+    check('remove: refused for a non-admin (403)', r.status === 403);
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'admin1', action: 'remove' } });
+    check('remove: an administrator cannot be removed (400)', r.status === 400);
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'nobody-here', action: 'remove' } });
+    check('remove: unknown account (404)', r.status === 404);
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'stu1', action: 'remove' } });
+    const left = (await sql(`SELECT (SELECT COUNT(*) FROM attempts WHERE uid='stu1') a, (SELECT COUNT(*) FROM scopes WHERE uid='stu1') s, (SELECT blocked FROM users WHERE uid='stu1') b`))[0];
+    check('remove: cloud data deleted and the account blocked', r.status === 200 && left.a === 0 && left.s === 0 && left.b === 1, J(left) + ' ' + r.status + ' ' + J(r.data));
+    r = await api('/api/state', { tok: tS });
+    check('remove: the person now gets 403 account_blocked from the API', r.status === 403 && r.data.error === 'account_blocked');
+    r = await api('/api/sync', { method: 'POST', tok: tS, body: { baseEpoch: 0, deviceId: dev(), uid: 'stu1', scopes: {} } });
+    check('remove: sync is refused too (403)', r.status === 403);
+    r = await api('/api/account', { method: 'POST', tok: await token('stu1'), body: { confirm: 'delete' } });
+    check('remove: deleting their own account cannot be used to dodge the block (403)', r.status === 403);
+    check('remove: the row is still there, still blocked', (await sql(`SELECT blocked FROM users WHERE uid='stu1'`))[0].blocked === 1);
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'stu1', action: 'unblock' } });
+    check('unblock: the person can sync again (and starts clean)', r.status === 200 && (await api('/api/state', { tok: tS })).status === 200);
+
+    // question editor through the fake GitHub
+    const Q = '/api/admin/question', P = 'data/CPM/final_exam/anatomy/pharynx.json';
+    r = await api(`${Q}?path=${P}&id=3`, { tok: tS });
+    check('editor: refused for a non-admin (403)', r.status === 403);
+    r = await api(`${Q}?path=${encodeURIComponent('../../etc/passwd')}&id=3`, { tok: tA });
+    check('editor: a path outside data/<a>/<b>/<c>/<d>.json is refused (400)', r.status === 400);
+    r = await api(`${Q}?path=${P}&id=3`, { tok: tA });
+    check('editor: reads one question and its version', r.status === 200 && r.data.question.id === 3 && r.data.sha === 'sha-1', J(r.data));
+    check('editor: the GitHub token reached GitHub as a bearer header, and is never in a response', gh.auth.every((a) => a === 'Bearer test-gh-token-not-real') && !J(r.data).includes('test-gh'));
+    const edit = (o) => api(Q, { method: 'POST', tok: tA, body: { path: P, id: 3, sha: gh.sha, ...o } });
+    for (const [label, o] of [['empty question', { question: '  ' }], ['1 option', { options: ['only'] }], ['answer out of range', { answer: 7 }], ['nothing to change', {}], ['bad id', { id: 'x' }]]) {
+      r = await edit(o); check(`editor: rejected (400): ${label}`, r.status === 400, `${r.status} ${J(r.data)}`);
+    }
+    check('editor: rejected edits wrote nothing to GitHub', gh.puts.length === 0);
+    r = await edit({ question: 'Edited stem?', options: ['one', 'two', 'three', 'four'], answer: 2, explanation: 'New reason.' });
+    const saved = JSON.parse(gh.text);
+    check('editor: saved as one commit with a plain message, other questions and fields untouched', r.status === 200 && gh.puts.length === 1 && /^Admin edit: data\/CPM/.test(gh.puts[0].message) && gh.puts[0].branch === 'main' &&
+      saved.questions[2].question === 'Edited stem?' && saved.questions[2].answer === 2 && saved.questions[2].image === 'keep.png' && saved.questions[0].question === 'Q1?', J(r.data));
+    check('editor: file formatting kept (2-space indent, trailing newline)', gh.text.startsWith('{\n  "questions": [\n    {') && gh.text.endsWith('}\n'));
+    r = await api(Q, { method: 'POST', tok: tA, body: { path: P, id: 3, sha: 'sha-1', question: 'Stale?' } });
+    check('editor: a stale version is refused (409) and changes nothing', r.status === 409 && JSON.parse(gh.text).questions[2].question === 'Edited stem?');
+    r = await api(`${Q}?path=data/CPM/final_exam/anatomy/missing.json&id=1`, { tok: tA });
+    check('editor: a file that is not in the repo gives 404', r.status === 404);
+  }
+
   // ===== admin =====
   r = await api('/api/admin/summary', { tok: await token('student1') });
   check('admin route: non-admin -> 403', r.status === 403);
   r = await api('/api/admin/summary', { tok: await token('admin1') });
   check('admin route: admin -> 200 with aggregates', r.status === 200 && typeof r.data.accounts === 'number' && Array.isArray(r.data.examsPerDay), J(r.data).slice(0, 200));
+  check('admin route: dashboard sections present (hours, flagged, items, cohorts, activation, totals)', Array.isArray(r.data.examsPerHourUtc) && Array.isArray(r.data.flagged) && Array.isArray(r.data.items) && Array.isArray(r.data.cohorts) && r.data.activation && typeof r.data.totals.users === 'number' && typeof r.data.studyingWeek === 'number', J(Object.keys(r.data)));
   check('admin route: no emails or per-user rows in the response', !/@/.test(J(r.data)) && !('users' in r.data));
   const r2 = await api('/api/admin/summary', { tok: await token('admin1') });
   check('admin route: second call is served from cache', r2.status === 200 && r2.data.cached === true);

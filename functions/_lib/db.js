@@ -1,14 +1,19 @@
 // Database helpers shared by the routes.
 
 import { dropOlderEpoch } from './merge.js';
+import { HttpError } from './http.js';
 
-export async function touchUser(db, uid, now) {
+export async function touchUser(db, uid, now, email) {
   await db.batch([
     db.prepare('INSERT OR IGNORE INTO users (uid, created_at, last_seen) VALUES (?, ?, ?)').bind(uid, now, now),
     // Throttled: writes at most once per 10 minutes per user.
     db.prepare('UPDATE users SET last_seen = ? WHERE uid = ? AND last_seen < ?').bind(now, uid, now - 600000),
+    // The email comes from the verified token; written only when it is new or changed.
+    db.prepare('UPDATE users SET email = ? WHERE uid = ? AND ? != \'\' AND COALESCE(email, \'\') != ?').bind(email || '', uid, email || '', email || ''),
   ]);
-  return db.prepare('SELECT * FROM users WHERE uid = ?').bind(uid).first();
+  const user = await db.prepare('SELECT * FROM users WHERE uid = ?').bind(uid).first();
+  if (user && user.blocked) throw new HttpError(403, 'account_blocked', 'This account has been disabled by the administrator');
+  return user;
 }
 
 export function parseJson(text, fallback) {

@@ -125,7 +125,7 @@ export async function onRequest({ request, env, data }) {
     const db = env.DB;
     const uid = data.uid;
 
-    const user = await touchUser(db, uid, now);
+    const user = await touchUser(db, uid, now, data.email);
     const epoch = user.reset_epoch;
     if (req.baseEpoch > epoch) throw bad('baseEpoch is ahead of the server');
 
@@ -204,7 +204,7 @@ export async function onRequest({ request, env, data }) {
 
     // ---- response ----
     if (stale) {
-      const fresh = await touchUser(db, uid, now);
+      const fresh = await touchUser(db, uid, now, data.email);
       return json({ ok: true, droppedStale: true, acceptedAttempts: accepted, rejectedAttempts: rejected,
         state: await buildState(db, fresh) });
     }

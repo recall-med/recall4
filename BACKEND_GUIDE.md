@@ -19,7 +19,7 @@ Recall is a static site (plain HTML, CSS, JavaScript, no build step) that works 
 | Sync engine and account window | Wraps the existing storage code, does not edit it | `assets/js/sync.js`, `assets/css/account.css` |
 | Switch | `config/sync-config.json` (`cloudEnabled`) | Currently `false` |
 
-Cloudflare settings that matter: env var `FIREBASE_PROJECT_ID=recall-med`; Functions set to **Fail closed** (a capped day returns an error, never HTML); D1 bound as `DB` on Production. `ADMIN_UIDS` is **not set yet** (needed for the admin dashboard). Firebase Firestore and Storage must stay **off** (they can prompt for billing).
+Cloudflare settings that matter: env var `FIREBASE_PROJECT_ID=recall-med`; Functions set to **Fail closed** (a capped day returns an error, never HTML); D1 bound as `DB` on Production. `ADMIN_UIDS` (admin dashboard) and `GITHUB_TOKEN` (question editor, an **encrypted secret**, optional `GITHUB_REPO`, default `recall-med/recall4`) are set only here in Cloudflare, never in code. Firebase Firestore and Storage must stay **off** (they can prompt for billing).
 
 Do not add a root `package.json` or a root `wrangler.toml` to the repo. Either can override dashboard settings or trigger a build step.
 
@@ -62,7 +62,7 @@ backend-tests/run-frontend.mjs  front-end tests (jsdom, fake sign-in provider)
 ## 3. Data model
 
 ```
-users(uid PK, reset_epoch, session_version, created_at, last_seen, settings, session, first_name, last_name)
+users(uid PK, reset_epoch, session_version, created_at, last_seen, settings, session, first_name, last_name, email, blocked)
 scopes(uid, scope_key, progress, incorrect, flags, version, PK(uid, scope_key))
 attempts(uid, attempt_id, epoch, created_at, client_ts, module, exam_type, subject, sub_subject,
          scope, score, correct, total, attempted, time_sec, review, PK(uid, attempt_id))
@@ -71,7 +71,7 @@ attempts(uid, attempt_id, epoch, created_at, client_ts, module, exam_type, subje
 - `scope_key` = `MODULE|examType|subject|subSubject`, four parts, each `[A-Za-z0-9_-]{1,40}`.
 - The cloud stores **question ids only**, never question text. Text is rebuilt from `data/**.json`. **Question ids are permanent**: never renumber or reuse one, or students' incorrect and flagged lists point at the wrong questions.
 - Statistics are **derived from attempts** on the server. There are no client-side counters to double count. `attempt_id` is the primary key and inserts use `INSERT OR IGNORE`, so a resent exam is stored once.
-- The server stores **no email addresses**. Emails live only in Firebase. It does store the **display name** (`first_name` required, `last_name` optional). Names are not unique, can be changed any time, are kept by Reset progress, and are removed by Delete account. The admin route never returns them. A future leaderboard can read them from `users`.
+- The server stores each person's **email** (taken from the verified sign-in token, lower-cased, refreshed when it changes; accounts that have not signed in since this began have none) and the **display name** (`first_name` required, `last_name` optional). Names are not unique, can be changed any time, are kept by Reset progress, and are removed by Delete account. Emails and names are returned only by the admin-only `/api/admin/students` route, never by `/api/admin/summary`. A future leaderboard can read names from `users`.
 
 ### Conflict rule (same code on server `merge.js` and client `sync.js`)
 
@@ -96,7 +96,10 @@ All JSON. Everything except health needs `Authorization: Bearer <Firebase ID tok
 | `GET/PUT /api/session` | In-progress exam transfer with explicit takeover. Server tested, **no front end yet** |
 | `POST /api/profile` | Body `{firstName, lastName?}`. Letters, spaces, hyphen, apostrophe, period; 1 to 30 characters each; a small blocklist (`functions/_lib/names.js`) answers 400 `bad_name`. `/api/state` returns `profile` (or `null`). |
 | `POST /api/account` | Body `{confirm:"delete"}`. Needs a sign-in no older than 10 minutes (otherwise 403 `recent_login_required`). Deletes attempts, scopes and the user row in one atomic batch. Repeating it is harmless |
-| `GET /api/admin/summary[?refresh=1]` | Admin only (uid listed in `ADMIN_UIDS`). Aggregates only, cached 10 minutes. **No front end yet** |
+| `GET /api/admin/summary[?refresh=1]` | Admin only (uid listed in `ADMIN_UIDS`). Aggregates only, cached 10 minutes. Front end: `admin.html` |
+| `GET /api/admin/students` | Admin only. One row per account: name, email, joined, last exam, exams, accuracy, blocked. |
+| `POST /api/admin/student` | Admin only. `{uid, action: "remove" or "unblock"}`. Remove deletes the person's cloud data and blocks the account (`users.blocked = 1`): every API call then answers 403 `account_blocked`, and it cannot delete its own row to start over. An administrator cannot be removed. The Firebase login is not touched. |
+| `GET/POST /api/admin/question` | Admin only. Reads or edits ONE question (`question`, `options`, `answer`, `explanation`) in `data/<a>/<b>/<c>/<d>.json` through the GitHub API as one commit on `main`; Pages redeploys. Needs `GITHUB_TOKEN`. 409 if the file changed since it was opened. Formatting of the file is kept. |
 
 Errors look like `{ok:false, error, message}`. D1 quota errors become 503 `resource_exhausted`.
 
@@ -127,7 +130,9 @@ Algorithm RS256, `kid` present in Google's key list, signature, issuer `https://
 
 **Add a new endpoint.** Create `functions/api/<name>.js` exporting `onRequest({request, env, data})`. The middleware already verifies the token and gives you `data.uid`. Copy the shape of `functions/api/account.js`: check the method, validate the body, run D1 queries with `.bind(...)` (never string-concatenate input), return `json(...)`, and wrap everything in `try/catch` that returns `errorResponse(err)`. Add it to the "must be refused without a token" list and write tests in `backend-tests/run.mjs`.
 
-**Column added for the name (run once in the D1 console, BEFORE uploading the new code):** `ALTER TABLE users ADD COLUMN first_name TEXT;` then `ALTER TABLE users ADD COLUMN last_name TEXT;`
+**Columns added for emails and blocking (run once in the D1 console, BEFORE uploading this code):** `ALTER TABLE users ADD COLUMN email TEXT;` then `ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0;`
+
+**Column added for the name (already run):** `ALTER TABLE users ADD COLUMN first_name TEXT;` then `ALTER TABLE users ADD COLUMN last_name TEXT;`
 
 **Add a column or table.** Edit `db/schema.sql` so new installs match, **and** run the matching `ALTER TABLE` / `CREATE TABLE` in the Cloudflare D1 console for the live database (the schema file is not re-applied automatically). Use `CREATE TABLE IF NOT EXISTS`. Remember every extra row written per exam counts against the free write cap.
 
@@ -164,8 +169,8 @@ Both suites start a **local** Worker and a **local** database with `wrangler pag
 ```
 git clone https://github.com/recall-med/recall4.git site && cd site/backend-tests
 npm install
-node run.mjs            # backend: expect 113 passed, 0 failed
-node run-frontend.mjs   # front end in jsdom: expect 124 passed, 0 failed
+node run.mjs            # backend: expect 142 passed, 0 failed
+node run-frontend.mjs   # front end in jsdom: expect 139 passed, 0 failed
 ```
 
 The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand.
@@ -185,10 +190,11 @@ The front-end suite uses a fake sign-in provider and a simulated browser (jsdom)
 | 4++ | Security hardening: safe headers file, recent sign-in required to delete an account, retention line in the account window | Built and tested in the sandbox; needs the sign-in re-test after upload |
 | 4+++ | Display name at sign-up and in the account window (shown as Dr. First Last), generic navy avatar, opening animation, 30 s "Sync now" cooldown (button only; automatic syncing untouched). Needs two `ALTER TABLE` lines in the D1 console before the upload (section 6) | Built and tested in the sandbox; needs a phone check |
 | 3b | Service worker (offline caching) and the full Content-Security-Policy | Not started |
-| 5 | Cross-device exam resume, past-attempt review, admin dashboard front end | Not started (server parts exist) |
+| 5 (dashboard) | `admin.html`: Overview, Questions (flagged, possible wrong key, hardest, Edit here / Edit on GitHub), Students (emails, search, Remove / Unblock), Retention (weekly cohorts, activation), System. Needs two more `ALTER TABLE` lines (section on the D1 console) and `GITHUB_TOKEN`. Server side is `/api/admin/summary` (cache key v=2). Needs `ADMIN_UIDS` set | Built and tested in the sandbox; needs `ADMIN_UIDS` and a phone/desktop check |
+| 5 (rest) | Cross-device exam resume, past-attempt review | Not started (server parts exist) |
 | 6 | Pilot with 20 to 30 students, then announce | Not started |
 
-Test status: backend 113 of 113, front end 124 of 124 (jsdom).
+Test status: backend 142 of 142, front end 139 of 139 (jsdom).
 
 ### Verified on real devices
 Email sign-up and sign-in, studying uploads data, second-device pull, automatic import for a new account, offered import for an existing account, sign-out and sign-in, Delete account with a password (the real Firebase deletion).
@@ -263,7 +269,7 @@ Anyone can call `/api/*` without any key, and every request counts against Cloud
 | 4 | Account and data deletion | **Done.** Delete account removes cloud data and the Firebase sign-in, and the server requires a sign-in no older than 10 minutes. The account window now says progress is kept until the account is deleted. Emails exist only in Firebase and go when the account is deleted. |
 | 5 | Public repo exposure | `backend-tests/` and `db/schema.sql` are downloadable on the live site. No secrets inside. **Left as is:** Pages has no free way to exclude a folder without a build step, and moving them would break the test setup. |
 | 6 | Pinned Firebase SDK | `auth.js` loads Firebase `10.14.1` from `gstatic.com` with no integrity check (dynamic imports cannot use it). **Verified by use** (real sign-ins and a real account deletion worked). Keep the version pinned, never `latest`. |
-| 7 | Admin access | Set `ADMIN_UIDS` **only** in Cloudflare variables. Copy the owner's uid as **text** from the D1 `users` table; do not retype it from a screenshot (capital I vs lowercase l). The admin route returns aggregates only, never emails or per-user rows. |
+| 7 | Admin access | Set `ADMIN_UIDS` **only** in Cloudflare variables. Copy the owner's uid as **text** from the D1 `users` table; do not retype it from a screenshot (capital I vs lowercase l). `/api/admin/summary` returns aggregates only. Emails and per-student rows exist only in `/api/admin/students`, which checks the same admin list. **Secrets:** the GitHub token is a fine-grained token limited to this one repository (Contents: read and write), stored only as an encrypted Cloudflare variable, never in the repo; `GITHUB_API` is honoured only on localhost so a variable can never redirect the token. |
 
 ### Hard rules
 - Never add the test-only key override variable (named in `functions/_lib/auth.js`), a service-account key or any private key to Cloudflare variables or the repo. The code honours that override only on localhost, and a repo test fails if keys, `wrangler.toml` or `.dev.vars` are committed, or if that variable's name appears anywhere except `auth.js` and the test files.

@@ -62,7 +62,7 @@ backend-tests/run-frontend.mjs  front-end tests (jsdom, fake sign-in provider)
 ## 3. Data model
 
 ```
-users(uid PK, reset_epoch, session_version, created_at, last_seen, settings, session, first_name, last_name, email, blocked)
+users(uid PK, reset_epoch, session_version, created_at, last_seen, settings, session, first_name, last_name, email, blocked, is_admin)
 scopes(uid, scope_key, progress, incorrect, flags, version, PK(uid, scope_key))
 attempts(uid, attempt_id, epoch, created_at, client_ts, module, exam_type, subject, sub_subject,
          scope, score, correct, total, attempted, time_sec, review, PK(uid, attempt_id))
@@ -97,9 +97,9 @@ All JSON. Everything except health needs `Authorization: Bearer <Firebase ID tok
 | `POST /api/profile` | Body `{firstName, lastName?}`. Letters, spaces, hyphen, apostrophe, period; 1 to 30 characters each; a small blocklist (`functions/_lib/names.js`) answers 400 `bad_name`. `/api/state` returns `profile` (or `null`). |
 | `POST /api/account` | Body `{confirm:"delete"}`. Needs a sign-in no older than 10 minutes (otherwise 403 `recent_login_required`). Deletes attempts, scopes and the user row in one atomic batch. Repeating it is harmless |
 | `GET /api/admin/summary[?refresh=1]` | Admin only (uid listed in `ADMIN_UIDS`). Aggregates only, cached 10 minutes. Front end: `admin.html` |
-| `GET /api/admin/students` | Admin only. One row per account: name, email, joined, last exam, exams, accuracy, blocked. |
-| `POST /api/admin/student` | Admin only. `{uid, action: "remove" or "unblock"}`. Remove deletes the person's cloud data and blocks the account (`users.blocked = 1`): every API call then answers 403 `account_blocked`, and it cannot delete its own row to start over. An administrator cannot be removed. The Firebase login is not touched. |
-| `GET/POST /api/admin/question` | Admin only. Reads or edits ONE question (`question`, `options`, `answer`, `explanation`) in `data/<a>/<b>/<c>/<d>.json` through the GitHub API as one commit on `main`; Pages redeploys. Needs `GITHUB_TOKEN`. 409 if the file changed since it was opened. Formatting of the file is kept. |
+| `GET /api/admin/students` | Admin only. One row per account: name, email, joined, last exam, exams, accuracy, blocked, `is_admin`, `owner`; also `me.owner`. |
+| `POST /api/admin/student` | Admin only. `{uid, action: "remove" / "unblock" / "make_admin" / "remove_admin"}`. `make_admin` and `remove_admin` are **owner only** (owners are the uids in `ADMIN_UIDS`; their rights cannot be changed in the app). An admin account cannot be removed until its admin rights are taken away. Remove deletes the person's cloud data and blocks the account (`users.blocked = 1`): every API call then answers 403 `account_blocked`, and it cannot delete its own row to start over. An administrator cannot be removed. The Firebase login is not touched. |
+| `GET/POST /api/admin/question` | Admin only. Edits, **adds** (`action:"add"`, next free id) or **removes** (`action:"delete"`, other ids are never renumbered, the last question of a topic cannot be removed, and a `nextId` counter in the file stops a removed id from ever being handed out again) ONE question in `data/<a>/<b>/<c>/<d>.json` through the GitHub API as one commit on `main`; Pages redeploys. GET without an id returns just the file version. Needs `GITHUB_TOKEN`. 409 if the file changed since it was opened. Formatting of the file is kept. |
 
 Errors look like `{ok:false, error, message}`. D1 quota errors become 503 `resource_exhausted`.
 
@@ -130,7 +130,9 @@ Algorithm RS256, `kid` present in Google's key list, signature, issuer `https://
 
 **Add a new endpoint.** Create `functions/api/<name>.js` exporting `onRequest({request, env, data})`. The middleware already verifies the token and gives you `data.uid`. Copy the shape of `functions/api/account.js`: check the method, validate the body, run D1 queries with `.bind(...)` (never string-concatenate input), return `json(...)`, and wrap everything in `try/catch` that returns `errorResponse(err)`. Add it to the "must be refused without a token" list and write tests in `backend-tests/run.mjs`.
 
-**Columns added for emails and blocking (run once in the D1 console, BEFORE uploading this code):** `ALTER TABLE users ADD COLUMN email TEXT;` then `ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0;`
+**Column for admin roles (run once in the D1 console, BEFORE uploading this code):** `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;`
+
+**Columns for emails and blocking (already run):** `ALTER TABLE users ADD COLUMN email TEXT;` then `ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0;`
 
 **Column added for the name (already run):** `ALTER TABLE users ADD COLUMN first_name TEXT;` then `ALTER TABLE users ADD COLUMN last_name TEXT;`
 
@@ -169,8 +171,8 @@ Both suites start a **local** Worker and a **local** database with `wrangler pag
 ```
 git clone https://github.com/recall-med/recall4.git site && cd site/backend-tests
 npm install
-node run.mjs            # backend: expect 142 passed, 0 failed
-node run-frontend.mjs   # front end in jsdom: expect 139 passed, 0 failed
+node run.mjs            # backend: expect 167 passed, 0 failed
+node run-frontend.mjs   # front end in jsdom: expect 154 passed, 0 failed
 ```
 
 The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand.
@@ -190,11 +192,12 @@ The front-end suite uses a fake sign-in provider and a simulated browser (jsdom)
 | 4++ | Security hardening: safe headers file, recent sign-in required to delete an account, retention line in the account window | Built and tested in the sandbox; needs the sign-in re-test after upload |
 | 4+++ | Display name at sign-up and in the account window (shown as Dr. First Last), generic navy avatar, opening animation, 30 s "Sync now" cooldown (button only; automatic syncing untouched). Needs two `ALTER TABLE` lines in the D1 console before the upload (section 6) | Built and tested in the sandbox; needs a phone check |
 | 3b | Service worker (offline caching) and the full Content-Security-Policy | Not started |
+| 5 (admin, v2) | Questions tab is a full browser of every question (Module, Exam type, Subject, Topic; search; Add / Edit / Remove). Saving a question (formerly Flag, now a star) is a student's own review list: the dashboard shows it as a neutral "saved by" count, not as reports. Owners can make or remove admins in the Students tab; the app shows admins an "Open admin dashboard" button in the account window (`/api/state` returns `isAdmin`; the server still checks every admin call). | Built and tested in the sandbox |
 | 5 (dashboard) | `admin.html`: Overview, Questions (flagged, possible wrong key, hardest, Edit here / Edit on GitHub), Students (emails, search, Remove / Unblock), Retention (weekly cohorts, activation), System. Needs two more `ALTER TABLE` lines (section on the D1 console) and `GITHUB_TOKEN`. Server side is `/api/admin/summary` (cache key v=2). Needs `ADMIN_UIDS` set | Built and tested in the sandbox; needs `ADMIN_UIDS` and a phone/desktop check |
 | 5 (rest) | Cross-device exam resume, past-attempt review | Not started (server parts exist) |
 | 6 | Pilot with 20 to 30 students, then announce | Not started |
 
-Test status: backend 142 of 142, front end 139 of 139 (jsdom).
+Test status: backend 167 of 167, front end 154 of 154 (jsdom).
 
 ### Verified on real devices
 Email sign-up and sign-in, studying uploads data, second-device pull, automatic import for a new account, offered import for an existing account, sign-out and sign-in, Delete account with a password (the real Firebase deletion).

@@ -479,12 +479,81 @@ try {
     check('editor: a file that is not in the repo gives 404', r.status === 404);
   }
 
+
+  // ===== admin roles, and adding / removing questions =====
+  {
+    const tA = await token('admin1'), tM = await token('adm2', { email: 'adm2@example.com' }), tS = await token('stu1');
+    await api('/api/state', { tok: tM }); await api('/api/state', { tok: tS });
+    r = await api('/api/state', { tok: tA });
+    check('roles: the owner\u2019s state says isAdmin true', r.data.isAdmin === true);
+    r = await api('/api/state', { tok: tM });
+    check('roles: an ordinary account\u2019s state says isAdmin false', r.data.isAdmin === false);
+    r = await api('/api/admin/students', { tok: tM });
+    check('roles: an ordinary account cannot open admin routes (403)', r.status === 403);
+    r = await api('/api/admin/student', { method: 'POST', tok: tM, body: { uid: 'stu1', action: 'make_admin' } });
+    check('roles: an ordinary account cannot make anyone admin (403)', r.status === 403);
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'adm2', action: 'make_admin' } });
+    check('roles: the owner can make an account admin', r.status === 200 && (await sql(`SELECT is_admin FROM users WHERE uid='adm2'`))[0].is_admin === 1);
+    r = await api('/api/state', { tok: tM });
+    check('roles: that account\u2019s state now says isAdmin true', r.data.isAdmin === true);
+    r = await api('/api/admin/students', { tok: tM });
+    check('roles: an admin can open the student list; owner flag is reported', r.status === 200 && r.data.me.owner === false && r.data.students.find((x) => x.uid === 'admin1').owner === true && r.data.students.find((x) => x.uid === 'adm2').is_admin === 1);
+    r = await api('/api/admin/student', { method: 'POST', tok: tM, body: { uid: 'stu1', action: 'make_admin' } });
+    check('roles: an admin who is not an owner cannot make others admin (403 owner_only)', r.status === 403 && r.data.error === 'owner_only');
+    r = await api('/api/admin/student', { method: 'POST', tok: tM, body: { uid: 'stu1', action: 'remove' } });
+    check('roles: an admin can remove a student', r.status === 200);
+    await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'stu1', action: 'unblock' } });
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'adm2', action: 'remove' } });
+    check('roles: an admin cannot be removed until the admin rights are taken away (400)', r.status === 400 && r.data.error === 'cannot_remove_admin');
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'admin1', action: 'remove_admin' } });
+    check('roles: an owner\u2019s rights cannot be changed from the app (400)', r.status === 400 && r.data.error === 'owner_fixed');
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'adm2', action: 'remove_admin' } });
+    check('roles: the owner can take admin rights away again', r.status === 200 && (await api('/api/admin/students', { tok: tM })).status === 403);
+    await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'stu1', action: 'remove' } });
+    r = await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'stu1', action: 'make_admin' } });
+    check('roles: a blocked account cannot be made admin until unblocked (400)', r.status === 400);
+    await api('/api/admin/student', { method: 'POST', tok: tA, body: { uid: 'stu1', action: 'unblock' } });
+
+    // add and remove questions (fake GitHub); the earlier editor tests left pharynx.json with ids 1-4
+    const Q = '/api/admin/question', P = 'data/CPM/final_exam/anatomy/pharynx.json';
+    r = await api(`${Q}?path=${P}`, { tok: tA });
+    check('questions: GET without an id returns just the file version (used before adding)', r.status === 200 && typeof r.data.sha === 'string' && !r.data.question);
+    const post = (o) => api(Q, { method: 'POST', tok: tA, body: { path: P, sha: gh.sha, ...o } });
+    r = await post({ action: 'add', question: '  ', options: ['a', 'b'], answer: 0 });
+    check('add: an empty question is refused (400)', r.status === 400);
+    r = await post({ action: 'add', question: 'Brand new?', options: ['a', 'b', 'c', 'd'], answer: 9 });
+    check('add: an answer that points nowhere is refused (400)', r.status === 400);
+    const before = gh.puts.length;
+    r = await post({ action: 'add', question: 'Brand new?', options: ['a', 'b', 'c', 'd'], answer: 3, explanation: 'Because D.' });
+    let doc = JSON.parse(gh.text);
+    check('add: the new question gets the next free id and the usual shape; one commit', r.status === 200 && r.data.id === 5 && gh.puts.length === before + 1 && J(Object.keys(doc.questions[4])) === J(['id', 'question', 'options', 'explanation', 'answer']) && doc.questions[4].answer === 3 && /^Admin add: /.test(gh.puts[before].message), J(r.data));
+    r = await post({ action: 'delete', id: 2, sha: 'stale' });
+    check('delete: a stale version is refused (409) and nothing changes', r.status === 409 && JSON.parse(gh.text).questions.length === 5);
+    r = await post({ action: 'delete', id: 99 });
+    check('delete: an id that is not in the file gives 404', r.status === 404);
+    r = await post({ action: 'delete', id: 2 });
+    doc = JSON.parse(gh.text);
+    check('delete: removes only that question and never renumbers the others', r.status === 200 && J(doc.questions.map((x) => x.id)) === J([1, 3, 4, 5]) && /^Admin delete: /.test(gh.puts[gh.puts.length - 1].message));
+    r = await api(Q, { method: 'POST', tok: tM, body: { action: 'delete', path: P, sha: gh.sha, id: 1 } });
+    check('delete: refused for a non-admin (403)', r.status === 403 && JSON.parse(gh.text).questions.length === 4);
+    for (const id of [1, 3, 4]) await post({ action: 'delete', id });
+    r = await post({ action: 'delete', id: 5 });
+    check('delete: the last question of a topic cannot be removed (400 last_question)', r.status === 400 && r.data.error === 'last_question' && JSON.parse(gh.text).questions.length === 1);
+    r = await post({ action: 'add', question: 'After the rest?', options: ['a', 'b'], answer: 1 });
+    check('add: ids continue after the highest existing one, even after deletions', r.status === 200 && r.data.id === 6);
+    r = await post({ action: 'delete', id: 6 });
+    r = await post({ action: 'add', question: 'Reuse test?', options: ['a', 'b'], answer: 0 });
+    check('add: an id that was removed is never handed out again (nextId counter in the file)', r.status === 200 && r.data.id === 7 && JSON.parse(gh.text).nextId === 8, J(r.data));
+    r = await post({ action: 'nonsense' });
+    check('questions: an unknown action is refused (400)', r.status === 400);
+  }
+
   // ===== admin =====
   r = await api('/api/admin/summary', { tok: await token('student1') });
   check('admin route: non-admin -> 403', r.status === 403);
   r = await api('/api/admin/summary', { tok: await token('admin1') });
   check('admin route: admin -> 200 with aggregates', r.status === 200 && typeof r.data.accounts === 'number' && Array.isArray(r.data.examsPerDay), J(r.data).slice(0, 200));
-  check('admin route: dashboard sections present (hours, flagged, items, cohorts, activation, totals)', Array.isArray(r.data.examsPerHourUtc) && Array.isArray(r.data.flagged) && Array.isArray(r.data.items) && Array.isArray(r.data.cohorts) && r.data.activation && typeof r.data.totals.users === 'number' && typeof r.data.studyingWeek === 'number', J(Object.keys(r.data)));
+  check('admin route: dashboard sections present (hours, saved, items, cohorts, activation, totals)', Array.isArray(r.data.examsPerHourUtc) && Array.isArray(r.data.saved) && Array.isArray(r.data.items) && Array.isArray(r.data.cohorts) && r.data.activation && typeof r.data.totals.users === 'number' && typeof r.data.studyingWeek === 'number', J(Object.keys(r.data)));
   check('admin route: no emails or per-user rows in the response', !/@/.test(J(r.data)) && !('users' in r.data));
   const r2 = await api('/api/admin/summary', { tok: await token('admin1') });
   check('admin route: second call is served from cache', r2.status === 200 && r2.data.cached === true);

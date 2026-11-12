@@ -279,8 +279,8 @@ const UI = {
           ${incorrect.length > 0 ? `<span class="quick-icon-btn__badge">${incorrect.length}</span>` : ''}
         </button>`;
 
-    const flaggedBtn = `<button class="quick-icon-btn quick-icon-btn--success${flagged.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="flagged-review" title="Flagged" aria-label="Flagged questions${flagged.length > 0 ? ` (${flagged.length})` : ''}">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+    const flaggedBtn = `<button class="quick-icon-btn quick-icon-btn--success${flagged.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="flagged-review" title="Saved" aria-label="Saved questions${flagged.length > 0 ? ` (${flagged.length})` : ''}">
+          <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           ${flagged.length > 0 ? `<span class="quick-icon-btn__badge" style="background:var(--success)">${flagged.length}</span>` : ''}
         </button>`;
 
@@ -290,8 +290,8 @@ const UI = {
           <span class="rail-action__end"><span class="rail-action__count${n ? '' : ' rail-action__count--zero'}">${n}</span>${chevron}</span>
         </button>`;
     const incIcon  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
-    const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
-    const actionsHTML = railAction('review', incIcon, 'Incorrect', incorrect.length) + railAction('flagged-review', flagIcon, 'Flagged', flagged.length);
+    const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    const actionsHTML = railAction('review', incIcon, 'Incorrect', incorrect.length) + railAction('flagged-review', flagIcon, 'Saved', flagged.length);
 
     return `
     <div class="dashboard">
@@ -361,14 +361,14 @@ const UI = {
     const params = { moduleId: f.moduleId, examType: f.examType, subject: f.subject, subSubject: f.subSubject, label: f.label };
     const chevron  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
     const incIcon  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
-    const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
+    const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
     const action = (nav, icon, label, n) => `<button class="rail-action" data-nav="${nav}" data-params='${JSON.stringify(params)}' aria-label="Review ${label.toLowerCase()} questions (${n})">
         <span class="rail-action__label">${icon}${label}</span>
         <span class="rail-action__end"><span class="rail-action__count${n ? '' : ' rail-action__count--zero'}">${n}</span>${chevron}</span>
       </button>`;
     return `<aside class="dashboard__rail">
       <h2 class="section__title">Progress</h2>
-      <div class="stats-strip">${lead}${stats}${action('scoped-review', incIcon, 'Incorrect', st.incorrect)}${action('scoped-flagged', flagIcon, 'Flagged', st.flagged)}</div>
+      <div class="stats-strip">${lead}${stats}${action('scoped-review', incIcon, 'Incorrect', st.incorrect)}${action('scoped-flagged', flagIcon, 'Saved', st.flagged)}</div>
     </aside>`;
   },
 
@@ -631,9 +631,9 @@ const UI = {
                 </button>
                 <button class="topic-action-btn topic-action-btn--success" data-nav="scoped-flagged"
                   data-params='${JSON.stringify({ moduleId: mod.id, examType, subject: subjectId, subSubject: subSubjectId, label: ss.label })}'
-                  title="Flagged questions in this topic">
-                  <svg class="icon icon--sm" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-                  <span>Flagged</span>
+                  title="Saved questions in this topic">
+                  <svg class="icon icon--sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>Saved</span>
                 </button>
               </div>
             </div>
@@ -743,7 +743,7 @@ const UI = {
   // Inline SVG glyphs for exam chrome (no emoji in UI chrome — see DESIGN_STANDARDS §1/§4)
   examIcon(name) {
     const paths = {
-      flag:  '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+      flag:  '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
       check: '<polyline points="20 6 9 17 4 12"/>',
       x:     '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
       prev:  '<polyline points="15 18 9 12 15 6"/>',
@@ -880,7 +880,7 @@ const UI = {
         <div class="palette-legend">
           <span class="legend-item legend-item--current">Current</span>
           <span class="legend-item legend-item--answered">Answered</span>
-          <span class="legend-item legend-item--flagged">Flagged</span>
+          <span class="legend-item legend-item--flagged">Saved</span>
         </div>
         <button class="btn btn--ghost btn--sm exam-submit-btn submit-exam-trigger">
           ${this.examIcon('check')} Submit Exam
@@ -890,9 +890,9 @@ const UI = {
       <main class="exam-main">
         <div class="exam-topbar">
           ${this.backBtn(backNav, backParams)}
-          <button class="flag-btn ${isFlagged ? 'flag-btn--active' : ''}" id="flag-btn" title="${isFlagged ? 'Unflag' : 'Flag'} question" aria-pressed="${isFlagged}">
+          <button class="flag-btn ${isFlagged ? 'flag-btn--active' : ''}" id="flag-btn" title="${isFlagged ? 'Remove from saved' : 'Save question'}" aria-pressed="${isFlagged}">
             ${this.examIcon('flag')}
-            <span class="flag-btn__label">${isFlagged ? 'Flagged' : 'Flag'}</span>
+            <span class="flag-btn__label">${isFlagged ? 'Saved' : 'Save'}</span>
           </button>
         </div>
         <div class="question-card">
@@ -977,7 +977,7 @@ const UI = {
           ? `<svg class="icon icon--sm" viewBox="0 0 24 24" style="color:var(--danger)"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>`
           : `<svg class="icon icon--sm" viewBox="0 0 24 24" style="color:var(--text-4)"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
       const flagIcon = pq.flagged
-        ? `<svg class="icon icon--sm" viewBox="0 0 24 24" style="color:var(--warning)"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>` : '';
+        ? `<svg class="icon icon--sm" viewBox="0 0 24 24" style="color:var(--warning)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>` : '';
       // For wide exams show topic badge
       const topicTag = (isWide && pq._subSubjectLabel)
         ? `<span class="result-item__topic">${pq._subSubjectLabel}</span>` : '';
@@ -1102,16 +1102,16 @@ const UI = {
 
   renderFlagged(flaggedList, config, filter = null) {
     const { page: backPage, params: backParams } = this._reviewScope(filter);
-    const title      = filter ? `Flagged — ${filter.label}` : 'Flagged Questions';
+    const title      = filter ? `Saved — ${filter.label}` : 'Saved Questions';
     const crumbs     = filter
-      ? [{ label: 'Dashboard', nav: 'dashboard' }, { label: filter.label, nav: backPage, params: backParams }, { label: 'Flagged Questions' }]
-      : [{ label: 'Dashboard', nav: 'dashboard' }, { label: 'Flagged Questions' }];
+      ? [{ label: 'Dashboard', nav: 'dashboard' }, { label: filter.label, nav: backPage, params: backParams }, { label: 'Saved Questions' }]
+      : [{ label: 'Dashboard', nav: 'dashboard' }, { label: 'Saved Questions' }];
 
     if (flaggedList.length === 0) {
       return `<div class="page">
         ${this.backBtn(backPage, backParams)}
         ${this.breadcrumb(crumbs)}
-        ${this.emptyState('No Flagged Questions', 'Flag questions during an exam to review them later.', '🚩')}
+        ${this.emptyState('No Saved Questions', 'Save questions during an exam to review them later.', '⭐')}
       </div>`;
     }
 
@@ -1124,14 +1124,14 @@ const UI = {
           <span class="badge badge--ghost">${q.module}</span>
           ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
           <span class="badge badge--ghost">${et?.label}</span>
-          <span class="badge" style="background:var(--success-bg);color:var(--success)">🚩 Flagged</span>
+          <span class="badge" style="background:var(--success-bg);color:var(--success)">⭐ Saved</span>
         </div>
         <p class="review-item__question">${q.question}</p>
         <div class="review-item__options">
           ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : ''}">${['A','B','C','D','E','F','G','H'][i]}. ${opt}</span>`).join('')}
         </div>
         <div class="review-item__explanation">${q.explanation}</div>
-        <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">Remove Flag</button>
+        <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">Remove from Saved</button>
       </div>`;
     }).join('');
 
@@ -1146,7 +1146,7 @@ const UI = {
           <option value="">All Subjects</option>
           ${config.subjects.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
         </select>
-        <button class="btn btn--danger btn--sm" id="clear-all-flagged">Clear All Flags</button>
+        <button class="btn btn--danger btn--sm" id="clear-all-flagged">Clear All Saved</button>
       </div>`;
 
     return `
@@ -1154,10 +1154,10 @@ const UI = {
       ${this.backBtn(backPage, backParams)}
       ${this.breadcrumb(crumbs)}
       <header class="page__header" style="--mod-color:var(--success)">
-        <span class="page__icon"><svg class="icon icon--lg" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span>
+        <span class="page__icon"><svg class="icon icon--lg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
         <div>
           <h1 class="page__title">${title}</h1>
-          <p class="page__subtitle">${flaggedList.length} flagged for review</p>
+          <p class="page__subtitle">${flaggedList.length} saved for review</p>
         </div>
       </header>
       ${flagFiltersHTML}

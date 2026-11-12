@@ -3,14 +3,14 @@
 // (comma-separated). Aggregates only; no emails, no per-user data. Cached 10 min.
 
 import { json, errorResponse, HttpError } from '../../_lib/http.js';
+import { requireAdmin } from '../../_lib/admin.js';
 
 const TTL_SEC = 600;
 
 export async function onRequest({ request, env, data }) {
   try {
     if (request.method !== 'GET') throw new HttpError(405, 'method_not_allowed', 'Use GET');
-    const admins = String(env.ADMIN_UIDS || '').split(',').map((s) => s.trim()).filter(Boolean);
-    if (!admins.includes(data.uid)) throw new HttpError(403, 'forbidden', 'Not an administrator');
+    await requireAdmin(env, data);
 
     const url = new URL(request.url);
     const cacheKey = new Request(url.origin + '/api/admin/summary?v=2');
@@ -39,7 +39,7 @@ export async function onRequest({ request, env, data }) {
       q("SELECT CAST(strftime('%H', created_at / 1000, 'unixepoch') AS INTEGER) AS h, COUNT(*) AS n FROM attempts WHERE created_at > ? GROUP BY h", since).all(),
       q('SELECT (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM attempts) AS attempts, (SELECT COUNT(*) FROM scopes) AS scopes').first(),
       // questions flagged by the most distinct students (removed flags are tombstones)
-      q("SELECT s.scope_key || '|' || j.key AS qk, COUNT(*) AS students FROM scopes s, json_each(s.flags) j WHERE COALESCE(json_extract(j.value, '$.removed'), 0) != 1 GROUP BY qk ORDER BY students DESC LIMIT 25").all(),
+      q("SELECT s.scope_key || '|' || j.key AS qk, COUNT(*) AS students FROM scopes s, json_each(s.flags) j WHERE COALESCE(json_extract(j.value, '$.removed'), 0) != 1 GROUP BY qk ORDER BY students DESC LIMIT 500").all(),
       // how often each answer option was chosen per question (review is stored only for exams of up to 300 questions)
       q("SELECT k.value AS qk, a.value AS ans, COUNT(*) AS n FROM attempts t, json_each(t.review, '$.keys') k, json_each(t.review, '$.answers') a WHERE t.review IS NOT NULL AND t.created_at > ? AND k.key = a.key GROUP BY qk, ans", now - 90 * day).all(),
       q('SELECT uid, created_at FROM users WHERE created_at > ?', now - 8 * W).all(),
@@ -108,7 +108,7 @@ export async function onRequest({ request, env, data }) {
         accuracyPct: r.attempted ? Math.round((r.correct / r.attempted) * 100) : null,
       })),
       totals,
-      flagged: flagged.results,
+      saved: flagged.results,
       items: itemList,
       cohorts: cohortRows,
       activation: act,

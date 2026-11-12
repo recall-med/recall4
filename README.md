@@ -51,8 +51,8 @@ All question content lives in plain JSON files. Adding or updating questions req
 
 - Professional medical Q-bank interface, in the style of UWorld or AMBOSS
 - Full exam engine with immediate feedback or end-of-exam review mode
-- Question palette showing answered, unanswered, and flagged status
-- Flag questions for later review
+- Question palette showing answered, unanswered, and saved status
+- Save questions (star) for later review
 - Incorrect questions automatically saved to a review bank
 - Dashboard analytics: questions solved, accuracy, and total study time
 - Per-module progress rings with completion count and average score
@@ -63,7 +63,7 @@ All question content lives in plain JSON files. Adding or updating questions req
 - Light and dark themes
 - Mobile-first responsive design
 - Works without an account (guest mode); progress is saved in browser LocalStorage
-- Optional accounts (Google or email) with cloud sync of progress, incorrect questions, flags and exam history across devices
+- Optional accounts (Google or email) with cloud sync of progress, incorrect questions, saved questions and exam history across devices
 - Guest progress can be added to an account when signing in; Reset progress and Delete account are in the account window
 
 ---
@@ -433,7 +433,7 @@ All user progress is stored in the browser's LocalStorage under these keys:
 | `dqb_stats` | Global statistics (attempted, correct, etc.) |
 | `dqb_progress` | Per-subject completion records |
 | `dqb_incorrect` | Incorrect questions review bank |
-| `dqb_flagged` | Flagged questions |
+| `dqb_flagged` | Saved questions (the Flag button became Save; the stored name is unchanged) |
 | `dqb_exam_history` | Last 100 exam results |
 | `dqb_current_exam` | In-progress exam state |
 | `dqb_last_page` | Last visited page (for session restore) |

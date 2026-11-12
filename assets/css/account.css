@@ -151,3 +151,5 @@
 @media (prefers-reduced-motion: reduce) {
   #account-modal, #account-modal .modal-box--account, #account-view.acct-swap > * { animation: acct-fade .12s linear both; }
 }
+
+.acct-adminlink { display: flex; align-items: center; justify-content: center; text-decoration: none; margin: 0 0 12px; }

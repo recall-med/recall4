@@ -496,6 +496,7 @@
 
   async function applyState(state) {
     S.baseEpoch = state.epoch;
+    if (typeof state.isAdmin === 'boolean') S.isAdmin = state.isAdmin;   // only /api/state says; the server still checks every admin call
     if (state.profile && state.profile.firstName) S.name = { firstName: state.profile.firstName, lastName: state.profile.lastName || '' };
     var ch = applyScopes(state.scopes);
     ch = mergeHistory(state.attempts) || ch;
@@ -672,7 +673,7 @@
     var parts = [];
     if (c.exams) parts.push(plural(c.exams, 'exam'));
     if (c.incorrect) parts.push(plural(c.incorrect, 'incorrect question'));
-    if (c.flagged) parts.push(plural(c.flagged, 'flagged question'));
+    if (c.flagged) parts.push(plural(c.flagged, 'saved question'));
     if (c.topics) parts.push('progress in ' + plural(c.topics, 'topic'));
     return parts.join(', ');
   }
@@ -1042,7 +1043,7 @@
       var li = S.lastImport, parts = [];
       if (li.exams) parts.push(plural(li.exams, 'exam'));
       if (li.incorrect) parts.push(plural(li.incorrect, 'incorrect question'));
-      if (li.flagged) parts.push(plural(li.flagged, 'flagged question'));
+      if (li.flagged) parts.push(plural(li.flagged, 'saved question'));
       if (li.topics) parts.push('progress in ' + plural(li.topics, 'topic'));
       return '<p class="acct-note">' + (parts.length ? 'Added from this device: ' + esc(parts.join(', ')) + '.' : 'Nothing new to add from this device. This account already had it.') + '</p>';
     }
@@ -1135,6 +1136,7 @@
         '<div class="acct-email">' + esc(email || 'Signed in') + '</div>' +
         '<div class="acct-meta">' + (viaGoogle ? 'Signed in with Google' : 'Signed in with email') + '</div>' +
         '<button class="acct-link acct-editname" type="button" data-acct="to-edit-name">' + (dn ? 'Edit name' : 'Add your name') + '</button></div></div>' +
+        (S.isAdmin ? '<a class="btn btn--primary acct-adminlink" href="admin.html">Open admin dashboard</a>' : '') +
         '<div class="acct-card"><div class="acct-card__label">Cloud sync</div>' +
         '<div class="acct-card__value" id="acct-status" aria-live="polite">' + esc(statusText()) + '</div>' +
         '<button class="btn btn--ghost btn--sm" type="button" id="acct-sync-btn" data-acct="sync-now">Sync now</button></div>' +
@@ -1145,7 +1147,7 @@
         (!viaGoogle && email ? '<button class="btn btn--ghost" type="button" data-acct="send-reset">Reset password</button>' : '') +
         '<button class="btn btn--ghost acct-signout" type="button" data-acct="signout">Sign out</button></div>' +
         '<div class="acct-manage"><div class="acct-card__label">Your data</div>' +
-        '<p class="acct-note">Reset progress clears your exam scores, progress and incorrect questions on all your devices. Flagged questions are kept. Delete account removes your account and everything stored for it.</p>' +
+        '<p class="acct-note">Reset progress clears your exam scores, progress and incorrect questions on all your devices. Saved questions are kept. Delete account removes your account and everything stored for it.</p>' +
         '<div class="acct-actions acct-actions--row">' +
         '<button class="btn btn--ghost acct-danger" type="button" data-acct="reset-progress">Reset progress</button>' +
         '<button class="btn btn--ghost acct-danger" type="button" data-acct="to-delete">Delete account</button></div></div>';

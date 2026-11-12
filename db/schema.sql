@@ -10,7 +10,8 @@ CREATE TABLE users (
   first_name TEXT,
   last_name TEXT,
   email TEXT,
-  blocked INTEGER NOT NULL DEFAULT 0
+  blocked INTEGER NOT NULL DEFAULT 0,
+  is_admin INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE scopes (

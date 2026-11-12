@@ -639,9 +639,16 @@ try {
     const ov = A.document.getElementById('pane').textContent;
     check('admin page: overview shows accounts, studying counts, exams and the per-day chart', /Accounts/.test(ov) && /Studying today/.test(ov) && /25/.test(ov) && !!A.document.querySelector('#pane svg rect') && /Exams by module/.test(ov), ov.slice(0, 200));
     const qs = await tabText(A, 'questions');
-    check('admin page: flagged list counts 3 students and ignores the removed flag', /pharynx · #3 · Edit here · Edit on GitHub\s*3\d*%|pharynx · #3 · Edit here · Edit on GitHub3/.test(qs.split('Possible wrong answer key')[0]) && !/pharynx · #4 · Edit here · Edit on GitHub/.test(qs.split('Possible wrong answer key')[0]), qs.slice(0, 300));
-    check('admin page: likely wrong key found (key B about 12-15%, most chosen A about 85-88%, n at least 25)', /Possible wrong answer key[\s\S]*pharynx · #3 · Edit here · Edit on GitHubB \(1\d%\)A \(8\d%\)2\d/.test(qs));
-    check('admin page: hardest list shows the hard question first with its n', /Hardest questions[\s\S]*pharynx · #3 · Edit here · Edit on GitHub1\d%A \(8\d%\)2\d[\s\S]*pharynx · #4 · Edit here · Edit on GitHub100%/.test(qs));
+    check('admin page: Questions lists every topic with its own count, organised Module > Exam > Subject > Topic', A.document.querySelectorAll('.ad-topic').length === 2 && /CPM › Final Exam › Anatomy › Pharynx/.test(qs) && /4 questions/.test(qs) && /6 questions/.test(qs), qs.slice(0, 400));
+    check('admin page: saving is described as a student\u2019s own review list, not a report', /not a report/.test(qs) && /Saved by the most students/.test(qs) && !/flag/i.test(qs));
+    check('admin page: likely wrong key found (key B about 12-15%, most chosen A about 85-88%, n at least 25)', /Possible wrong answer key[\s\S]*?#3[^B]*B \(1\d%\)A \(8\d%\)2\d/.test(qs));
+    check('admin page: hardest list shows that question with its n', /Hardest questions[\s\S]*?#3[^%]*1\d%[^A]*A \(8\d%\)2\d/.test(qs));
+    const qinp = A.document.getElementById('qq'); qinp.value = 'Question 3 about pharynx'; qinp.dispatchEvent(new A.Event('input', { bubbles: true }));
+    check('admin page: search finds one question across all topics and opens its topic', A.document.querySelectorAll('.ad-topic').length === 1 && A.document.querySelectorAll('.ad-topic[open] tbody tr').length === 1 && /1 of 10 questions match/.test(A.document.getElementById('qlist').textContent), A.document.getElementById('qlist').textContent.slice(0, 120));
+    qinp.value = ''; qinp.dispatchEvent(new A.Event('input', { bubbles: true }));
+    const sel = A.document.getElementById('qm'); sel.value = 'CPM'; sel.dispatchEvent(new A.Event('change', { bubbles: true }));
+    check('admin page: module filter keeps the CPM topics', A.document.querySelectorAll('.ad-topic').length === 2);
+    sel.value = ''; sel.dispatchEvent(new A.Event('change', { bubbles: true }));
     const rt = await tabText(A, 'retention');
     check('admin page: retention shows a cohort table and activation figures', /Weekly signup cohorts/.test(rt) && Number((/Signed up[\s\S]*?\d+ \w+(\d+)/.exec(rt) || [])[1] || 0) >= 0 && /Median time to first exam/.test(rt));
     const sy = await tabText(A, 'system');
@@ -649,6 +656,7 @@ try {
     check('admin page: no emails anywhere in the page', !/@/.test(A.document.body.textContent.replace(/@media/g, '')));
     // students tab: email shown, search, remove with confirmation; editor wiring
     spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--command', `UPDATE users SET email='ad1@example.com', first_name='Ada', last_name='One' WHERE uid='ad1'`], { cwd: tmp, encoding: 'utf8' });
+    spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--command', `INSERT OR IGNORE INTO users (uid, created_at, last_seen) VALUES ('admin1', ${Date.now()}, ${Date.now()})`], { cwd: tmp, encoding: 'utf8' });
     let st = await tabText(A, 'students');
     check('admin page: Students tab lists accounts with name and email', /ad1@example\.com/.test(st) && /Ada One/.test(st) && /not yet on file/.test(st) && /Remove/.test(st), st.slice(0, 200));
     const si = A.document.getElementById('sq'); si.value = 'ad1@'; si.dispatchEvent(new A.Event('input', { bubbles: true }));
@@ -661,15 +669,52 @@ try {
     A.document.querySelector('[data-rm="ad8"]').click(); await sleep(400);
     check('admin page: cancelling the confirmation removes nobody', sql(`SELECT blocked FROM users WHERE uid='ad8'`)[0].blocked === 0);
     await tabText(A, 'questions');
-    check('admin page: every question row offers Edit here and an Edit on GitHub link to the right file', !!A.document.querySelector('[data-edit]') && !!A.document.querySelector('a[href^="https://github.com/recall-med/recall4/edit/main/data/CPM/final_exam/anatomy/"]'));
-    A.document.querySelector('[data-edit]').click(); await sleep(900);
+    check('admin page: every question row has Edit and Remove, every topic has Add and an Open on GitHub link', !!A.document.querySelector('[data-act=edit]') && !!A.document.querySelector('[data-act=del]') && !!A.document.querySelector('[data-add]') && !!A.document.querySelector('a[href^="https://github.com/recall-med/recall4/blob/main/data/CPM/final_exam/anatomy/"]'));
+    A.document.querySelector('.ad-topic [data-act=edit]').click(); await sleep(900);
     check('admin page: the editor opens and says plainly when GitHub is not set up yet', !!A.document.getElementById('edm') && /GITHUB_TOKEN is not set/.test(A.document.getElementById('edm').textContent));
     A.document.getElementById('edx').click();
     check('admin page: the editor closes', !A.document.getElementById('edm'));
+    A.confirm = () => true;
+    A.document.querySelector('.ad-topic [data-act=del]').click(); await sleep(900);
+    check('admin page: Remove on a question asks first and reports plainly when GitHub is not set up', /GITHUB_TOKEN is not set/.test(A.document.getElementById('qmsg').textContent));
+    // roles: the owner (admin1) can make someone an admin; the new admin gets the same tools
+    await tabText(A, 'students');
+    check('admin page: owner row is labelled Owner and has no Remove', /Owner/.test(A.document.getElementById('sb').textContent) && !A.document.querySelector('[data-rm="admin1"]'));
+    A.confirm = () => true;
+    A.document.querySelector('[data-mk="ad2"]').click(); await sleep(900);
+    check('admin page: Make admin gives the account admin rights; the row then shows Admin and Remove admin, with no Remove', sql(`SELECT is_admin FROM users WHERE uid='ad2'`)[0].is_admin === 1 && !!A.document.querySelector('[data-rma="ad2"]') && !A.document.querySelector('[data-rm="ad2"]'));
+    const A2 = await page('ad2');
+    check('admin page: the new admin can open the dashboard', !!A2.document.querySelector('.ad-tabs'));
+    const stud2 = await tabText(A2, 'students');
+    check('admin page: a non-owner admin sees students but no Make admin / Remove admin buttons', /ad1@example\.com/.test(stud2) && !A2.document.querySelector('[data-mk],[data-rma]'));
+    A2.close();
+    A.document.querySelector('[data-rma="ad2"]').click(); await sleep(900);
+    check('admin page: Remove admin takes the rights away again', sql(`SELECT is_admin FROM users WHERE uid='ad2'`)[0].is_admin === 0);
     A.close();
     const N = await page('student-not-admin');
     check('admin page: a non-admin account is told so and sees no data', /not an administrator/.test(N.document.body.textContent) && !/Accounts/.test(N.document.body.textContent));
     N.close();
+  }
+
+  // ===== Save (was Flag): wording, star icon, messages =====
+  {
+    const ui = fs.readFileSync(path.join(SITE_DIR, 'assets/js/ui.js'), 'utf8'), app = fs.readFileSync(path.join(SITE_DIR, 'assets/js/app.js'), 'utf8'), idx = fs.readFileSync(path.join(SITE_DIR, 'index.html'), 'utf8');
+    check('Save: the button says Save / Saved and uses a star, not a flag shape', /Save question/.test(ui) && /'Saved' : 'Save'/.test(ui) && !/Unflag/.test(ui) && !/M4 15s1-1/.test(ui) && /<polygon points="12 2 15\.09 8\.26/.test(ui));
+    check('Save: pop-ups say saved, not flagged', /Question saved\./.test(app) && /Removed from saved\./.test(app) && !/Question flagged/.test(app) && !/Flag removed/.test(app));
+    check('Save: no visible "Flag"/"Flagged"/flag emoji left in the app screens', !/>\s*Flagged?\s*</.test(ui + app + idx) && !/🚩/.test(ui + app) && !/Flagged Questions|Clear All Flags|Remove Flag/.test(ui + app));
+    const S1 = await boot();
+    S1.w.document.body.innerHTML += '';
+    check('Save: the star icon is filled when a question is saved (CSS)', /\.flag-btn--active \.icon[^}]*fill:\s*currentColor/.test(fs.readFileSync(path.join(SITE_DIR, 'assets/css/styles.css'), 'utf8')));
+    S1.close();
+    // admin button in the account window: only for admins
+    const AD = await boot(); await AD.signIn('admin1', 'admin@example.com'); await sleep(250);
+    let av = await openAcct(AD);
+    check('Admin button: an admin sees "Open admin dashboard" in the account window, linking to admin.html', /Open admin dashboard/.test(av.textContent) && !!av.querySelector('a.acct-adminlink[href="admin.html"]'));
+    AD.close();
+    const NA = await boot(); await NA.signIn('plain-student', 'ps@example.com'); await sleep(250);
+    av = await openAcct(NA);
+    check('Admin button: an ordinary student never sees it', !/Open admin dashboard/.test(av.textContent) && !av.querySelector('.acct-adminlink'));
+    NA.close();
   }
 
   // F16 hostile email text is escaped

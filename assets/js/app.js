@@ -322,7 +322,7 @@ const App = {
       Storage.wipeHistory();
       const modal = document.getElementById('wipe-modal');
       if (modal) modal.style.display = 'none';
-      UI.toast('Progress reset. Flagged questions kept.', 'success');
+      UI.toast('Progress reset. Saved questions kept.', 'success');
       this.navigate('dashboard');
       return;
     }
@@ -475,11 +475,12 @@ const App = {
         const btn = document.getElementById('flag-btn');
         if (btn) {
           btn.classList.toggle('flag-btn--active', nowFlagged);
+          btn.setAttribute('aria-pressed', String(nowFlagged)); btn.title = nowFlagged ? 'Remove from saved' : 'Save question';
           const label = btn.querySelector('.flag-btn__label');
-          if (label) label.textContent = nowFlagged ? 'Flagged' : 'Flag';
+          if (label) label.textContent = nowFlagged ? 'Saved' : 'Save';
         }
         this._updatePalette();
-        UI.toast(nowFlagged ? 'Question flagged.' : 'Flag removed.', 'info', 1500);
+        UI.toast(nowFlagged ? 'Question saved.' : 'Removed from saved.', 'info', 1500);
       }
 
       if (e.target.closest('.submit-exam-trigger')) {
@@ -671,14 +672,14 @@ const App = {
                   <span class="badge badge--ghost">${q.module}</span>
                   ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
                   <span class="badge badge--ghost">${et?.label}</span>
-                  <span class="badge" style="background:#4A9E8E20;color:#4A9E8E">🚩 Flagged</span>
+                  <span class="badge" style="background:#4A9E8E20;color:#4A9E8E">⭐ Saved</span>
                 </div>
                 <p class="review-item__question">${q.question}</p>
                 <div class="review-item__options">
                   ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : ''}">${['A','B','C','D'][i]}. ${opt}</span>`).join('')}
                 </div>
                 <div class="review-item__explanation">${q.explanation}</div>
-                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">🚩 Remove Flag</button>
+                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">Remove from Saved</button>
               </div>`;
             }).join('');
       }
@@ -689,7 +690,7 @@ const App = {
     fSub?.addEventListener('change', filterAndRender);
 
     clearAll?.addEventListener('click', () => {
-      if (confirm('Remove all flags? This cannot be undone.')) {
+      if (confirm('Remove all saved questions? This cannot be undone.')) {
         Storage.getFlagged().forEach(f => Storage.toggleFlag(f));
         this.navigate('dashboard');
       }
@@ -701,7 +702,7 @@ const App = {
         const item = Storage.getFlagged().find(f => f.uid === btn.dataset.removeUid);
         if (item) Storage.toggleFlag(item);
         btn.closest('.review-item')?.remove();
-        UI.toast('Flag removed.', 'info');
+        UI.toast('Removed from saved.', 'info');
       }
     });
   },

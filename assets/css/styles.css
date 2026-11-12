@@ -1448,6 +1448,7 @@ img { max-width: 100%; display: block; }
 }
 .flag-btn:hover       { border-color: var(--warning); color: var(--warning); }
 .flag-btn--active     { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); }
+.flag-btn--active .icon, .exam-progress-info__flag .icon { fill: currentColor; }   /* a saved question shows a filled star */
 
 /* ── Question Card ────────────────────────────────────────── */
 .question-card {

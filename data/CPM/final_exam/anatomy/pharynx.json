@@ -8,14 +8,14 @@
   },
   "questions": [
     {
-      "question": "1A 7-year-old boy presents with mouth breathing and snoring. On examination, enlarged lymphoid tissue is noted at the junction of the roof and posterior wall of the nasopharynx. What is this structure called?",
+      "question": "A 7-year-old boy presents with mouth breathing and snoring. On examination, enlarged lymphoid tissue is noted at the junction of the roof and posterior wall of the nasopharynx. What is this structure called?",
       "options": [
-        "Palatine tonsil1",
-        "Lingual tonsil2",
-        "Pharyngeal tonsil (adenoid)3",
-        "Tubal elevation4"
+        "Palatine tonsil",
+        "Lingual tonsil",
+        "Pharyngeal tonsil (adenoid)",
+        "Tubal elevation"
       ],
-      "answer": 3,
+      "answer": 2,
       "explanation": "Correct answer: C. Pharyngeal tonsil (adenoid)",
       "id": 1
     },

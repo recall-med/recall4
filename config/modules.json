@@ -86,7 +86,8 @@
             {
               "id": "heart",
               "label": "Pericardium & Heart",
-              "icon": "🫀"
+              "icon": "🫀",
+              "professor": "Prof. Samaa"
             }
           ],
           "physiology": [

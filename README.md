@@ -325,6 +325,12 @@ Each exam section on a module page (End Module Exam, Final Exam) can show a **Re
 
 ---
 
+## Hiding a Module or Topic
+
+Add `"hidden": true` to a module or to a topic entry in `config/modules.json` and students no longer see it; admins still do, with a Hidden badge. Remove the field to show it again. The admin dashboard (Content) does this with switches, and creates new topics as hidden. This hides items in the app only: the JSON data files remain public web addresses.
+
+---
+
 ## Adding a New Module
 
 1. Open `config/modules.json`.

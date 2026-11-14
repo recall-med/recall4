@@ -53,7 +53,20 @@ const App = {
       }
     });
 
-    const last = Storage.loadLastPage();
+    // The admin flag arrived (or went away) after the page loaded: apply it to what is shown.
+    window.addEventListener('recall:admin', () => {
+      if (!this._rawConfig) return;
+      this.config = this._applyVisibility(this._rawConfig);
+      this._countCache = null; this._countsChecked = new Set();
+      if (!['dashboard', 'module', 'subject', 'subsubject', 'wide-exam-start'].includes(this.currentPage)) return;
+      if (this.currentParams && this.currentParams.moduleId && !this._getModule(this.currentParams.moduleId)) { this.navigate('dashboard'); return; }
+      UI._silent = true;
+      Promise.resolve(this._renderPage(this.currentPage, this.currentParams)).catch(() => {}).finally(() => { UI._silent = false; });
+    });
+
+    let last = Storage.loadLastPage();
+    // A remembered page inside a module that is hidden for this person (or no longer exists) falls back to the dashboard.
+    if (last && last.params && last.params.moduleId && !this._getModule(last.params.moduleId)) last = null;
     if (last && last.page) {
       this.navigate(last.page, last.params);
     } else {
@@ -311,7 +324,7 @@ const App = {
     }
 
     // Wipe modal — cancel
-    if (e.target.closest('#wipe-cancel-btn')) {
+    if (e.target.closest('#wipe-cancel-btn, #wipe-close')) {
       const modal = document.getElementById('wipe-modal');
       if (modal) modal.style.display = 'none';
       return;
@@ -866,7 +879,24 @@ const App = {
   async _loadConfig() {
     const res = await fetch('config/modules.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    this._rawConfig = await res.json();
+    return this._applyVisibility(this._rawConfig);
+  },
+
+  // Modules and topics marked "hidden": true in config/modules.json are for admins only (shown to them with a Hidden badge).
+  // The admin flag is a display convenience written by sync.js from the server's answer; the data files themselves are still public files.
+  _isAdminDevice() { try { return localStorage.getItem('dqb_is_admin') === '1'; } catch { return false; } },
+  _applyVisibility(raw) {
+    if (this._isAdminDevice()) return raw;
+    const keep = list => (list || []).filter(t => !t.hidden);
+    return {
+      ...raw,
+      modules: (raw.modules || []).filter(m => !m.hidden).map(m => ({
+        ...m,
+        subSubjects: Object.fromEntries(Object.entries(m.subSubjects || {}).map(([et, subs]) =>
+          [et, Object.fromEntries(Object.entries(subs).map(([sub, list]) => [sub, keep(list)]))])),
+      })),
+    };
   },
 
   // ─── Question counts (cached) ─────────────────────────────────────────────

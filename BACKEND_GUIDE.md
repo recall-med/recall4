@@ -1,6 +1,6 @@
 # Recall backend guide and handoff
 
-Last updated 2026-10-28 (account name, navy avatar, Sync now cooldown added). This file explains how the cloud side of Recall works, how to add features to it, where the project stands, and how to continue in a new chat. The older handoff files (`Recall_Cloud_Sync_Handoff_Phase3a_Status.md`, the original plan and `Recall_Security_Update_for_Next_Chat.md`) are superseded by this one where they disagree. The security update is merged into section 11.
+Last updated 2026-11-14 (admin v3: drill-down Content manager, topic and module visibility, closable-only-by-X popups; earlier: account name, navy avatar, Sync now cooldown). This file explains how the cloud side of Recall works, how to add features to it, where the project stands, and how to continue in a new chat. The older handoff files (`Recall_Cloud_Sync_Handoff_Phase3a_Status.md`, the original plan and `Recall_Security_Update_for_Next_Chat.md`) are superseded by this one where they disagree. The security update is merged into section 11.
 
 Confidence tags used below: **[Certain]** checked in code or tests, **[Likely]** strong inference, **[Guessing]** not measured.
 
@@ -99,7 +99,8 @@ All JSON. Everything except health needs `Authorization: Bearer <Firebase ID tok
 | `GET /api/admin/summary[?refresh=1]` | Admin only (uid listed in `ADMIN_UIDS`). Aggregates only, cached 10 minutes. Front end: `admin.html` |
 | `GET /api/admin/students` | Admin only. One row per account: name, email, joined, last exam, exams, accuracy, blocked, `is_admin`, `owner`; also `me.owner`. |
 | `POST /api/admin/student` | Admin only. `{uid, action: "remove" / "unblock" / "make_admin" / "remove_admin"}`. `make_admin` and `remove_admin` are **owner only** (owners are the uids in `ADMIN_UIDS`; their rights cannot be changed in the app). An admin account cannot be removed until its admin rights are taken away. Remove deletes the person's cloud data and blocks the account (`users.blocked = 1`): every API call then answers 403 `account_blocked`, and it cannot delete its own row to start over. An administrator cannot be removed. The Firebase login is not touched. |
-| `GET/POST /api/admin/question` | Admin only. Edits, **adds** (`action:"add"`, next free id) or **removes** (`action:"delete"`, other ids are never renumbered, the last question of a topic cannot be removed, and a `nextId` counter in the file stops a removed id from ever being handed out again) ONE question in `data/<a>/<b>/<c>/<d>.json` through the GitHub API as one commit on `main`; Pages redeploys. GET without an id returns just the file version. Needs `GITHUB_TOKEN`. 409 if the file changed since it was opened. Formatting of the file is kept. |
+| `GET/POST /api/admin/config` | Admin only. GET returns `config/modules.json` fresh from GitHub plus its version. POST `{action}`: `set_module {moduleId, ongoing?, hidden?}` (ongoing is exclusive), `set_topic {moduleId, exam, subject, topicId, label?, professor?, hidden?}`, `add_topic {moduleId, exam, subject, label, professor?}` (creates an EMPTY data file first, then registers the topic with `hidden: true`). Read-modify-write on the newest file, retried once if someone committed in between. Names: 80 / 60 characters, `< > " ` \\` refused, straight apostrophe stored as a typographic one (the app puts names inside HTML attributes). Needs `GITHUB_TOKEN`. |
+| `GET/POST /api/admin/question` | Admin only. Edits, **adds** (`action:"add"`, next free id) or **removes** (`action:"delete"`, other ids are never renumbered, the last question of a topic cannot be removed, and a `nextId` counter in the file stops a removed id from ever being handed out again) ONE question in `data/<a>/<b>/<c>/<d>.json` through the GitHub API as one commit on `main`; Pages redeploys. GET without an id returns just the file version; `full=1` returns the whole topic fresh. `meta.totalQuestions` is kept true on add and delete. Needs `GITHUB_TOKEN`. 409 if the file changed since it was opened. Formatting of the file is kept. |
 
 Errors look like `{ok:false, error, message}`. D1 quota errors become 503 `resource_exhausted`.
 
@@ -125,6 +126,15 @@ Algorithm RS256, `kid` present in Google's key list, signature, issuer `https://
 - Public hooks: `window.Sync` (`syncNow`, `isActive`, `owner`, `pending`, `status`).
 
 ---
+
+
+## 5b. Visibility (admin v3)
+
+- `config/modules.json`: a module or topic with `"hidden": true` is for admins only; no field means visible. Module `ongoing` is exclusive. New topics created in the dashboard start hidden.
+- `assets/js/app.js` `_applyVisibility()` strips hidden modules and topics from the config for everyone except admin devices, which keep them and show a Hidden badge. The admin flag is `localStorage.dqb_is_admin`, written by `sync.js` from `/api/state` (`isAdmin`), removed on sign-out, and applied live through the `recall:admin` event. It is a display convenience, not security.
+- **[Certain] Limit:** hiding is display-level. The data files (`data/**.json`) and `config/modules.json` stay public URLs, so a person who knows a path can still fetch hidden questions. Do not put secret material in a hidden topic.
+- A student whose saved or incorrect list points at a topic that later becomes hidden simply sees nothing for it until it is visible again.
+- Pop-up layers (account window, reset confirmation, all admin drawers and dialogs) close only with X, Escape or Back; tapping outside never closes them. `assets/js/layers.js` adds the Back support for the two app layers; `admin.html` has its own layer stack. Native `confirm()` boxes in `app.js` (abandon exam, submit with unanswered, clear lists) are browser dialogs and were left as they are.
 
 ## 6. Recipes for adding features
 
@@ -171,8 +181,8 @@ Both suites start a **local** Worker and a **local** database with `wrangler pag
 ```
 git clone https://github.com/recall-med/recall4.git site && cd site/backend-tests
 npm install
-node run.mjs            # backend: expect 167 passed, 0 failed
-node run-frontend.mjs   # front end in jsdom: expect 154 passed, 0 failed
+node run.mjs            # backend: expect 203 passed, 0 failed
+node run-frontend.mjs   # front end in jsdom: expect 189 passed, 0 failed
 ```
 
 The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand.
@@ -197,7 +207,7 @@ The front-end suite uses a fake sign-in provider and a simulated browser (jsdom)
 | 5 (rest) | Cross-device exam resume, past-attempt review | Not started (server parts exist) |
 | 6 | Pilot with 20 to 30 students, then announce | Not started |
 
-Test status: backend 167 of 167, front end 154 of 154 (jsdom).
+Test status: backend 203 of 203, front end 189 of 189 (jsdom).
 
 ### Verified on real devices
 Email sign-up and sign-in, studying uploads data, second-device pull, automatic import for a new account, offered import for an existing account, sign-out and sign-in, Delete account with a password (the real Firebase deletion).

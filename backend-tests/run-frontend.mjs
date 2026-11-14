@@ -8,6 +8,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import http from 'node:http';
+import crypto from 'node:crypto';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 
@@ -42,7 +44,26 @@ function qfile(sub, n) {
 }
 qfile('larynx', 6); qfile('pharynx', 4);
 fs.writeFileSync(path.join(tmp, 'wrangler.toml'), 'name = "recall-fe"\npages_build_output_dir = "."\ncompatibility_date = "2026-10-24"\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "recall-db"\ndatabase_id = "00000000-0000-0000-0000-000000000000"\n');
-fs.writeFileSync(path.join(tmp, '.dev.vars'), `FIREBASE_PROJECT_ID=${PROJECT}\nADMIN_UIDS=admin1\nTEST_JWKS=${J({ keys: [jwk] })}\n`);
+fs.writeFileSync(path.join(tmp, '.dev.vars'), `FIREBASE_PROJECT_ID=${PROJECT}\nADMIN_UIDS=admin1\nTEST_JWKS=${J({ keys: [jwk] })}\nGITHUB_TOKEN=test-gh-token-not-real\nGITHUB_API=http://127.0.0.1:8798\n`);
+
+// Fake GitHub for the admin tools: serves and updates the temp site's own files, and logs each commit.
+const ghLog = [];
+const shaOf = (t) => crypto.createHash('sha1').update(t).digest('hex');
+const ghServer = http.createServer((req, res) => {
+  const send = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+  const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace('/repos/recall-med/recall4/contents/', '');
+  const fp = path.join(tmp, rel);
+  if (!fp.startsWith(tmp)) return send(400, {});
+  if (req.method === 'GET') { if (!fs.existsSync(fp)) return send(404, { message: 'Not Found' }); const t = fs.readFileSync(fp, 'utf8'); return send(200, { sha: shaOf(t), content: Buffer.from(t).toString('base64') }); }
+  let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => {
+    const j = JSON.parse(b), exists = fs.existsSync(fp);
+    if (exists && j.sha !== shaOf(fs.readFileSync(fp, 'utf8'))) return send(409, { message: 'conflict' });
+    if (!exists && j.sha) return send(422, { message: 'sha not expected' });
+    const t = Buffer.from(j.content, 'base64').toString('utf8'); fs.mkdirSync(path.dirname(fp), { recursive: true }); fs.writeFileSync(fp, t);
+    ghLog.push({ path: rel, message: j.message }); send(exists ? 200 : 201, { content: { sha: shaOf(t) } });
+  });
+});
+await new Promise((r) => ghServer.listen(8798, '127.0.0.1', r));
 const wr = path.join(here, 'node_modules', '.bin', 'wrangler');
 const ex = spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--file', path.join(repo, 'db/schema.sql')], { cwd: tmp, encoding: 'utf8' });
 if (ex.status !== 0) { console.log(ex.stdout, ex.stderr); process.exit(2); }
@@ -625,75 +646,184 @@ try {
 
     const html = fs.readFileSync(path.join(tmp, 'admin.html'), 'utf8');
     const mod = /<script type="module">([\s\S]*?)<\/script>/.exec(html)[1].replace(/^import\('\.\/assets\/js\/auth\.js'\).*$/m, '');
-    const page = async (uid) => {
-      const dom = new JSDOM('<!doctype html><body><div id="root" class="ad"></div></body>', { url: BASE + '/admin.html', runScripts: 'outside-only', pretendToBeVisual: true });
-      const w = dom.window; w.fetch = (u, i) => fetch(new URL(u, BASE).href, i);
+    const page = async (uid, hash = '') => {
+      const dom = new JSDOM('<!doctype html><body><div id="root"></div></body>', { url: BASE + '/admin.html' + hash, runScripts: 'outside-only', pretendToBeVisual: true });
+      const w = dom.window; w.fetch = (u, i) => fetch(new URL(u, BASE).href, i); w.scrollTo = () => {};
       w.eval("window.Sync = { attachAuth: function (p) { window.__prov = p; p.onChange(function (u) { window.__onUser && window.__onUser(u); }); } };");
       w.eval(mod);
       w.Sync.attachAuth({ onChange: (cb) => cb({ uid }), getToken: async () => token(uid), signOut: async () => {}, signInGoogle: async () => {}, signInEmail: async () => {} });
-      await until(() => w.document.querySelector('.ad-tabs') || /not an administrator/.test(w.document.body.textContent), 8000);
+      await until(() => w.document.querySelector('.ad-nav') || /not an administrator/.test(w.document.body.textContent), 8000);
       return w;
     };
-    const tabText = async (w, name) => { Array.from(w.document.querySelectorAll('.ad-tab')).find((b) => b.dataset.t === name).click(); await sleep(700); return w.document.getElementById('pane').textContent; };
-    const A = await page('admin1');
+    const go = async (w, hash, ms = 900) => { w.location.hash = hash; await sleep(ms); return w.document.getElementById('pane').textContent; };
+    const click = async (w, sel, ms = 900) => { const el = w.document.querySelector(sel); if (!el) throw new Error('missing ' + sel); el.click(); await sleep(ms); };
+    const key = (w, k) => new w.KeyboardEvent('keydown', { key: k, bubbles: true });
+    const cfgNow = () => JSON.parse(fs.readFileSync(path.join(tmp, 'config/modules.json'), 'utf8'));
+    const pharynx = () => cfgNow().modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.find((x) => x.id === 'pharynx');
+    const A = await page('admin1', '#overview');
     const ov = A.document.getElementById('pane').textContent;
     check('admin page: overview shows accounts, studying counts, exams and the per-day chart', /Accounts/.test(ov) && /Studying today/.test(ov) && /25/.test(ov) && !!A.document.querySelector('#pane svg rect') && /Exams by module/.test(ov), ov.slice(0, 200));
-    const qs = await tabText(A, 'questions');
-    check('admin page: Questions lists every topic with its own count, organised Module > Exam > Subject > Topic', A.document.querySelectorAll('.ad-topic').length === 2 && /CPM › Final Exam › Anatomy › Pharynx/.test(qs) && /4 questions/.test(qs) && /6 questions/.test(qs), qs.slice(0, 400));
-    check('admin page: saving is described as a student\u2019s own review list, not a report', /not a report/.test(qs) && /Saved by the most students/.test(qs) && !/flag/i.test(qs));
-    check('admin page: likely wrong key found (key B about 12-15%, most chosen A about 85-88%, n at least 25)', /Possible wrong answer key[\s\S]*?#3[^B]*B \(1\d%\)A \(8\d%\)2\d/.test(qs));
-    check('admin page: hardest list shows that question with its n', /Hardest questions[\s\S]*?#3[^%]*1\d%[^A]*A \(8\d%\)2\d/.test(qs));
-    const qinp = A.document.getElementById('qq'); qinp.value = 'Question 3 about pharynx'; qinp.dispatchEvent(new A.Event('input', { bubbles: true }));
-    check('admin page: search finds one question across all topics and opens its topic', A.document.querySelectorAll('.ad-topic').length === 1 && A.document.querySelectorAll('.ad-topic[open] tbody tr').length === 1 && /1 of 10 questions match/.test(A.document.getElementById('qlist').textContent), A.document.getElementById('qlist').textContent.slice(0, 120));
-    qinp.value = ''; qinp.dispatchEvent(new A.Event('input', { bubbles: true }));
-    const sel = A.document.getElementById('qm'); sel.value = 'CPM'; sel.dispatchEvent(new A.Event('change', { bubbles: true }));
-    check('admin page: module filter keeps the CPM topics', A.document.querySelectorAll('.ad-topic').length === 2);
-    sel.value = ''; sel.dispatchEvent(new A.Event('change', { bubbles: true }));
-    const rt = await tabText(A, 'retention');
-    check('admin page: retention shows a cohort table and activation figures', /Weekly signup cohorts/.test(rt) && Number((/Signed up[\s\S]*?\d+ \w+(\d+)/.exec(rt) || [])[1] || 0) >= 0 && /Median time to first exam/.test(rt));
-    const sy = await tabText(A, 'system');
+    check('admin page: navigation has Overview, Content, Students, Retention, System and the current one is marked', A.document.querySelectorAll('#nav a').length === 5 && A.document.querySelector('#nav a[aria-current=page]').dataset.sec === 'overview');
+
+    // ---- Content: Module > exam type > Subject > Topic > Questions ----
+    let c = await go(A, '#content');
+    check('content: home shows one card per module (CPM, GIT, CNS, ENDO_REPRO, URINARY) with topic and question counts', A.document.querySelectorAll('.ad-grid .ad-tile').length === 5 && /CPM[\s\S]*topics[\s\S]*questions/.test(c), c.slice(0, 200));
+    check('content: CNS is badged Ongoing on its card', /CNS[\s\S]{0,60}Ongoing/.test(A.document.querySelector('a[href="#content/CNS"]').textContent));
+    check('content: the statistics (possible wrong key, hardest, saved by the most) sit in one collapsible card', /Possible wrong answer key[\s\S]*?#3[^B]*B \(1\d%\)A \(8\d%\)2\d/.test(c) && /Hardest questions[\s\S]*?#3[^%]*1\d%[^A]*A \(8\d%\)2\d/.test(c) && /not a report/.test(c) && /Saved by the most students/.test(c) && !/flag/i.test(c));
+    c = await go(A, '#content/CPM');
+    check('content: module page has the Ongoing and Visible switches, the exam type tabs and one card per subject', !!A.document.querySelector('[data-sw=mod-ongoing]') && !!A.document.querySelector('[data-sw=mod-visible]') && A.document.querySelectorAll('.ad-seg a').length === 2 && A.document.querySelectorAll('.ad-grid .ad-tile').length === 4 && /Module settings/.test(c));
+    c = await go(A, '#content/CPM/final_exam');
+    check('content: the Final Exam tab shows Anatomy with its topic count and question count', /Anatomy[\s\S]*topics?[\s\S]*questions/.test(c) && A.document.querySelector('.ad-seg a[aria-current=true]').textContent === 'Final Exam');
+    c = await go(A, '#content/CPM/final_exam/anatomy');
+    check('content: subject page lists its topics, each with a visibility switch, a details button and its question count', A.document.querySelectorAll('.ad-list .ad-row').length >= 2 && /Pharynx/.test(c) && /4 questions/.test(c) && /6 questions/.test(c) && !!A.document.querySelector('[data-sw=topic]') && !!A.document.querySelector('[data-act=tdetails]') && !!A.document.querySelector('[data-act=newtopic]'), c.slice(0, 300));
+    c = await go(A, '#content/CPM/final_exam/anatomy/pharynx');
+    check('content: topic page lists its questions with Edit and Remove, Add a question and an Open on GitHub link', A.document.querySelectorAll('.ad-qcard').length === 4 && !!A.document.querySelector('[data-act=edit]') && !!A.document.querySelector('[data-act=del]') && !!A.document.querySelector('[data-add]') && !!A.document.querySelector('a[href^="https://github.com/recall-med/recall4/blob/main/data/CPM/final_exam/anatomy/"]'));
+    check('content: breadcrumbs lead back up level by level', /Content/.test(A.document.getElementById('crumbs').textContent) && A.document.querySelectorAll('#crumbs a').length === 4);
+    await go(A, '#content', 700);
+    const cs = A.document.getElementById('cs'); cs.value = 'Question 3 about pharynx'; cs.dispatchEvent(new A.Event('input', { bubbles: true }));
+    check('content: search finds a question across every topic, showing where it lives', A.document.querySelectorAll('#cres .ad-qcard').length === 1 && /Pharynx/.test(A.document.getElementById('cres').textContent) && A.document.getElementById('chome').hidden === true);
+    cs.value = ''; cs.dispatchEvent(new A.Event('input', { bubbles: true }));
+
+    // ---- editing a question: the side drawer ----
+    await go(A, '#content/CPM/final_exam/anatomy/pharynx', 700);
+    await click(A, '[data-act=edit]', 700);
+    const dr = () => A.document.querySelector('.ad-layer--drawer');
+    check('editor: opens as a side drawer with the question, four options with a correct-answer radio, and an explanation', !!dr() && A.document.querySelectorAll('.ad-opt input[type=radio]').length === 4 && A.document.querySelectorAll('[data-o]').length === 4 && /Edit question #1/.test(dr().textContent));
+    A.document.querySelector('.ad-scrim').dispatchEvent(new A.MouseEvent('click', { bubbles: true }));
+    check('popups: tapping outside the drawer does NOT close it', !!dr());
+    A.document.querySelector('[name=question]').value = 'Edited from the dashboard?';
+    A.document.querySelector('[data-x]').click(); await sleep(200);
+    check('popups: closing with unsaved edits asks first (a dialog on top of the drawer)', !!A.document.querySelector('.ad-layer--dialog') && /Discard your changes/.test(A.document.body.textContent) && !!dr());
+    A.document.dispatchEvent(key(A, 'Escape')); await sleep(300);
+    check('popups: Escape closes only the top layer (the dialog); the drawer stays', !A.document.querySelector('.ad-layer--dialog') && !!dr());
+    A.history.back(); await sleep(400);
+    check('popups: the browser Back button also asks (dialog opens again) instead of leaving the page', !!A.document.querySelector('.ad-layer--dialog') && !!dr());
+    await click(A, '.ad-layer--dialog [data-no]', 500);
+    check('popups: Cancel on the dialog keeps the edits', !A.document.querySelector('.ad-layer--dialog') && A.document.querySelector('[name=question]').value === 'Edited from the dashboard?');
+    await click(A, '[data-save]', 1200);
+    check('editor: Save commits to GitHub (fake), closes the drawer and shows a confirmation toast', !dr() && /Saved/.test(A.document.querySelector('.ad-toasts').textContent) && ghLog.some((x) => /Admin edit: data\/CPM\/final_exam\/anatomy\/pharynx\.json #1/.test(x.message)));
+    check('editor: the page now shows the new text', /Edited from the dashboard\?/.test(A.document.getElementById('pane').textContent));
+    await click(A, '[data-add]', 700);
+    A.document.querySelector('[name=question]').value = 'A brand new question?';
+    A.document.querySelectorAll('[data-o]').forEach((i, n) => { i.value = 'Opt ' + n; }); A.document.querySelectorAll('.ad-opt input[type=radio]')[2].checked = true;
+    await click(A, '[data-save]', 1200);
+    check('editor: a new question is added with the next id', A.document.querySelectorAll('.ad-qcard').length === 5 && /A brand new question/.test(A.document.getElementById('pane').textContent) && ghLog.some((x) => /Admin add: .*pharynx\.json/.test(x.message)));
+    await click(A, '[data-act=del]', 500);
+    check('remove: asks first in a dialog naming the question', !!A.document.querySelector('.ad-layer--dialog') && /Remove question #1\?/.test(A.document.querySelector('.ad-layer--dialog').textContent));
+    await click(A, '.ad-layer--dialog [data-no]', 400);
+    check('remove: Cancel removes nothing', A.document.querySelectorAll('.ad-qcard').length === 5);
+    await click(A, '[data-act=del]', 500); await click(A, '.ad-layer--dialog [data-ok]', 1200);
+    check('remove: confirming removes it and shows a toast', A.document.querySelectorAll('.ad-qcard').length === 4 && /Removed question #1/.test(A.document.querySelector('.ad-toasts').textContent));
+
+    // ---- visibility, details, new topics ----
+    await go(A, '#content/CPM/final_exam/anatomy', 800);
+    await click(A, '[data-sw=topic]', 1300);
+    check('visibility: the topic switch hides that topic in config/modules.json (one commit) and the page shows it as off', pharynx().hidden === true && A.document.querySelector('[data-sw=topic]').getAttribute('aria-checked') === 'false' && ghLog.some((x) => /^Admin: edit topic pharynx/.test(x.message)));
+    await click(A, '[data-act=tdetails]', 500);
+    check('details: the drawer has name, professor and a visibility switch', !!dr() && A.document.querySelector('[name=label]').value === 'Pharynx' && !!A.document.querySelector('[name=professor]') && !!A.document.querySelector('[data-vis]'));
+    A.document.querySelector('[name=label]').value = 'Pharynx (renamed)'; A.document.querySelector('[name=professor]').value = "Prof. D'Souza";
+    A.document.querySelector('[data-vis]').click();
+    await click(A, '[data-save]', 1300);
+    check('details: name, professor and visibility are saved together; the apostrophe is made typographic', pharynx().label === 'Pharynx (renamed)' && pharynx().professor === 'Prof. D\u2019Souza' && !('hidden' in pharynx()) && !dr());
+    await click(A, '[data-act=newtopic]', 500);
+    A.document.querySelector('[name=label]').value = '<b>x</b>';
+    await click(A, '[data-save]', 800);
+    check('new topic: markup in the name is refused with a plain message and nothing is created', /cannot contain/.test(A.document.getElementById('tferr').textContent) && !fs.existsSync(path.join(tmp, 'data/CPM/final_exam/anatomy/new_topic.json')));
+    A.document.querySelector('[name=label]').value = 'Epiglottis'; A.document.querySelector('[name=professor]').value = 'Prof. Hala';
+    await click(A, '[data-save]', 1800);
+    const newTopic = cfgNow().modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.find((x) => x.id === 'epiglottis');
+    check('new topic: created HIDDEN, with an empty data file, and the page opens it', !!newTopic && newTopic.hidden === true && newTopic.professor === 'Prof. Hala' && fs.existsSync(path.join(tmp, 'data/CPM/final_exam/anatomy/epiglottis.json')) && /Epiglottis/.test(A.document.getElementById('pane').textContent) && /Hidden from students/.test(A.document.getElementById('pane').textContent), A.location.hash);
+    c = await go(A, '#content', 900);
+    check('new topic: it appears under "Waiting for approval" with a Make visible button', /Waiting for approval/.test(c) && /Epiglottis/.test(c) && !!A.document.querySelector('[data-act=publish]'));
+    await click(A, '[data-act=publish]', 1300);
+    check('approval: Make visible switches it on for students', !('hidden' in cfgNow().modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.find((x) => x.id === 'epiglottis')) && !/Waiting for approval/.test(A.document.getElementById('pane').textContent));
+    // module settings
+    await go(A, '#content/CPM', 800);
+    await click(A, '[data-sw=mod-ongoing]', 1300);
+    check('module: Ongoing switch makes CPM the ongoing module and removes it from CNS', cfgNow().modules.find((m) => m.id === 'CPM').ongoing === true && !cfgNow().modules.find((m) => m.id === 'CNS').ongoing);
+    await click(A, '[data-sw=mod-ongoing]', 1300);
+    await go(A, '#content/CNS', 800); await click(A, '[data-sw=mod-ongoing]', 1300);
+    check('module: switching it back restores CNS as the ongoing module', cfgNow().modules.find((m) => m.id === 'CNS').ongoing === true && !cfgNow().modules.find((m) => m.id === 'CPM').ongoing);
+    await go(A, '#content/GIT', 800); await click(A, '[data-sw=mod-visible]', 600);
+    check('module: hiding a whole module asks first in a dialog', /Hide this module from students/.test(A.document.querySelector('.ad-layer--dialog').textContent) && !cfgNow().modules.find((m) => m.id === 'GIT').hidden);
+    await click(A, '.ad-layer--dialog [data-ok]', 1300);
+    check('module: after confirming, GIT is hidden in config/modules.json', cfgNow().modules.find((m) => m.id === 'GIT').hidden === true);
+
+    // ---- what students and admins see in the app itself ----
+    await click(A, '[data-sw=mod-visible]', 1300);   // GIT visible again (no dialog when switching on)
+    const gitShown = !cfgNow().modules.find((m) => m.id === 'GIT').hidden;
+    const rt = await go(A, '#retention', 800);
+    check('admin page: retention shows a cohort table and activation figures', /Weekly signup cohorts/.test(rt) && /Median time to first exam/.test(rt));
+    const sy = await go(A, '#system', 800);
     check('admin page: system tab shows totals and the reset countdown', /Exams stored/.test(sy) && /Daily limits reset in/.test(sy));
-    check('admin page: no emails anywhere in the page', !/@/.test(A.document.body.textContent.replace(/@media/g, '')));
-    // students tab: email shown, search, remove with confirmation; editor wiring
+    check('admin page: no emails anywhere in the page outside the Students tab', !/@/.test(A.document.body.textContent.replace(/@media/g, '')) && gitShown);
+
+    // ---- students tab ----
     spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--command', `UPDATE users SET email='ad1@example.com', first_name='Ada', last_name='One' WHERE uid='ad1'`], { cwd: tmp, encoding: 'utf8' });
     spawnSync(wr, ['d1', 'execute', 'recall-db', '--local', '--command', `INSERT OR IGNORE INTO users (uid, created_at, last_seen) VALUES ('admin1', ${Date.now()}, ${Date.now()})`], { cwd: tmp, encoding: 'utf8' });
-    let st = await tabText(A, 'students');
-    check('admin page: Students tab lists accounts with name and email', /ad1@example\.com/.test(st) && /Ada One/.test(st) && /not yet on file/.test(st) && /Remove/.test(st), st.slice(0, 200));
+    let st = await go(A, '#students', 1000);
+    check('students: lists accounts with name and email, filters All / Admins / Removed', /ad1@example\.com/.test(st) && /Ada One/.test(st) && /not yet on file/.test(st) && A.document.querySelectorAll('[data-sf]').length === 3, st.slice(0, 200));
     const si = A.document.getElementById('sq'); si.value = 'ad1@'; si.dispatchEvent(new A.Event('input', { bubbles: true }));
-    check('admin page: search narrows the list', A.document.querySelectorAll('#sb tr').length === 1);
+    check('students: search narrows the list', A.document.querySelectorAll('#sb tr').length === 1);
     si.value = ''; si.dispatchEvent(new A.Event('input', { bubbles: true }));
-    let asked = ''; A.confirm = (m) => { asked = m; return true; };
-    A.document.querySelector('[data-rm="ad7"]').click(); await sleep(900);
-    check('admin page: Remove asks first, then blocks the account and shows it as Removed', /Remove ad7/.test(asked) && sql(`SELECT blocked FROM users WHERE uid='ad7'`)[0].blocked === 1 && /Removed/.test(A.document.getElementById('pane').textContent) && !!A.document.querySelector('[data-ub="ad7"]'));
-    A.confirm = () => false;
-    A.document.querySelector('[data-rm="ad8"]').click(); await sleep(400);
-    check('admin page: cancelling the confirmation removes nobody', sql(`SELECT blocked FROM users WHERE uid='ad8'`)[0].blocked === 0);
-    await tabText(A, 'questions');
-    check('admin page: every question row has Edit and Remove, every topic has Add and an Open on GitHub link', !!A.document.querySelector('[data-act=edit]') && !!A.document.querySelector('[data-act=del]') && !!A.document.querySelector('[data-add]') && !!A.document.querySelector('a[href^="https://github.com/recall-med/recall4/blob/main/data/CPM/final_exam/anatomy/"]'));
-    A.document.querySelector('.ad-topic [data-act=edit]').click(); await sleep(900);
-    check('admin page: the editor opens and says plainly when GitHub is not set up yet', !!A.document.getElementById('edm') && /GITHUB_TOKEN is not set/.test(A.document.getElementById('edm').textContent));
-    A.document.getElementById('edx').click();
-    check('admin page: the editor closes', !A.document.getElementById('edm'));
-    A.confirm = () => true;
-    A.document.querySelector('.ad-topic [data-act=del]').click(); await sleep(900);
-    check('admin page: Remove on a question asks first and reports plainly when GitHub is not set up', /GITHUB_TOKEN is not set/.test(A.document.getElementById('qmsg').textContent));
-    // roles: the owner (admin1) can make someone an admin; the new admin gets the same tools
-    await tabText(A, 'students');
-    check('admin page: owner row is labelled Owner and has no Remove', /Owner/.test(A.document.getElementById('sb').textContent) && !A.document.querySelector('[data-rm="admin1"]'));
-    A.confirm = () => true;
-    A.document.querySelector('[data-mk="ad2"]').click(); await sleep(900);
-    check('admin page: Make admin gives the account admin rights; the row then shows Admin and Remove admin, with no Remove', sql(`SELECT is_admin FROM users WHERE uid='ad2'`)[0].is_admin === 1 && !!A.document.querySelector('[data-rma="ad2"]') && !A.document.querySelector('[data-rm="ad2"]'));
-    const A2 = await page('ad2');
-    check('admin page: the new admin can open the dashboard', !!A2.document.querySelector('.ad-tabs'));
-    const stud2 = await tabText(A2, 'students');
-    check('admin page: a non-owner admin sees students but no Make admin / Remove admin buttons', /ad1@example\.com/.test(stud2) && !A2.document.querySelector('[data-mk],[data-rma]'));
+    await click(A, '[data-rm="ad7"]', 500);
+    check('students: Remove asks first in a dialog naming the account', /Remove ad7/.test(A.document.querySelector('.ad-layer--dialog').textContent));
+    await click(A, '.ad-layer--dialog [data-no]', 400);
+    check('students: cancelling removes nobody', sql(`SELECT blocked FROM users WHERE uid='ad7'`)[0].blocked === 0);
+    await click(A, '[data-rm="ad7"]', 500); await click(A, '.ad-layer--dialog [data-ok]', 1300);
+    check('students: confirming blocks the account and shows it as Removed with Unblock', sql(`SELECT blocked FROM users WHERE uid='ad7'`)[0].blocked === 1 && /Removed/.test(A.document.getElementById('pane').textContent) && !!A.document.querySelector('[data-ub="ad7"]'));
+    check('students: owner row is labelled Owner and has no Remove', /Owner/.test(A.document.getElementById('sb').textContent) && !A.document.querySelector('[data-rm="admin1"]'));
+    await click(A, '[data-mk="ad2"]', 500); await click(A, '.ad-layer--dialog [data-ok]', 1300);
+    check('students: Make admin gives the account admin rights; the row then shows Remove admin and no Remove', sql(`SELECT is_admin FROM users WHERE uid='ad2'`)[0].is_admin === 1 && !!A.document.querySelector('[data-rma="ad2"]') && !A.document.querySelector('[data-rm="ad2"]'));
+    const A2 = await page('ad2', '#students'); await sleep(900);
+    check('students: the new admin can open the dashboard, sees students, but no Make admin / Remove admin buttons', !!A2.document.querySelector('.ad-nav') && /ad1@example\.com/.test(A2.document.getElementById('pane').textContent) && !A2.document.querySelector('[data-mk],[data-rma]'));
     A2.close();
-    A.document.querySelector('[data-rma="ad2"]').click(); await sleep(900);
-    check('admin page: Remove admin takes the rights away again', sql(`SELECT is_admin FROM users WHERE uid='ad2'`)[0].is_admin === 0);
+    await click(A, '[data-rma="ad2"]', 500); await click(A, '.ad-layer--dialog [data-ok]', 1300);
+    check('students: Remove admin takes the rights away again', sql(`SELECT is_admin FROM users WHERE uid='ad2'`)[0].is_admin === 0);
     A.close();
     const N = await page('student-not-admin');
     check('admin page: a non-admin account is told so and sees no data', /not an administrator/.test(N.document.body.textContent) && !/Accounts/.test(N.document.body.textContent));
     N.close();
+
+    // ---- the student app: hidden topics and modules ----
+    const cfgHide = cfgNow();
+    cfgHide.modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.find((x) => x.id === 'larynx').hidden = true;
+    cfgHide.modules.find((m) => m.id === 'URINARY').hidden = true;
+    fs.writeFileSync(path.join(tmp, 'config/modules.json'), J(cfgHide, null, 2));
+    const S1 = await boot({ cloud: false });
+    const cfgOf = (d) => d.lex('App.config');
+    const topicIds = (d) => cfgOf(d).modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.map((x) => x.id);
+    check('hidden: a student does not get the hidden topic or the hidden module in the app', !topicIds(S1).includes('larynx') && topicIds(S1).includes('pharynx') && !cfgOf(S1).modules.some((m) => m.id === 'URINARY'));
+    check('hidden: the module list on the dashboard has no card for the hidden module', !/Urinary|URINARY/.test(S1.w.document.getElementById('app').textContent) || !S1.w.document.querySelector('[data-params*="URINARY"]'));
+    S1.close();
+    const S2 = await boot({ cloud: false, storage: { dqb_is_admin: '1' } });
+    check('hidden: on an admin device the hidden topic and module are kept (shown with a Hidden badge)', topicIds(S2).includes('larynx') && cfgOf(S2).modules.some((m) => m.id === 'URINARY'));
+    await S2.w.eval("App.navigate('subject', { moduleId: 'CPM', examType: 'final_exam', subject: 'anatomy' })"); await sleep(900);
+    check('hidden: the admin sees "Hidden" on the hidden topic row and not on the visible one', /Larynx[\s\S]{0,80}Hidden/.test(S2.w.document.getElementById('app').textContent) && !/Pharynx[^]{0,20}Hidden/.test(S2.w.document.getElementById('app').textContent.replace(/Larynx[\s\S]*/, '')));
+    S2.close();
+    const S3 = await boot({ storage: { dqb_is_admin: '1', dqb_last_page: J({ page: 'module', params: { moduleId: 'URINARY' } }) } });
+    await S3.signIn('plain-student', 'ps@example.com'); await sleep(600);
+    check('hidden: when /api/state says the person is not an admin, the admin flag is dropped and the hidden module disappears at once', S3.w.localStorage.getItem('dqb_is_admin') === null && !cfgOf(S3).modules.some((m) => m.id === 'URINARY'));
+    S3.close();
+    const S4 = await boot(); await S4.signIn('admin1', 'admin@example.com'); await sleep(800);
+    check('hidden: when /api/state says admin, the flag is stored and hidden items appear without a reload', S4.w.localStorage.getItem('dqb_is_admin') === '1' && cfgOf(S4).modules.some((m) => m.id === 'URINARY'));
+    await S4.w.eval("document.getElementById('account-btn').click()"); await sleep(100);
+    S4.w.document.getElementById('account-modal').dispatchEvent(new S4.w.MouseEvent('click', { bubbles: true }));
+    check('popups: tapping outside the account window does NOT close it', S4.w.document.getElementById('account-modal').style.display !== 'none');
+    S4.w.document.dispatchEvent(new S4.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(300);
+    check('popups: Escape closes the account window', S4.w.document.getElementById('account-modal').style.display === 'none');
+    await S4.w.eval("document.getElementById('account-btn').click()"); await sleep(300);
+    S4.w.history.back(); await sleep(500);
+    check('popups: the Back button closes the account window and stays on the same page', S4.w.document.getElementById('account-modal').style.display === 'none');
+    await S4.w.eval("document.getElementById('account-btn').click()"); await sleep(300);
+    S4.w.document.getElementById('account-close').click(); await sleep(500);
+    check('popups: the X closes the account window', S4.w.document.getElementById('account-modal').style.display === 'none');
+    await S4.w.eval("document.getElementById('wipe-modal').style.display = 'flex'"); await sleep(300);
+    S4.w.document.getElementById('wipe-modal').dispatchEvent(new S4.w.MouseEvent('click', { bubbles: true }));
+    check('popups: the reset confirmation has an X and ignores taps outside it', !!S4.w.document.getElementById('wipe-close') && S4.w.document.getElementById('wipe-modal').style.display === 'flex');
+    S4.w.document.dispatchEvent(new S4.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(300);
+    check('popups: Escape closes the reset confirmation', S4.w.document.getElementById('wipe-modal').style.display === 'none');
+    S4.close();
   }
 
   // ===== Save (was Flag): wording, star icon, messages =====
@@ -730,7 +860,7 @@ try {
   [g, B, A].forEach((d) => d.close());
 } finally {
   tearingDown = true;
-  server.kill('SIGTERM'); await sleep(500); fs.rmSync(tmp, { recursive: true, force: true });
+  ghServer.close(); server.kill('SIGTERM'); await sleep(500); fs.rmSync(tmp, { recursive: true, force: true });
 }
 console.log(`\n${pass} passed, ${fail} failed`); if (fail) console.log('Failed: ' + failures.join(' | '));
 process.exit(fail ? 1 : 0);

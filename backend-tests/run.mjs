@@ -70,12 +70,26 @@ fs.writeFileSync(path.join(tmp, '.dev.vars'),
 
 // A tiny fake GitHub (contents API) so the question editor can be tested without any real token.
 const GH_PATH = '/repos/recall-med/recall4/contents/data/CPM/final_exam/anatomy/pharynx.json';
-const gh = { text: JSON.stringify({ questions: [1, 2, 3, 4].map((i) => ({ id: i, question: `Q${i}?`, options: ['A', 'B', 'C', 'D'], answer: 1, explanation: 'Because B.', image: 'keep.png' })) }, null, 2) + '\n', sha: 'sha-1', puts: [], auth: [] };
+const gh = { text: JSON.stringify({ questions: [1, 2, 3, 4].map((i) => ({ id: i, question: `Q${i}?`, options: ['A', 'B', 'C', 'D'], answer: 1, explanation: 'Because B.', image: 'keep.png' })) }, null, 2) + '\n', sha: 'sha-1', puts: [], auth: [], files: {}, cfgPuts: [], race: false };
+const CFG_URL = '/repos/recall-med/recall4/contents/config/modules.json';
+gh.files[CFG_URL] = { text: fs.readFileSync(path.join(repo, 'config', 'modules.json'), 'utf8'), sha: 'cfg-1' };
 const ghServer = http.createServer((req, res) => {
   gh.auth.push(req.headers.authorization);
   const url = new URL(req.url, 'http://x');
   const send = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
-  if (url.pathname !== GH_PATH) return send(404, { message: 'Not Found' });
+  if (url.pathname !== GH_PATH) {   // every other file: config/modules.json and files the admin tools create
+    const f = gh.files[url.pathname];
+    if (req.method === 'GET') return f ? send(200, { sha: f.sha, content: Buffer.from(f.text).toString('base64'), encoding: 'base64' }) : send(404, { message: 'Not Found' });
+    let b2 = ''; req.on('data', (d) => { b2 += d; }); return req.on('end', () => {
+      const j = JSON.parse(b2);
+      if (gh.race && f) { gh.race = false; f.sha = 'raced-' + Date.now(); return send(409, { message: 'conflict' }); }   // someone else committed in between
+      if (f && j.sha !== f.sha) return send(409, { message: 'conflict' });
+      if (!f && j.sha) return send(422, { message: 'sha not expected' });
+      gh.cfgPuts.push({ path: url.pathname, ...j });
+      gh.files[url.pathname] = { text: Buffer.from(j.content, 'base64').toString('utf8'), sha: 'f' + gh.cfgPuts.length };
+      send(f ? 200 : 201, { content: { sha: gh.files[url.pathname].sha } });
+    });
+  }
   if (req.method === 'GET') return send(200, { sha: gh.sha, content: Buffer.from(gh.text).toString('base64'), encoding: 'base64' });
   let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => {
     const j = JSON.parse(b);
@@ -158,7 +172,7 @@ try {
   check('alg HS256 token -> 401', r.status === 401);
   r = await api('/api/state', { tok: t });
   check('valid token -> 200 with empty state', r.status === 200 && r.data.epoch === 0 && Object.keys(r.data.scopes).length === 0);
-  for (const [m, pth] of [['POST', '/api/sync'], ['POST', '/api/reset'], ['PUT', '/api/session'], ['GET', '/api/session'], ['GET', '/api/admin/summary'], ['POST', '/api/account'], ['POST', '/api/profile']]) {
+  for (const [m, pth] of [['POST', '/api/sync'], ['POST', '/api/reset'], ['PUT', '/api/session'], ['GET', '/api/session'], ['GET', '/api/admin/summary'], ['GET', '/api/admin/config'], ['POST', '/api/admin/config'], ['POST', '/api/account'], ['POST', '/api/profile']]) {
     const rr = await api(pth, { method: m, body: m === 'GET' ? undefined : {} });
     check(`every route needs a token: ${m} ${pth} -> 401`, rr.status === 401);
   }
@@ -546,6 +560,78 @@ try {
     check('add: an id that was removed is never handed out again (nextId counter in the file)', r.status === 200 && r.data.id === 7 && JSON.parse(gh.text).nextId === 8, J(r.data));
     r = await post({ action: 'nonsense' });
     check('questions: an unknown action is refused (400)', r.status === 400);
+    r = await api(`${Q}?path=${P}&full=1`, { tok: tA });
+    check('questions: GET with full=1 returns the whole topic fresh, with its version', r.status === 200 && Array.isArray(r.data.questions) && r.data.questions.length === JSON.parse(gh.text).questions.length && r.data.sha === gh.sha, J(r.data).slice(0, 120));
+    check('questions: meta.totalQuestions is kept true when the file has a meta block (file here has none, so none is invented)', !('meta' in JSON.parse(gh.text)));
+  }
+
+  // ===== admin config: visibility, ongoing, topic details, new topics (fake GitHub) =====
+  {
+    const C = '/api/admin/config', tA = await token('admin1'), tS = await token('stu1');
+    const cfgNow = () => JSON.parse(gh.files[CFG_URL].text);
+    const post = (o, tok = tA) => api(C, { method: 'POST', tok, body: o });
+    const topic = (cfg, m, e, s, id) => cfg.modules.find((x) => x.id === m).subSubjects[e][s].find((x) => x.id === id);
+    let r = await api(C, { tok: tS });
+    check('config: refused for a non-admin (403)', r.status === 403);
+    r = await api(C, { tok: tA });
+    check('config: GET returns the current site configuration and its version, fresh from GitHub', r.status === 200 && Array.isArray(r.data.config.modules) && r.data.sha === 'cfg-1' && r.data.config.modules.length === 5, J(r.data).slice(0, 100));
+    check('config: the GitHub token is never in a response', !J(r.data).includes('test-gh'));
+    const original = gh.files[CFG_URL].text;
+    for (const [label, o] of [['unknown action', { action: 'x' }], ['unknown module', { action: 'set_module', moduleId: 'NOPE', hidden: true }], ['nothing to change', { action: 'set_module', moduleId: 'CPM' }], ['hidden not a boolean', { action: 'set_module', moduleId: 'CPM', hidden: 'yes' }],
+      ['unknown topic', { action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'nope', hidden: true }], ['unknown subject', { action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'nope', topicId: 'pharynx', hidden: true }],
+      ['markup in a name', { action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'pharynx', label: 'A <b>bold</b>' }], ['quote in a name', { action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'pharynx', label: 'Say "hi"' }],
+      ['empty name', { action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'pharynx', label: '   ' }], ['name too long', { action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'pharynx', label: 'x'.repeat(81) }],
+      ['add without a name', { action: 'add_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', label: '' }]]) {
+      r = await post(o); check(`config: rejected: ${label}`, r.status === 400 || r.status === 404, `${r.status} ${J(r.data)}`);
+    }
+    check('config: rejected changes wrote nothing to GitHub', gh.cfgPuts.length === 0 && gh.files[CFG_URL].text === original);
+    // module settings
+    r = await post({ action: 'set_module', moduleId: 'CPM', ongoing: true });
+    let c = cfgNow();
+    check('config: making CPM ongoing switches the previously ongoing module (CNS) off: only one is ongoing', r.status === 200 && c.modules.find((x) => x.id === 'CPM').ongoing === true && !('ongoing' in c.modules.find((x) => x.id === 'CNS')) && c.modules.filter((x) => x.ongoing).length === 1, J(r.data).slice(0, 80));
+    check('config: one commit with a plain message; formatting kept (2-space indent, same trailing newline as before)', gh.cfgPuts.length === 1 && /^Admin: make ongoing module CPM/.test(gh.cfgPuts[0].message) && gh.cfgPuts[0].branch === 'main' && gh.files[CFG_URL].text.endsWith('}') === original.endsWith('}') && gh.files[CFG_URL].text.startsWith('{\n  "siteTitle"'));
+    r = await post({ action: 'set_module', moduleId: 'CPM', ongoing: false });
+    check('config: switching ongoing off removes the field again', r.status === 200 && !('ongoing' in cfgNow().modules.find((x) => x.id === 'CPM')));
+    r = await post({ action: 'set_module', moduleId: 'GIT', hidden: true });
+    check('config: hiding a module sets hidden:true; showing it removes the field', r.status === 200 && cfgNow().modules.find((x) => x.id === 'GIT').hidden === true);
+    r = await post({ action: 'set_module', moduleId: 'GIT', hidden: false });
+    check('config: showing the module again removes hidden', !('hidden' in cfgNow().modules.find((x) => x.id === 'GIT')));
+    // topic details
+    r = await post({ action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'pharynx', label: "Pharynx & Larynx's  parts", professor: "Prof. D'Souza", hidden: true });
+    let t = topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'pharynx');
+    check('config: topic name, professor and visibility change together; spaces tidied; a straight apostrophe becomes a typographic one', r.status === 200 && t.label === 'Pharynx & Larynx\u2019s parts' && t.professor === 'Prof. D\u2019Souza' && t.hidden === true && t.id === 'pharynx' && t.icon, J(t));
+    r = await post({ action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'pharynx', professor: '', hidden: false });
+    t = topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'pharynx');
+    check('config: an empty professor removes the field; showing removes hidden; the id never changes', r.status === 200 && !('professor' in t) && !('hidden' in t) && t.id === 'pharynx');
+    // new topic
+    const before = gh.cfgPuts.length;
+    r = await post({ action: 'add_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', label: 'Bronchi & Lungs', professor: 'Prof. Samaa' });
+    t = topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'bronchi_lungs');
+    const newPath = '/repos/recall-med/recall4/contents/data/CPM/final_exam/anatomy/bronchi_lungs.json', nf = gh.files[newPath];
+    check('add topic: registered as HIDDEN with the subject icon and the professor; id made from the name', r.status === 200 && r.data.topicId === 'bronchi_lungs' && t && t.hidden === true && t.label === 'Bronchi & Lungs' && t.professor === 'Prof. Samaa' && !!t.icon, J(r.data));
+    check('add topic: an EMPTY data file was created first (meta, no questions, nextId 1), then the config; two commits', !!nf && gh.cfgPuts.length === before + 2 && gh.cfgPuts[before].path === newPath && /bronchi_lungs\.json/.test(gh.cfgPuts[before].message) && JSON.parse(nf.text).questions.length === 0 && JSON.parse(nf.text).nextId === 1 && JSON.parse(nf.text).meta.subSubject === 'bronchi_lungs');
+    r = await post({ action: 'add_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', label: 'Bronchi & Lungs' });
+    check('add topic: the same name again gets a numbered id, never overwrites the first', r.status === 200 && r.data.topicId === 'bronchi_lungs_2' && !!topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'bronchi_lungs'));
+    r = await post({ action: 'add_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', label: '\u0634\u0631\u0643\u0629' });
+    check('add topic: a name with no latin letters still gets a safe id', r.status === 200 && /^[a-z0-9_]+$/.test(r.data.topicId), J(r.data));
+    // an empty new topic accepts its first question through the question editor, and its last cannot be removed
+    const np = 'data/CPM/final_exam/anatomy/bronchi_lungs.json';
+    r = await api(`/api/admin/question?path=${np}&full=1`, { tok: tA });
+    check('add topic: the new empty file opens fresh through the editor route', r.status === 200 && r.data.questions.length === 0 && typeof r.data.sha === 'string');
+    r = await api('/api/admin/question', { method: 'POST', tok: tA, body: { action: 'add', path: np, sha: r.data.sha, question: 'First?', options: ['a', 'b', 'c', 'd'], answer: 1, explanation: '' } });
+    const nd = JSON.parse(gh.files[newPath].text);
+    check('add topic: the first question gets id 1 and meta.totalQuestions follows (1)', r.status === 200 && r.data.id === 1 && nd.meta.totalQuestions === 1 && nd.nextId === 2, J(r.data));
+    // concurrency: someone else commits between our read and our write -> read again, apply again, succeed
+    gh.race = true; const putsBefore = gh.cfgPuts.length;
+    r = await post({ action: 'set_module', moduleId: 'URINARY', hidden: true });
+    check('config: when someone else committed in between, the change is re-applied on the newest file (one retry) and succeeds', r.status === 200 && gh.cfgPuts.length === putsBefore + 1 && cfgNow().modules.find((x) => x.id === 'URINARY').hidden === true && !!topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'bronchi_lungs'), J(r.data));
+    r = await post({ action: 'set_module', moduleId: 'URINARY', hidden: false });
+    r = await post({ action: 'set_module', moduleId: 'CNS', ongoing: true });
+    check('config: the original ongoing module can be restored', r.status === 200 && cfgNow().modules.find((x) => x.id === 'CNS').ongoing === true);
+    r = await api(C, { method: 'POST', tok: tS, body: { action: 'set_module', moduleId: 'CPM', hidden: true } });
+    check('config: a non-admin cannot change anything (403) and nothing is written', r.status === 403 && !('hidden' in cfgNow().modules.find((x) => x.id === 'CPM')));
+    r = await api(C, { method: 'POST', body: { action: 'set_module', moduleId: 'CPM', hidden: true } });
+    check('config: refused without a token (401)', r.status === 401);
   }
 
   // ===== admin =====

@@ -494,9 +494,16 @@
     return true;
   }
 
+  // Remembers on this device that the signed-in person is an admin, so the app can show hidden topics (a display convenience only).
+  function setAdminFlag(on) {
+    var was = lsGet('dqb_is_admin') === '1';
+    if (on) lsSet('dqb_is_admin', '1'); else lsDel('dqb_is_admin');
+    if (was !== !!on) { try { window.dispatchEvent(new Event('recall:admin')); } catch (e) {} }
+  }
+
   async function applyState(state) {
     S.baseEpoch = state.epoch;
-    if (typeof state.isAdmin === 'boolean') S.isAdmin = state.isAdmin;   // only /api/state says; the server still checks every admin call
+    if (typeof state.isAdmin === 'boolean') { S.isAdmin = state.isAdmin; setAdminFlag(state.isAdmin); }   // only /api/state says; the server still checks every admin call
     if (state.profile && state.profile.firstName) S.name = { firstName: state.profile.firstName, lastName: state.profile.lastName || '' };
     var ch = applyScopes(state.scopes);
     ch = mergeHistory(state.attempts) || ch;
@@ -845,7 +852,7 @@
       if (!force && pendingCount()) { busy = false; view = 'confirm-signout'; renderAccount(); return; }
       await provider.signOut();
       wipeLocalData();
-      lsDel(STORE_KEY); clearPendingName(); S = freshStore(); user = null; fileCache = {}; unavailable = {};
+      lsDel(STORE_KEY); clearPendingName(); setAdminFlag(false); S = freshStore(); user = null; fileCache = {}; unavailable = {};
       busy = false; closeModal();
       renderHeader();
       if (typeof UI !== 'undefined' && UI.toast) UI.toast('Signed out.', 'success');
@@ -1267,7 +1274,6 @@
     if (t.closest('#signin-btn')) { openModal('signin'); return; }
     if (t.closest('#account-btn')) { openModal('account'); return; }
     if (t.closest('#account-close')) { if (!busy) closeModal(); return; }
-    if (t.id === 'account-modal') { if (!busy) closeModal(); return; }
     var b = t.closest('[data-acct]');
     if (!b || !$('account-modal') || !$('account-modal').contains(b)) return;
     var a = b.getAttribute('data-acct');

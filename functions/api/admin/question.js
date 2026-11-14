@@ -1,38 +1,15 @@
-// GET  /api/admin/question?path=data/<module>/<exam>/<subject>/<file>.json&id=<n>  -> { question, sha }
+// GET  /api/admin/question?path=data/<module>/<exam>/<subject>/<file>.json&id=<n>  -> { question, sha }   (without id: { sha }; with full=1 and no id: { sha, questions })
 // POST /api/admin/question  body: { action?: "edit" (default) | "delete" | "add", path, sha, id (edit, delete), question?, options?, answer?, explanation? }
 //   delete never renumbers the other ids and refuses to empty a topic; add gives the new question the next free id.
 // Admin only. Edits one question in the repository through the GitHub API; Cloudflare Pages then redeploys.
 // The GitHub token exists ONLY as the encrypted Cloudflare variable GITHUB_TOKEN (never in code, never sent to the browser).
 import { json, readJson, errorResponse, HttpError } from '../../_lib/http.js';
 import { requireAdmin } from '../../_lib/admin.js';
-import { isLocalHost } from '../../_lib/auth.js';
+import { gh, b64e, readFile } from '../../_lib/github.js';
 
 const PATH_RE = /^data\/[\w-]+\/[\w-]+\/[\w-]+\/[\w-]+\.json$/;
 const ID_RE = /^\d{1,6}$/;
 
-function gh(request, env) {
-  if (!env.GITHUB_TOKEN) throw new HttpError(501, 'github_not_configured', 'GITHUB_TOKEN is not set in Cloudflare yet');
-  // GITHUB_API is honoured only on localhost (tests), so it can never redirect the token elsewhere.
-  const base = env.GITHUB_API && isLocalHost(request) ? env.GITHUB_API : 'https://api.github.com';
-  const repo = /^[\w.-]+\/[\w.-]+$/.test(env.GITHUB_REPO || '') ? env.GITHUB_REPO : 'recall-med/recall4';
-  return {
-    url: (p) => `${base}/repos/${repo}/contents/${p}`,
-    headers: { Authorization: 'Bearer ' + env.GITHUB_TOKEN, Accept: 'application/vnd.github+json', 'User-Agent': 'recall-admin', 'X-GitHub-Api-Version': '2022-11-28' },
-  };
-}
-const b64d = (s) => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s/g, '')), (c) => c.charCodeAt(0)));
-function b64e(s) {
-  const bytes = new TextEncoder().encode(s); let bin = '';
-  for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
-  return btoa(bin);
-}
-async function readFile(g, path) {
-  const r = await fetch(g.url(path) + '?ref=main', { headers: g.headers });
-  if (r.status === 404) throw new HttpError(404, 'not_found', 'That file is not in the repository');
-  if (!r.ok) throw new HttpError(502, 'github_error', 'GitHub answered ' + r.status);
-  const j = await r.json();
-  return { text: b64d(j.content || ''), sha: j.sha };
-}
 const listOf = (doc) => (Array.isArray(doc) ? doc : doc && Array.isArray(doc.questions) ? doc.questions : null);
 function target(text, id) {
   let doc; try { doc = JSON.parse(text); } catch (e) { throw new HttpError(422, 'bad_file', 'The file is not valid JSON'); }
@@ -68,6 +45,11 @@ export async function onRequest({ request, env, data }) {
       const u = new URL(request.url); const path = u.searchParams.get('path') || '', id = u.searchParams.get('id') || '';
       if (!PATH_RE.test(path) || (id && !ID_RE.test(id))) throw new HttpError(400, 'bad_request', 'path or id is invalid');
       const f = await readFile(gh(request, env), path);
+      if (!id && u.searchParams.get('full') === '1') {   // the whole topic, fresh from GitHub (the admin page shows this, never a stale deployed copy)
+        let doc; try { doc = JSON.parse(f.text); } catch (e) { throw new HttpError(422, 'bad_file', 'The file is not valid JSON'); }
+        const list = listOf(doc); if (!list) throw new HttpError(422, 'bad_file', 'The file has no question list');
+        return json({ ok: true, sha: f.sha, questions: list });
+      }
       if (!id) return json({ ok: true, sha: f.sha });   // no id: just the file's current version (needed before adding a question)
       return json({ ok: true, question: target(f.text, id).q, sha: f.sha });
     }
@@ -102,6 +84,7 @@ export async function onRequest({ request, env, data }) {
         Object.assign(list[i], checkPatch(b, list[i]));
       }
     }
+    if (!Array.isArray(doc) && doc.meta && typeof doc.meta === 'object') doc.meta.totalQuestions = list.length;   // keep the meta count true
     const indent = f.text.trim().includes('\n') ? ((/\n([ \t]+)"/.exec(f.text) || [])[1] || 2) : 0;
     const out = JSON.stringify(doc, null, indent) + (f.text.endsWith('\n') ? '\n' : '');
     const r = await fetch(g.url(b.path), {

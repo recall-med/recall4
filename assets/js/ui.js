@@ -251,7 +251,7 @@ const UI = {
         <div class="module-card__header">
           <span class="module-card__icon">${this.moduleIcon(mod.id)}</span>
           <div class="module-card__meta">
-            <div class="module-card__titlerow"><h3 class="module-card__title">${mod.title}</h3>${mod.ongoing ? '<span class="badge badge--ongoing">Ongoing</span>' : ''}</div>
+            <div class="module-card__titlerow"><h3 class="module-card__title">${mod.title}</h3>${mod.ongoing ? '<span class="badge badge--ongoing">Ongoing</span>' : ''}${mod.hidden ? '<span class="badge badge--hidden" title="Only admins see this">Hidden</span>' : ''}</div>
             <p class="module-card__subtitle">${mod.fullTitle}</p>
             <p class="module-card__activity">${act.ts ? `Studied ${this._timeAgo(act.ts)}` : 'Not started yet'}</p>
           </div>
@@ -516,7 +516,7 @@ const UI = {
         <div class="topic-row__left">
           <span class="topic-row__icon">${this.topicIcon()}</span>
           <div class="topic-row__text">
-            <div class="topic-row__name">${ss.label}</div>
+            <div class="topic-row__name">${ss.label}${ss.hidden ? ' <span class="badge badge--hidden" title="Only admins see this">Hidden</span>' : ''}</div>
             <div class="topic-row__meta"><span>${qCount} Question${qCount === 1 ? '' : 's'}</span>${this.professorBadge(ss.professor)}</div>
           </div>
         </div>
@@ -599,7 +599,7 @@ const UI = {
         <div>
           <h1 class="page__title">${ss.label}</h1>
           <p class="page__subtitle">${mod.title} · ${sub.label} · ${et.label}</p>
-          ${ss.professor ? `<div class="page__badges">${this.professorBadge(ss.professor)}</div>` : ''}
+          ${(ss.professor || ss.hidden) ? `<div class="page__badges">${this.professorBadge(ss.professor)}${ss.hidden ? '<span class="badge badge--hidden" title="Only admins see this">Hidden</span>' : ''}</div>` : ''}
         </div>
       </header>
       ${rail}

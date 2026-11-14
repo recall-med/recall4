@@ -80,7 +80,8 @@
             {
               "id": "larynx",
               "label": "Larynx",
-              "icon": "🎙️"
+              "icon": "🎙️",
+              "professor": "Prof. Samaa"
             },
             {
               "id": "heart",

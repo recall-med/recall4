@@ -335,8 +335,7 @@
           "biochemistry": [],
           "histology": []
         }
-      },
-      "ongoing": true
+      }
     },
     {
       "id": "ENDO_REPRO",
@@ -360,7 +359,8 @@
           "biochemistry": [],
           "histology": []
         }
-      }
+      },
+      "ongoing": true
     },
     {
       "id": "URINARY",

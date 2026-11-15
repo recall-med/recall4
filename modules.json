@@ -1,0 +1,103 @@
+{
+  "_comment": "=============================================================",
+  "_comment2": "DEPT. Q. BANK — Configuration File",
+  "_comment3": "=============================================================",
+  "_comment4": "HOW TO ADD A NEW MODULE:",
+  "_comment5": "1. Copy one of the module objects below and paste it at the end of the 'modules' array.",
+  "_comment6": "2. Change the 'id', 'title', 'shortTitle', 'color', and 'icon' fields.",
+  "_comment7": "3. Create the matching folder under /data/ (e.g. /data/NEW_MODULE/end_module/ and /data/NEW_MODULE/final_exam/).",
+  "_comment8": "4. Add question JSON files inside those folders.",
+  "_comment9": "HOW TO CHANGE SITE TITLE: Edit 'siteTitle' below.",
+  "_comment10": "HOW TO ENABLE IMMEDIATE FEEDBACK: Set 'defaultImmediateFeedback' to true.",
+  "_comment11": "HOW TO ENABLE QUESTION RANDOMIZATION: Set 'defaultRandomize' to true.",
+
+  "siteTitle": "Dept. Q. Bank",
+  "siteSubtitle": "Professional Medical Question Bank",
+  "version": "1.0.0",
+
+  "examSettings": {
+    "defaultImmediateFeedback": false,
+    "defaultRandomize": false,
+    "defaultTimedExam": false,
+    "defaultTimeLimitMinutes": 60,
+    "questionsPerPage": 1,
+    "showExplanationAfterAnswer": true,
+    "allowFlagging": true,
+    "allowNavigation": true
+  },
+
+  "examTypes": [
+    {
+      "id": "end_module",
+      "label": "End Module Exam",
+      "description": "Comprehensive exam covering all topics in this module",
+      "color": "#2563eb"
+    },
+    {
+      "id": "final_exam",
+      "label": "Final Exam",
+      "description": "Final comprehensive assessment for this module",
+      "color": "#7c3aed"
+    }
+  ],
+
+  "subjects": [
+    { "id": "anatomy",      "label": "Anatomy",      "icon": "🦴", "color": "#0891b2" },
+    { "id": "physiology",   "label": "Physiology",   "icon": "💓", "color": "#059669" },
+    { "id": "biochemistry", "label": "Biochemistry", "icon": "🧬", "color": "#d97706" },
+    { "id": "histology",    "label": "Histology",    "icon": "🔬", "color": "#dc2626" }
+  ],
+
+  "modules": [
+    {
+      "id": "CPM",
+      "title": "CPM",
+      "fullTitle": "Cardio-Pulmonary Medicine",
+      "shortTitle": "CPM",
+      "description": "Cardiovascular and pulmonary system questions",
+      "color": "#dc2626",
+      "icon": "❤️",
+      "dataPath": "CPM"
+    },
+    {
+      "id": "GIT",
+      "title": "GIT",
+      "fullTitle": "Gastrointestinal Tract",
+      "shortTitle": "GIT",
+      "description": "Gastrointestinal system and hepatobiliary questions",
+      "color": "#d97706",
+      "icon": "🫁",
+      "dataPath": "GIT"
+    },
+    {
+      "id": "CNS",
+      "title": "CNS",
+      "fullTitle": "Central Nervous System",
+      "shortTitle": "CNS",
+      "description": "Neuroscience and central nervous system questions",
+      "color": "#7c3aed",
+      "icon": "🧠",
+      "dataPath": "CNS"
+    },
+    {
+      "id": "ENDO_REPRO",
+      "title": "ENDO & REPRO",
+      "fullTitle": "Endocrinology & Reproductive",
+      "shortTitle": "ENDO",
+      "description": "Endocrine system and reproductive medicine questions",
+      "color": "#059669",
+      "icon": "⚗️",
+      "dataPath": "ENDO_REPRO"
+    },
+    {
+      "id": "URINARY",
+      "title": "Urinary",
+      "fullTitle": "Urinary System",
+      "shortTitle": "URIN",
+      "description": "Renal and urinary tract questions",
+      "color": "#0891b2",
+      "icon": "🫘",
+      "dataPath": "URINARY"
+    }
+  ]
+}

@@ -125,7 +125,7 @@
 /* ── Reset & Base ─────────────────────────────────────────── */
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 100%; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }   /* % keeps the person's own browser text-size setting working */
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
 body {
   font-family:   var(--font-body);
@@ -261,7 +261,7 @@ img { max-width: 100%; display: block; }
   align-items:    center;
   padding-left:   14px;
   border-left:    1px solid var(--border-strong);
-  font-size:      .75rem;
+  font-size:      .64rem;
   font-weight:    700;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -469,7 +469,7 @@ img { max-width: 100%; display: block; }
   gap:         3px;
   padding:     2px 8px;
   border-radius: 100px;
-  font-size:   .75rem;
+  font-size:   .72rem;
   font-weight: 600;
   letter-spacing: .02em;
   background:  var(--primary-50);
@@ -664,7 +664,7 @@ img { max-width: 100%; display: block; }
   text-overflow: ellipsis;
 }
 .stat-pill__label {
-  font-size:  .75rem;
+  font-size:  .68rem;
   font-weight: 600;
   color:      var(--text-4);
   letter-spacing: .04em;
@@ -781,7 +781,7 @@ img { max-width: 100%; display: block; }
   border-radius:   999px;
   background:      var(--danger);
   color:           #fff;
-  font-size:       .75rem;
+  font-size:       .62rem;
   font-weight:     700;
   line-height:     1;
   display:         flex;
@@ -1250,7 +1250,7 @@ img { max-width: 100%; display: block; }
   text-align:      center;
 }
 .info-card__label {
-  font-size:     .75rem;
+  font-size:     .68rem;
   color:         var(--text-4);
   font-weight:   700;
   text-transform: uppercase;
@@ -1302,7 +1302,7 @@ img { max-width: 100%; display: block; }
   flex-wrap:       wrap;
 }
 .topic-panel__secondary-label {
-  font-size:      .75rem;
+  font-size:      .72rem;
   font-weight:    700;
   text-transform: uppercase;
   letter-spacing: .06em;
@@ -1369,7 +1369,7 @@ img { max-width: 100%; display: block; }
   border-radius:   var(--radius-sm);
   background:      var(--surface-3);
   cursor:          pointer;
-  font-size:       .75rem;
+  font-size:       .73rem;
   font-weight:     600;
   color:           var(--text-3);
   transition:      all .12s;
@@ -1390,7 +1390,7 @@ img { max-width: 100%; display: block; }
   margin-bottom: 12px;
 }
 .legend-item {
-  font-size:    .75rem;
+  font-size:    .65rem;
   padding:      2px 6px;
   border-radius: 4px;
   font-weight:  600;
@@ -1478,7 +1478,7 @@ img { max-width: 100%; display: block; }
 /* Topic badge inside question */
 .exam-question-topic {
   display:       inline-block;
-  font-size:     .75rem;
+  font-size:     .72rem;
   font-weight:   600;
   color:         var(--text-3);
   background:    var(--surface-3);
@@ -1557,7 +1557,7 @@ img { max-width: 100%; display: block; }
 .explanation-box--correct .explanation-box__header { color: var(--success); }
 .explanation-box--wrong   .explanation-box__header { color: var(--danger); }
 .explanation-box__topic {
-  font-size:    .75rem;
+  font-size:    .72rem;
   color:        var(--text-3);
   margin:       2px 0 6px;
   font-weight:  500;
@@ -1728,7 +1728,7 @@ img { max-width: 100%; display: block; }
 }
 .search-result-item:hover { background: var(--primary-50); border-color: var(--primary); }
 .search-result-item__type {
-  font-size:    .75rem;
+  font-size:    .65rem;
   font-weight:  700;
   text-transform: uppercase;
   letter-spacing: .06em;
@@ -1782,7 +1782,7 @@ img { max-width: 100%; display: block; }
   margin-bottom:   16px;
 }
 .wide-exam-breakdown__title {
-  font-size:     .75rem;
+  font-size:     .68rem;
   font-weight:   700;
   text-transform: uppercase;
   letter-spacing: .07em;
@@ -1802,7 +1802,7 @@ img { max-width: 100%; display: block; }
   padding:         4px 10px;
   font-weight:     500;
 }
-.wide-breakdown-count { font-size: .75rem; color: var(--text-4); }
+.wide-breakdown-count { font-size: .72rem; color: var(--text-4); }
 .wide-exam-note       { font-size: .82rem; color: var(--text-3); margin: 0 0 14px; line-height: 1.6; }
 
 /* ── Dashboard footer ─────────────────────────────────────── */
@@ -2316,7 +2316,7 @@ img { max-width: 100%; display: block; }
   text-overflow: ellipsis;
 }
 .module-card__stat span {
-  font-size:     .75rem;
+  font-size:     .72rem;
   color:         var(--text-3);
   white-space:   nowrap;
   overflow:      hidden;
@@ -2671,7 +2671,7 @@ img { max-width: 100%; display: block; }
 /* Small section label (phone look kept); on PC it becomes the same titled rule as "MODULES" */
 .page-label {
   margin-bottom:  12px;
-  font-size:      .75rem;
+  font-size:      .72rem;
   font-weight:    700;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -2971,22 +2971,4 @@ img { max-width: 100%; display: block; }
   .exam-layout .explanation-box { animation: pageFade .12s linear backwards; }
   .module-card:active, .subject-card:active, .topic-row:active, .option:active, .palette-btn:active,
   .btn:active, .icon-btn:active, .quick-icon-btn:active, .topic-action-btn:active { scale: 1; }
-}
-
-
-/* ============================================================
-   Responsive scale and targets (v4)
-   Breakpoints follow the Material 3 window size classes:
-   compact < 600, medium 600-839, expanded 840-1199, large 1200-1599, extra-large >= 1600.
-   Text scales with the root size (rem), so the whole site grows together on big screens; layout widths are in rem too.
-   Touch targets: 44 x 44 px minimum on touch screens (Apple HIG; WCAG 2.5.5), 24 px is the WCAG 2.2 AA floor.
-   ============================================================ */
-:root { --max-width: 75rem; --header-h: 4rem; --sidebar-w: 16rem; }
-@media (min-width: 1440px) { html { font-size: 112.5%; } }   /* 18px */
-@media (min-width: 1920px) { html { font-size: 125%; } }     /* 20px */
-@media (min-width: 2560px) { html { font-size: 150%; } }     /* 24px */
-@media (pointer: coarse) {
-  .btn, .icon-btn, .quick-icon-btn, .rail-action, .topic-row, .subject-card, .module-card, .acct-input, .btn--sm { min-height: 44px; }
-  .icon-btn, .quick-icon-btn { min-width: 44px; }
-  .btn--sm { padding-block: .6rem; }
 }

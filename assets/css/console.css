@@ -167,3 +167,16 @@ textarea.rc-in { resize: vertical; min-height: 5.25rem; }
   .page.has-rail > .dashboard__rail { display: block; margin-bottom: 1rem; }
   .page.has-rail > .dashboard__rail > .section__title { display: none; }
 }
+
+/* ── Students tab: row buttons, filter chips and settings rows (these lost their styles in the ad- to rc- rename) ── */
+.rc-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.rc-link { display: inline-flex; align-items: center; justify-content: center; min-height: 2.25rem; padding: .3rem .75rem; margin: .15rem .35rem .15rem 0; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-solid); color: var(--accent-text); font: 600 .8rem var(--font-body); cursor: pointer; white-space: nowrap; transition: background var(--dur), border-color var(--dur), scale .16s var(--ease-out-strong, ease-out); }
+.rc-link:hover { background: var(--primary-50); }
+.rc-link:active { scale: .97; }
+.rc-link:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.rc-link--warn { color: var(--danger); }
+.rc-link--warn:hover { border-color: var(--danger-border); background: var(--danger-bg); }
+.rc-set { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .6rem 0; }
+.rc-set + .rc-set { border-top: 1px solid var(--border); }
+.rc-set b { display: block; font-size: .9rem; }
+.rc-set span { display: block; font-size: .8rem; color: var(--text-3); margin-top: .15rem; line-height: 1.45; }

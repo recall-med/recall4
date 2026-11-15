@@ -93,7 +93,7 @@
   border: 1.5px solid var(--border); border-radius: var(--radius);
   background: var(--surface-3);
 }
-.acct-card__label { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.acct-card__label { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
 .acct-card__value { font-size: .875rem; line-height: 1.5; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
 .acct-note { margin: 0 0 .7rem; font-size: .78rem; line-height: 1.55; color: var(--text-3); }
 
@@ -166,6 +166,6 @@
 .badge--hidden {
   gap: 5px; padding: 2px 9px; white-space: nowrap;
   background: var(--surface-solid); color: var(--text-3); border-color: var(--border-strong);
-  font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: .75rem;
+  font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: .62rem;
 }
 .modal-box--closable { position: relative; }

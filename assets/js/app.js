@@ -319,14 +319,14 @@ const App = {
     // Wipe history button — show modal
     if (e.target.closest('#wipe-history-btn')) {
       const modal = document.getElementById('wipe-modal');
-      if (modal) modal.style.display = 'flex';
+      if (modal) { if (window.RecallLayers) window.RecallLayers.show(modal); else modal.style.display = 'flex'; }
       return;
     }
 
     // Wipe modal — cancel
     if (e.target.closest('#wipe-cancel-btn, #wipe-close')) {
       const modal = document.getElementById('wipe-modal');
-      if (modal) modal.style.display = 'none';
+      if (modal) { if (window.RecallLayers) window.RecallLayers.hide(modal); else modal.style.display = 'none'; }
       return;
     }
 
@@ -334,18 +334,19 @@ const App = {
     if (e.target.closest('#wipe-confirm-btn')) {
       Storage.wipeHistory();
       const modal = document.getElementById('wipe-modal');
-      if (modal) modal.style.display = 'none';
+      if (modal) { if (window.RecallLayers) window.RecallLayers.hide(modal); else modal.style.display = 'none'; }
       UI.toast('Progress reset. Saved questions kept.', 'success');
       this.navigate('dashboard');
       return;
     }
     // Resume banner — dismiss (abandons the in-progress exam)
     if (e.target.closest('#resume-dismiss-btn')) {
-      if (confirm('Abandon this exam? Your progress on this attempt will be lost.')) {
+      RecallLayers.confirm({ title: 'Abandon this exam?', message: 'Your progress on this attempt will be lost.', ok: 'Abandon exam', danger: true }).then(ok => {
+        if (!ok) return;
         Storage.clearCurrentExam();
         UI.toast('Exam abandoned.', 'success');
         this.navigate('dashboard');
-      }
+      });
       return;
     }
 
@@ -499,8 +500,9 @@ const App = {
       if (e.target.closest('.submit-exam-trigger')) {
         const unanswered = ExamEngine.getProgress().unanswered;
         if (unanswered > 0) {
-          const ok = confirm(`You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Submit anyway?`);
-          if (!ok) return;
+          RecallLayers.confirm({ title: 'Submit with unanswered questions?', message: `You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Submit anyway?`, ok: 'Submit anyway', cancel: 'Go back' })
+            .then(ok => { if (ok) this._submitExam(); });
+          return;
         }
         this._submitExam();
       }
@@ -640,10 +642,11 @@ const App = {
     fSub?.addEventListener('change', filterAndRender);
 
     clearAll?.addEventListener('click', () => {
-      if (confirm('Remove all questions from review? This cannot be undone.')) {
+      RecallLayers.confirm({ title: 'Remove all questions from review?', message: 'This cannot be undone.', ok: 'Remove all', danger: true }).then(ok => {
+        if (!ok) return;
         Storage.clearAllIncorrect();
         this.navigate('review');
-      }
+      });
     });
 
     list?.addEventListener('click', e => {
@@ -703,10 +706,11 @@ const App = {
     fSub?.addEventListener('change', filterAndRender);
 
     clearAll?.addEventListener('click', () => {
-      if (confirm('Remove all saved questions? This cannot be undone.')) {
+      RecallLayers.confirm({ title: 'Remove all saved questions?', message: 'This cannot be undone.', ok: 'Remove all', danger: true }).then(ok => {
+        if (!ok) return;
         Storage.getFlagged().forEach(f => Storage.toggleFlag(f));
         this.navigate('dashboard');
-      }
+      });
     });
 
     list?.addEventListener('click', e => {

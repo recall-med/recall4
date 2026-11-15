@@ -134,7 +134,9 @@ Algorithm RS256, `kid` present in Google's key list, signature, issuer `https://
 - `assets/js/app.js` `_applyVisibility()` strips hidden modules and topics from the config for everyone except admin devices, which keep them and show a Hidden badge. The admin flag is `localStorage.dqb_is_admin`, written by `sync.js` from `/api/state` (`isAdmin`), removed on sign-out, and applied live through the `recall:admin` event. It is a display convenience, not security.
 - **[Certain] Limit:** hiding is display-level. The data files (`data/**.json`) and `config/modules.json` stay public URLs, so a person who knows a path can still fetch hidden questions. Do not put secret material in a hidden topic.
 - A student whose saved or incorrect list points at a topic that later becomes hidden simply sees nothing for it until it is visible again.
-- Pop-up layers (account window, reset confirmation, all admin drawers and dialogs) close only with X, Escape or Back; tapping outside never closes them. `assets/js/layers.js` adds the Back support for the two app layers; `admin.html` has its own layer stack. Native `confirm()` boxes in `app.js` (abandon exam, submit with unanswered, clear lists) are browser dialogs and were left as they are.
+- Pop-up layers (account window, reset window, every confirmation, all admin drawers and dialogs) close only with X, Escape or Back; tapping outside never closes them. `assets/js/layers.js` adds the Back support and the shared motion: `RecallLayers.show/hide` (fade and rise in, fade and sink out, class `is-closing`) and `RecallLayers.confirm({title, message, ok, cancel, danger})`, a promise that replaces the browser `confirm()` and looks like the account window. There is no native `confirm()` left in the app. The admin drawer and dialog keep their own look; only their closing animation was added.
+- Admin page (`admin.html`, `assets/css/console.css`) is built from the app's own components: `module-card`, `subject-card`, `topic-row`, `badge`, `.toggle`, `page__header`, `breadcrumb`, `stats-strip`, `empty-state`. Its own classes start with `rc-`: never use an `ad-` prefix or words like banner or sponsor for class names, because ad blockers hide them. `admin.html` loads `assets/js/ui.js` only for the module, subject and topic icons.
+- Scale: root font size is 100% (the person's own setting), 112.5% from 1440px, 125% from 1920px, 150% from 2560px; `--max-width`, `--header-h` and `--sidebar-w` are in rem so layouts grow with the text. Nothing is below .75rem. On touch screens buttons, cards and rows are at least 44px tall. Breakpoints follow the Material 3 window size classes (600, 840, 1200, 1600).
 
 ## 6. Recipes for adding features
 
@@ -182,7 +184,7 @@ Both suites start a **local** Worker and a **local** database with `wrangler pag
 git clone https://github.com/recall-med/recall4.git site && cd site/backend-tests
 npm install
 node run.mjs            # backend: expect 203 passed, 0 failed
-node run-frontend.mjs   # front end in jsdom: expect 189 passed, 0 failed
+node run-frontend.mjs   # front end in jsdom: expect 198 passed, 0 failed
 ```
 
 The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand.
@@ -207,7 +209,7 @@ The front-end suite uses a fake sign-in provider and a simulated browser (jsdom)
 | 5 (rest) | Cross-device exam resume, past-attempt review | Not started (server parts exist) |
 | 6 | Pilot with 20 to 30 students, then announce | Not started |
 
-Test status: backend 203 of 203, front end 189 of 189 (jsdom).
+Test status: backend 203 of 203, front end 198 of 198 (jsdom).
 
 ### Verified on real devices
 Email sign-up and sign-in, studying uploads data, second-device pull, automatic import for a new account, offered import for an existing account, sign-out and sign-in, Delete account with a password (the real Firebase deletion).

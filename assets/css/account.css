@@ -93,7 +93,7 @@
   border: 1.5px solid var(--border); border-radius: var(--radius);
   background: var(--surface-3);
 }
-.acct-card__label { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.acct-card__label { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
 .acct-card__value { font-size: .875rem; line-height: 1.5; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
 .acct-note { margin: 0 0 .7rem; font-size: .78rem; line-height: 1.55; color: var(--text-3); }
 
@@ -140,17 +140,25 @@
 @media (max-width: 380px) { .acct-row { grid-template-columns: 1fr; gap: 0; } }
 .acct-card .btn:disabled { opacity: .6; cursor: default; }
 
-/* Opening the account window: quick and strong ease-out like the rest of the app (opacity, translate and scale only).
-   The window is shown by switching display, so these play every time it opens. */
+/* Every pop-up in the app and in the admin dashboard is this same window: overlay + .modal-box.
+   It fades and rises in, and fades and sinks out (class is-closing, then hidden by RecallLayers.hide). */
 @keyframes acct-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes acct-fade-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes acct-pop  { from { opacity: 0; translate: 0 10px; scale: .97; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes acct-pop-out { from { opacity: 1; translate: 0 0; scale: 1; } to { opacity: 0; translate: 0 8px; scale: .98; } }
 @keyframes acct-swap { from { opacity: 0; translate: 0 5px; } to { opacity: 1; translate: 0 0; } }
-#account-modal { animation: acct-fade .16s var(--ease-out-strong, cubic-bezier(.23, 1, .32, 1)) both; }
-#account-modal .modal-box--account { animation: acct-pop .24s var(--ease-out-strong, cubic-bezier(.23, 1, .32, 1)) both; }
+.modal-overlay { animation: acct-fade .16s var(--ease-out-strong, cubic-bezier(.23, 1, .32, 1)) both; }
+.modal-overlay .modal-box { animation: acct-pop .24s var(--ease-out-strong, cubic-bezier(.23, 1, .32, 1)) both; }
+.modal-overlay.is-closing { animation: acct-fade-out .15s ease-in both; pointer-events: none; }
+.modal-overlay.is-closing .modal-box { animation: acct-pop-out .15s ease-in both; }
 #account-view.acct-swap > * { animation: acct-swap .18s var(--ease-out-strong, cubic-bezier(.23, 1, .32, 1)) backwards; }
 @media (prefers-reduced-motion: reduce) {
-  #account-modal, #account-modal .modal-box--account, #account-view.acct-swap > * { animation: acct-fade .12s linear both; }
+  .modal-overlay, .modal-overlay .modal-box, #account-view.acct-swap > * { animation: acct-fade .12s linear both; }
+  .modal-overlay.is-closing, .modal-overlay.is-closing .modal-box { animation: acct-fade-out .12s linear both; }
 }
+
+.modal-foot { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1.1rem; flex-wrap: wrap; }
+.modal-box--account .acct-title { margin-bottom: 0; }
 
 .acct-adminlink { display: flex; align-items: center; justify-content: center; text-decoration: none; margin: 0 0 12px; }
 
@@ -158,6 +166,6 @@
 .badge--hidden {
   gap: 5px; padding: 2px 9px; white-space: nowrap;
   background: var(--surface-solid); color: var(--text-3); border-color: var(--border-strong);
-  font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: .62rem;
+  font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: .75rem;
 }
 .modal-box--closable { position: relative; }

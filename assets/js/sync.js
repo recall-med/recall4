@@ -952,16 +952,16 @@
     var m = $('account-modal'); if (!m) return;
     view = v || ((S.uid || user) ? 'account' : 'signin');
     lastView = view;
-    m.style.display = 'flex';
+    if (window.RecallLayers) window.RecallLayers.show(m); else m.style.display = 'flex';
     renderAccount();
     if (!provider && !authLoadFailed) loadAuthModule().then(renderAccount);
     var first = m.querySelector('input'); if (first) first.focus();
   }
   function closeModal() {
-    var m = $('account-modal'); if (m) m.style.display = 'none';
+    var m = $('account-modal'); if (m) { if (window.RecallLayers) window.RecallLayers.hide(m); else m.style.display = 'none'; }
     view = 'signin';
   }
-  function modalOpen() { var m = $('account-modal'); return !!m && m.style.display !== 'none'; }
+  function modalOpen() { var m = $('account-modal'); return !!m && m.style.display !== 'none' && !m.classList.contains('is-closing'); }
 
   function ago(t) {
     if (!t) return 'not yet';

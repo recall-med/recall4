@@ -1,0 +1,137 @@
+{
+  "subSubjectId": "rectum",
+  "questions": [
+    {
+      "id": 1,
+      "question": "During a pelvic MRI, a radiologist notes that the rectum follows a curve concave forwards, closely paralleling the sacrum. Which flexure is being described?",
+      "options": [
+        "Perineal flexure",
+        "Sacral flexure",
+        "Lateral flexure",
+        "Sigmoid flexure"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 2,
+      "question": "A 49-year-old woman undergoes surgery for a low rectal tumor. The surgeon notes three lateral bends in the rectum. Which statement about these lateral flexures is correct?",
+      "options": [
+        "All are convex to the left",
+        "Upper and lower are convex to the right, middle to the left",
+        "All are convex to the right",
+        "Only the middle is convex to the right"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 3,
+      "question": "A patient with portal hypertension develops internal hemorrhoids. Which rectal vein is primarily responsible for draining blood into the portal venous system?",
+      "options": [
+        "Middle rectal vein",
+        "Inferior rectal vein",
+        "Superior rectal vein",
+        "External pudendal vein"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 4,
+      "question": "A 58-year-old man presents with rectal bleeding. On examination, the bleeding site is above the pectinate line. Which artery is the main source of blood to this area?",
+      "options": [
+        "Inferior rectal artery",
+        "Superior rectal artery",
+        "Middle rectal artery",
+        "Inferior mesenteric artery"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 5,
+      "question": "A 35-year-old woman presents with perianal pain and swelling. The affected area is supplied by a branch of the internal pudendal artery. Which artery is involved?",
+      "options": [
+        "Superior rectal artery",
+        "Middle rectal artery",
+        "Inferior rectal artery",
+        "Inferior mesenteric artery"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 6,
+      "question": "A 70-year-old man is found to have a thrombosis in the middle rectal vein. Where does this vein primarily drain?",
+      "options": [
+        "Inferior mesenteric vein",
+        "Internal iliac vein",
+        "Portal vein",
+        "Inferior vena cava"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 7,
+      "question": "A patient is undergoing a colectomy. The surgeon must ligate the artery that is a direct continuation of the inferior mesenteric artery and supplies the upper rectum. Which artery is this?",
+      "options": [
+        "Superior rectal artery",
+        "Middle rectal artery",
+        "Inferior rectal artery",
+        "Internal pudendal artery"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 8,
+      "question": "A 60-year-old male presents with a mass at the anorectal junction, where the rectum bends sharply to form an angle of about 80 degrees. What is the name of this anatomical curve?",
+      "options": [
+        "Sacral flexure",
+        "Perineal (recto-anal) flexure",
+        "Sigmoid flexure",
+        "Lateral flexure"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 9,
+      "question": "A 45-year-old woman is diagnosed with rectal carcinoma. The surgeon notes that the venous drainage of the rectum provides a site for portosystemic anastomosis. Which two veins are primarily involved in this anastomosis?",
+      "options": [
+        "Superior and inferior rectal veins",
+        "Middle and inferior rectal veins",
+        "Superior and middle rectal veins",
+        "Inferior rectal and external pudendal veins"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 10,
+      "question": "A 35-year-old woman with a ruptured appendix was sent to the emergency department for surgery. To cut off the blood supply to the appendix, a surgeon should ligate which of the following arteries?",
+      "options": [
+        "Middle colic",
+        "Right colic",
+        "Common iliac",
+        "Ileocolic colic"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 11,
+      "question": "A 60-year-old woman arrived at the emergency room complaining of acute abdominal pain. She was diagnosed with ischemic bowel resulting from obstruction of the superior mesenteric artery. Which of the following is most likely affected by ischemia?",
+      "options": [
+        "Cecum",
+        "Descending colon",
+        "Rectum",
+        "Sigmoid colon"
+      ],
+      "explanation": "",
+      "answer": 0
+    }
+  ]
+}

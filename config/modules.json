@@ -27,16 +27,36 @@
     }
   ],
   "subjects": [
-    { "id": "anatomy",      "label": "Anatomy",      "icon": "🦴", "color": "#4A9E8E" },
-    { "id": "physiology",   "label": "Physiology",   "icon": "🫀", "color": "#4A9E8E" },
-    { "id": "biochemistry", "label": "Biochemistry", "icon": "🧬", "color": "#d97706" },
-    { "id": "histology",    "label": "Histology",    "icon": "🔬", "color": "#dc2626" }
+    {
+      "id": "anatomy",
+      "label": "Anatomy",
+      "icon": "🦴",
+      "color": "#4A9E8E"
+    },
+    {
+      "id": "physiology",
+      "label": "Physiology",
+      "icon": "🫀",
+      "color": "#4A9E8E"
+    },
+    {
+      "id": "biochemistry",
+      "label": "Biochemistry",
+      "icon": "🧬",
+      "color": "#d97706"
+    },
+    {
+      "id": "histology",
+      "label": "Histology",
+      "icon": "🔬",
+      "color": "#dc2626"
+    }
   ],
   "modules": [
     {
       "id": "CPM",
       "title": "CPM",
-      "fullTitle": "Cardio-Pulmonary Medicine",
+      "fullTitle": "Cardio-Pulmonary Module",
       "shortTitle": "CPM",
       "description": "Cardiovascular and pulmonary system questions",
       "color": "#dc2626",
@@ -44,19 +64,54 @@
       "dataPath": "CPM",
       "subSubjects": {
         "end_module": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         },
         "final_exam": {
-          "anatomy":      [],
+          "anatomy": [
+            {
+              "id": "pharynx",
+              "label": "Pharynx",
+              "icon": "🗣️"
+            },
+            {
+              "id": "larynx",
+              "label": "Larynx",
+              "icon": "🎙️"
+            },
+            {
+              "id": "heart",
+              "label": "Pericardium & Heart",
+              "icon": "🫀"
+            }
+          ],
           "physiology": [
-            { "id": "cvs",         "label": "CVS",         "icon": "❤️" },
-            { "id": "respiration", "label": "Respiration", "icon": "🫁" }
+            {
+              "id": "cvs",
+              "label": "CVS",
+              "icon": "❤️"
+            },
+            {
+              "id": "respiration",
+              "label": "Respiration",
+              "icon": "🫁"
+            }
           ],
           "biochemistry": [],
-          "histology":    []
+          "histology": [
+            {
+              "id": "lymphatic",
+              "label": "Lymphatic System",
+              "icon": "🔬"
+            },
+            {
+              "id": "respiratory",
+              "label": "Respiratory System",
+              "icon": "🫁"
+            }
+          ]
         }
       }
     },
@@ -67,20 +122,20 @@
       "shortTitle": "GIT",
       "description": "Gastrointestinal system and hepatobiliary questions",
       "color": "#d97706",
-      "icon": "🫁",
+      "icon": "🍏",
       "dataPath": "GIT",
       "subSubjects": {
         "end_module": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         },
         "final_exam": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         }
       }
     },
@@ -95,23 +150,23 @@
       "dataPath": "CNS",
       "subSubjects": {
         "end_module": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         },
         "final_exam": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         }
       }
     },
     {
       "id": "ENDO_REPRO",
       "title": "ENDO & REPRO",
-      "fullTitle": "Endocrinology & Reproductive",
+      "fullTitle": "Endocrine & Reproduction",
       "shortTitle": "ENDO",
       "description": "Endocrine system and reproductive medicine questions",
       "color": "#4A9E8E",
@@ -119,16 +174,16 @@
       "dataPath": "ENDO_REPRO",
       "subSubjects": {
         "end_module": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         },
         "final_exam": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         }
       }
     },
@@ -143,16 +198,16 @@
       "dataPath": "URINARY",
       "subSubjects": {
         "end_module": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         },
         "final_exam": {
-          "anatomy":      [],
-          "physiology":   [],
+          "anatomy": [],
+          "physiology": [],
           "biochemistry": [],
-          "histology":    []
+          "histology": []
         }
       }
     }

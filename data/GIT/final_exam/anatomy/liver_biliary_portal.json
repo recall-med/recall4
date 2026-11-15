@@ -1,0 +1,197 @@
+{
+  "subSubjectId": "liver_biliary_portal",
+  "questions": [
+    {
+      "id": 1,
+      "question": "A 52-year-old woman presents with jaundice and right upper quadrant pain. Imaging reveals a gallstone impacted in the part of the common bile duct that descends within the right free margin of the lesser omentum, anterior to the portal vein and to the right of the proper hepatic artery. Which part of the common bile duct is most likely affected?",
+      "options": [
+        "Supra-duodenal",
+        "Retro-duodenal",
+        "Infra-duodenal (pancreatic)",
+        "Intra-duodenal (intramural)"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 2,
+      "question": "A surgeon performing a pancreaticoduodenectomy (Whipple procedure) notes that the common bile duct is running in a groove on the posterior surface of the head of the pancreas and, in some areas, is completely surrounded by pancreatic tissue. Which part of the common bile duct is being described?",
+      "options": [
+        "Supra-duodenal",
+        "Retro-duodenal",
+        "Infra-duodenal (pancreatic)",
+        "Intra-duodenal (intramural)"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 3,
+      "question": "A 60-year-old man undergoes endoscopic retrograde cholangiopancreatography (ERCP) for evaluation of obstructive jaundice. The endoscopist identifies the opening of the hepatopancreatic ampulla (ampulla of Vater) on the posteromedial wall of the second part of the duodenum, about 10 cm distal to the pylorus. At this site, which two ducts unite before draining into the duodenum?",
+      "options": [
+        "Common bile duct and cystic duct",
+        "Common bile duct and main pancreatic duct",
+        "Main pancreatic duct and accessory pancreatic duct",
+        "Common hepatic duct and cystic duct"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 4,
+      "question": "A 45-year-old woman presents with right upper quadrant pain and tenderness. Ultrasound reveals gallstones. The surgeon notes that the gallbladder is in a fossa on the inferior surface of a liver lobe. Which lobe is this?",
+      "options": [
+        "Left lobe of the liver",
+        "Right lobe of the liver",
+        "Caudate lobe",
+        "Quadrate lobe"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 5,
+      "question": "During a laparoscopic cholecystectomy, the surgeon identifies the main artery supplying the gallbladder before ligating it. From which artery does the cystic artery most commonly arise?",
+      "options": [
+        "Left hepatic artery",
+        "Right hepatic artery",
+        "Gastroduodenal artery",
+        "Common hepatic artery"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 6,
+      "question": "A patient with cholecystitis is found to have inflammation spreading to the liver. The venous drainage of the gallbladder is noted to be dual, with some veins draining directly into the liver. Which vessel drains the main cystic vein into?",
+      "options": [
+        "Inferior vena cava",
+        "Hepatic vein",
+        "Portal vein",
+        "Superior mesenteric vein"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 7,
+      "question": "A 55-year-old man with chronic liver disease presents with ascites and splenomegaly. Imaging shows a dilated portal vein measuring about 7.5 cm in length. Which of the following statements about the portal vein is correct?",
+      "options": [
+        "It provides about 20% of the blood flow to the liver",
+        "It is formed by the union of the inferior mesenteric and splenic veins",
+        "It contains valves to prevent backflow",
+        "It provides about 80% of the blood flow to the liver"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 8,
+      "question": "A patient with portal hypertension develops severe hematemesis. Endoscopy reveals bleeding esophageal varices. Which veins are involved in the portocaval anastomosis at the lower third of the esophagus?",
+      "options": [
+        "Left gastric vein and azygos vein",
+        "Left gastric vein and accessory hemiazygos vein",
+        "Splenic vein and superior mesenteric vein",
+        "Inferior mesenteric vein and middle rectal vein"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 9,
+      "question": "A 60-year-old man with cirrhosis presents with prominent, snake-like veins radiating from his umbilicus. Which veins are responsible for this clinical finding known as caput medusae?",
+      "options": [
+        "Paraumbilical veins and superficial veins of the anterior abdominal wall",
+        "Superior rectal vein and middle rectal vein",
+        "Left gastric vein and azygos vein",
+        "Splenic vein and left renal vein"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 10,
+      "question": "During abdominal surgery, a surgeon observes the formation of the portal vein behind the neck of the pancreas at the level of L1. Which two veins unite to form the portal vein at this location?",
+      "options": [
+        "Inferior mesenteric vein and splenic vein",
+        "Superior mesenteric vein and splenic vein",
+        "Superior mesenteric vein and left gastric vein",
+        "Splenic vein and right gastric vein"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 11,
+      "question": "A patient with portal hypertension develops hemorrhoids due to portocaval anastomosis in the anal canal. Which veins are involved in this anastomosis?",
+      "options": [
+        "Superior rectal vein and inferior rectal vein",
+        "Superior rectal vein and middle/inferior rectal veins",
+        "Inferior mesenteric vein and internal iliac vein",
+        "Middle rectal vein and external pudendal vein"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 12,
+      "question": "A 50-year-old woman with portal vein thrombosis is found to have a dual system of venous drainage from the gallbladder. The cystic vein drains directly into which vessel before entering the liver?",
+      "options": [
+        "Inferior vena cava",
+        "Portal vein",
+        "Hepatic vein",
+        "Splenic vein"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 13,
+      "question": "A radiologist notes that the portal vein and its tributaries are unique in that they:",
+      "options": [
+        "Contain many valves",
+        "Are devoid of valves",
+        "Drain directly into the inferior vena cava",
+        "Drain only the lower limbs"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 14,
+      "question": "A patient is being evaluated for a liver transplant. The surgeon notes that the portal vein ends at the right end of the porta hepatis by dividing into:",
+      "options": [
+        "Two hepatic veins",
+        "Right and left branches",
+        "Superior and inferior branches",
+        "Anterior and posterior branches"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 15,
+      "question": "During an anatomy dissection, a student is asked to name a tributary of the portal vein that also receives the inferior mesenteric vein. Which vessel is this?",
+      "options": [
+        "Superior mesenteric vein",
+        "Splenic vein",
+        "Left gastric vein",
+        "Right gastric vein"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 16,
+      "question": "A patient with advanced liver disease is found to have up to one third of the total blood volume in the body contained within the portal vein and its branches. Which of the following is NOT a direct tributary of the portal vein?",
+      "options": [
+        "Superior mesenteric vein",
+        "Splenic vein",
+        "Inferior vena cava",
+        "Left and right gastric veins"
+      ],
+      "explanation": "",
+      "answer": 2
+    }
+  ]
+}

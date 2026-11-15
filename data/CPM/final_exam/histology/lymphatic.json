@@ -1,0 +1,395 @@
+{
+  "meta": {
+    "module": "CPM",
+    "examType": "final_exam",
+    "subject": "histology",
+    "subSubject": "lymphatic",
+    "totalQuestions": 32
+  },
+  "questions": [
+    {
+      "question": "Which structure is found in the cortex of lymph node?",
+      "options": [
+        "Lymphatic nodules",
+        "Medullary cords",
+        "Hassall's corpuscles",
+        "Red pulp"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Lymphatic nodules",
+      "id": 1
+    },
+    {
+      "question": "The paracortex of lymph node is rich in:",
+      "options": [
+        "B lymphocytes",
+        "T lymphocytes",
+        "Plasma cells",
+        "Macrophages only"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. T lymphocytes",
+      "id": 2
+    },
+    {
+      "question": "Afferent lymphatic vessels enter the lymph node at:",
+      "options": [
+        "Hilum",
+        "Capsule",
+        "Trabeculae",
+        "Medulla"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Capsule",
+      "id": 3
+    },
+    {
+      "question": "Thymus dependent zone of lymph node is present in:",
+      "options": [
+        "White pulp",
+        "Paracortex",
+        "Cortex",
+        "Medulla"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Paracortex",
+      "id": 4
+    },
+    {
+      "question": "White pulp of the spleen surrounds:",
+      "options": [
+        "Trabeculae",
+        "Central artery",
+        "Vein",
+        "Sinusoid"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Central artery",
+      "id": 5
+    },
+    {
+      "question": "Red pulp of the spleen contains:",
+      "options": [
+        "Lymphatic nodules",
+        "Splenic cords and sinusoids",
+        "Hassall's corpuscles",
+        "Germinal centers"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Splenic cords and sinusoids",
+      "id": 6
+    },
+    {
+      "question": "Which of the following is a function of the spleen?",
+      "options": [
+        "Destruction of old RBCs",
+        "Filtration of lymph",
+        "Hormone secretion",
+        "Bile secretion"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Destruction of old RBCs",
+      "id": 7
+    },
+    {
+      "question": "The periarterial lymphatic sheath (PALS) contains mainly:",
+      "options": [
+        "B lymphocytes",
+        "T lymphocytes",
+        "Plasma cells",
+        "Macrophages"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. T lymphocytes",
+      "id": 8
+    },
+    {
+      "question": "Thymus dependent zone of spleen is present in:",
+      "options": [
+        "White pulp",
+        "Paracortex",
+        "Red pulp",
+        "Medulla"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. White pulp",
+      "id": 9
+    },
+    {
+      "question": "Thymus is involved in the maturation of:",
+      "options": [
+        "B lymphocytes",
+        "T lymphocytes",
+        "Plasma cells",
+        "Macrophages"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. T lymphocytes",
+      "id": 10
+    },
+    {
+      "question": "Which feature is a characteristic of the thymus?",
+      "options": [
+        "Lymphatic nodules",
+        "Sinusoids",
+        "Hassall's corpuscles",
+        "Germinal centers"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Hassall's corpuscles",
+      "id": 11
+    },
+    {
+      "question": "The thymus lacks:",
+      "options": [
+        "Efferent lymphatic vessels",
+        "Capsule",
+        "Cortex and medulla",
+        "Afferent lymphatic vessels"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Afferent lymphatic vessels",
+      "id": 12
+    },
+    {
+      "question": "The cortex of the thymus appears darker due to:",
+      "options": [
+        "More epithelial reticular cells",
+        "Fewer cells",
+        "Dense T lymphocytes",
+        "Dense B lymphocytes"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Dense T lymphocytes",
+      "id": 13
+    },
+    {
+      "question": "Tonsillar crypts are:",
+      "options": [
+        "Lymphatic vessels",
+        "Blood vessels",
+        "Deep epithelial invaginations",
+        "Ducts of glands"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Deep epithelial invaginations",
+      "id": 14
+    },
+    {
+      "question": "Palatine tonsils are covered by:",
+      "options": [
+        "Stratified squamous epithelium",
+        "Simple cuboidal epithelium",
+        "Simple squamous epithelium",
+        "Simple columnar epithelium"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Stratified squamous epithelium",
+      "id": 15
+    },
+    {
+      "question": "Which tonsil is covered by pseudostratified columnar ciliated epithelium?",
+      "options": [
+        "Pharyngeal tonsil",
+        "Lingual tonsil",
+        "Palatine tonsil",
+        "None"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Pharyngeal tonsil",
+      "id": 16
+    },
+    {
+      "question": "Tonsils are considered one of:",
+      "options": [
+        "Primary lymphoid organs",
+        "Secondary lymphoid organs",
+        "Endocrine system",
+        "Digestive glands"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Secondary lymphoid organs",
+      "id": 17
+    },
+    {
+      "question": "Thymus is one of:",
+      "options": [
+        "Primary lymphoid organs",
+        "Secondary lymphoid organs",
+        "Endocrine system",
+        "Digestive glands"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Primary lymphoid organs",
+      "id": 18
+    },
+    {
+      "question": "Which of the following best explains why the thymic cortex appears darker than the medulla?",
+      "options": [
+        "Higher density of macrophages and plasma cells",
+        "Presence of Hassall's corpuscles",
+        "Larger number of immune-incompetent T-lymphocytes and epithelial reticular cells",
+        "Abundance of reticular fibers"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Larger number of immune-incompetent T-lymphocytes and epithelial reticular cells",
+      "id": 19
+    },
+    {
+      "question": "Unlike other lymphoid organs, the thymus lacks:",
+      "options": [
+        "Epithelial reticular cells",
+        "T-lymphocytes",
+        "Reticular fibers",
+        "Macrophages"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Reticular fibers",
+      "id": 20
+    },
+    {
+      "question": "Hassall's corpuscles are found exclusively in which part of the thymus?",
+      "options": [
+        "Cortex",
+        "Capsule",
+        "Medulla",
+        "Trabeculae"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Medulla",
+      "id": 21
+    },
+    {
+      "question": "Which of the following is NOT a component of the blood-thymus barrier?",
+      "options": [
+        "Continuous endothelium of cortical capillaries",
+        "Pericytes",
+        "Afferent lymphatic vessels",
+        "Epithelial reticular cell processes"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Afferent lymphatic vessels",
+      "id": 22
+    },
+    {
+      "question": "Which of the following is TRUE about the thymus after puberty?",
+      "options": [
+        "It continues to grow rapidly",
+        "It becomes infiltrated by adipose tissue and involutes",
+        "It increases production of Hassall's corpuscles",
+        "It becomes a secondary lymphoid organ"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. It becomes infiltrated by adipose tissue and involutes",
+      "id": 23
+    },
+    {
+      "question": "The primary function of the blood-thymus barrier is to:",
+      "options": [
+        "Prevent T-lymphocytes from leaving the thymus",
+        "Isolate immature T-lymphocytes from blood-borne antigens",
+        "Facilitate entry of plasma cells into the cortex",
+        "Allow direct mixing of blood and lymph in the thymus"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Isolate immature T-lymphocytes from blood-borne antigens",
+      "id": 24
+    },
+    {
+      "question": "Which of the following is absent in the thymus?",
+      "options": [
+        "Lymphatic nodules",
+        "T-lymphocytes",
+        "Macrophages",
+        "Epithelial reticular cells"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Lymphatic nodules",
+      "id": 25
+    },
+    {
+      "question": "The reticular network of the thymus is formed by:",
+      "options": [
+        "Reticular fibers produced by fibroblasts",
+        "Processes of epithelial reticular cells",
+        "Collagen type I fibers",
+        "Dendritic cell extensions"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Processes of epithelial reticular cells",
+      "id": 26
+    },
+    {
+      "question": "T-lymphocytes (thymocytes) in the thymus cortex are best described as:",
+      "options": [
+        "Mature and immune-competent",
+        "Mostly plasma cells",
+        "Immune-incompetent and proliferating",
+        "Antibody-secreting cells"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Immune-incompetent and proliferating",
+      "id": 27
+    },
+    {
+      "question": "Which of the following is a feature unique to the thymus among lymphoid organs?",
+      "options": [
+        "Presence of plasma cells",
+        "Presence of Hassall's corpuscles",
+        "Afferent lymphatic vessels",
+        "Reticular fibers"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Presence of Hassall's corpuscles",
+      "id": 28
+    },
+    {
+      "question": "The thymus is classified as a:",
+      "options": [
+        "Secondary lymphoid organ",
+        "Primary (central) lymphoid organ",
+        "Mucosa-associated lymphoid tissue",
+        "Diffuse lymphoid tissue"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Primary (central) lymphoid organ",
+      "id": 29
+    },
+    {
+      "question": "What happens to Hassall's corpuscles with advancing age?",
+      "options": [
+        "They disappear completely",
+        "Their number decreases",
+        "Their number increases",
+        "They migrate to the cortex"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Their number increases",
+      "id": 30
+    },
+    {
+      "question": "Which of the following correctly describes epithelial reticular cells?",
+      "options": [
+        "They have dark cytoplasm with many lysosomes",
+        "Their processes join by desmosomes and occluding junctions",
+        "They are derived from circulating monocytes",
+        "They synthesize reticular fibers abundantly"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Their processes join by desmosomes and occluding junctions",
+      "id": 31
+    },
+    {
+      "question": "Which cell type is notably absent in the normal thymus?",
+      "options": [
+        "Macrophages",
+        "Plasma cells",
+        "T-lymphocytes",
+        "Epithelial reticular cells"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Plasma cells",
+      "id": 32
+    }
+  ]
+}

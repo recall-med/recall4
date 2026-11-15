@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * DEPT. Q. BANK — exam.js  (v2 — sub-subject support)
+ * DEPT. Q. BANK — exam.js  (v3 — subject & exam-type wide exams)
  * ============================================================
  */
 
@@ -19,8 +19,17 @@ const ExamEngine = {
 
   async init(config) {
     this.config = config;
-    const data = await this._loadQuestions(config);
-    this.questions = config.randomize ? this._shuffle([...data]) : data;
+    let data;
+    if (config.scope === 'subject') {
+      // Load all sub-subjects for a given module+examType+subject
+      data = await this._loadQuestionsForSubject(config);
+    } else if (config.scope === 'examtype') {
+      // Load all subjects+sub-subjects for a given module+examType
+      data = await this._loadQuestionsForExamType(config);
+    } else {
+      data = await this._loadQuestions(config);
+    }
+    this.questions = config.randomize ? this._shuffle([...data]) : [...data];
     this.state = {
       currentIndex: 0,
       answers: {},
@@ -83,8 +92,8 @@ const ExamEngine = {
     Storage.toggleFlag({
       module:      this.config.module,
       examType:    this.config.examType,
-      subject:     this.config.subject,
-      subSubject:  this.config.subSubject,
+      subject:     this.config.subject || q._subject,
+      subSubject:  this.config.subSubject || q._subSubject,
       id:          q.id,
       question:    q.question,
       options:     q.options,
@@ -120,14 +129,17 @@ const ExamEngine = {
       const correct  = answered && userAns === q.answer;
 
       results.perQuestion.push({
-        question:    q.question,
-        options:     q.options,
-        answer:      q.answer,
-        explanation: q.explanation,
-        userAnswer:  userAns,
+        question:         q.question,
+        options:          q.options,
+        answer:           q.answer,
+        explanation:      q.explanation,
+        userAnswer:       userAns,
         correct,
         answered,
-        flagged:     this.state.flagged.has(i),
+        flagged:          this.state.flagged.has(i),
+        _subject:         q._subject,
+        _subSubject:      q._subSubject,
+        _subSubjectLabel: q._subSubjectLabel,
       });
 
       if (!answered)    results.unanswered++;
@@ -138,9 +150,9 @@ const ExamEngine = {
         Storage.addIncorrect({
           module:           this.config.module,
           examType:         this.config.examType,
-          subject:          this.config.subject,
-          subSubject:       this.config.subSubject,
-          subSubjectLabel:  this.config.subSubjectLabel,
+          subject:          q._subject         || this.config.subject,
+          subSubject:       q._subSubject      || this.config.subSubject,
+          subSubjectLabel:  q._subSubjectLabel || this.config.subSubjectLabel,
           id:               q.id,
           question:         q.question,
           options:          q.options,
@@ -162,26 +174,30 @@ const ExamEngine = {
       totalTimeSpentSec: results.timeSec,
     });
 
-    Storage.setSubjectProgress(
-      this.config.module,
-      this.config.examType,
-      this.config.subject,
-      this.config.subSubject,
-      {
-        completed:   true,
-        attempted:   results.total - results.unanswered,
-        correct:     results.correct,
-        total:       results.total,
-        score:       results.score,
-        lastAttempt: results.completedAt,
-      }
-    );
+    // Only save per-subsubject progress for single sub-subject exams
+    if (!this.config.scope) {
+      Storage.setSubjectProgress(
+        this.config.module,
+        this.config.examType,
+        this.config.subject,
+        this.config.subSubject,
+        {
+          completed:   true,
+          attempted:   results.total - results.unanswered,
+          correct:     results.correct,
+          total:       results.total,
+          score:       results.score,
+          lastAttempt: results.completedAt,
+        }
+      );
+    }
 
     Storage.addExamResult({
       module:      this.config.module,
       examType:    this.config.examType,
       subject:     this.config.subject,
       subSubject:  this.config.subSubject,
+      scope:       this.config.scope,
       score:       results.score,
       correct:     results.correct,
       total:       results.total,
@@ -204,18 +220,56 @@ const ExamEngine = {
     return { answered, unanswered, flagged, total: this.questions.length };
   },
 
-  // Path: data/MODULE/exam_type/subject/sub_subject.json
+  // ─── Question loaders ────────────────────────────────────────────────────
+
+  // Load a single sub-subject file
   async _loadQuestions(config) {
     const path = `data/${config.module}/${config.examType}/${config.subject}/${config.subSubject}.json`;
     try {
       const res = await fetch(path);
       if (!res.ok) return [];
       const data = await res.json();
-      return Array.isArray(data.questions) ? data.questions : [];
+      const qs = Array.isArray(data.questions) ? data.questions : [];
+      return qs.map(q => ({ ...q, _subject: config.subject, _subSubject: config.subSubject, _subSubjectLabel: config.subSubjectLabel }));
     } catch (e) {
       console.warn(`[ExamEngine] Could not load ${path}:`, e);
       return [];
     }
+  },
+
+  // Load all sub-subjects for one subject under one exam type
+  async _loadQuestionsForSubject(config) {
+    // config.subSubjectList = [{ id, label, icon }, ...]
+    const list = config.subSubjectList || [];
+    const batches = await Promise.all(
+      list.map(ss => this._loadOneSubSubject(config.module, config.examType, config.subject, ss))
+    );
+    return batches.flat();
+  },
+
+  // Load all subjects + sub-subjects for one exam type
+  async _loadQuestionsForExamType(config) {
+    // config.subjectMap = { subjectId: [{ id, label, icon }, ...], ... }
+    const subjectMap = config.subjectMap || {};
+    const allBatches = await Promise.all(
+      Object.entries(subjectMap).map(([subjectId, ssList]) =>
+        Promise.all(ssList.map(ss =>
+          this._loadOneSubSubject(config.module, config.examType, subjectId, ss)
+        )).then(b => b.flat())
+      )
+    );
+    return allBatches.flat();
+  },
+
+  async _loadOneSubSubject(moduleId, examType, subjectId, ss) {
+    const path = `data/${moduleId}/${examType}/${subjectId}/${ss.id}.json`;
+    try {
+      const res = await fetch(path);
+      if (!res.ok) return [];
+      const data = await res.json();
+      const qs = Array.isArray(data.questions) ? data.questions : [];
+      return qs.map(q => ({ ...q, _subject: subjectId, _subSubject: ss.id, _subSubjectLabel: ss.label }));
+    } catch { return []; }
   },
 
   _shuffle(arr) {

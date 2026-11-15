@@ -1,0 +1,125 @@
+{
+  "subSubjectId": "arterial_supply",
+  "questions": [
+    {
+      "id": 1,
+      "question": "A 55-year-old man presents with severe epigastric pain radiating to his back. Imaging reveals a large ulcer on the posterior wall of the stomach near the lesser curvature. Which artery is most at risk of being eroded by this ulcer?",
+      "options": [
+        "Left gastric artery",
+        "Splenic artery",
+        "Right gastroepiploic artery",
+        "Superior mesenteric artery"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 2,
+      "question": "A 43-year-old woman undergoes a splenectomy after trauma. During the procedure, the surgeon ligates an artery running along the superior border of the pancreas that gives off several branches to the stomach and pancreas. Which artery is this?",
+      "options": [
+        "Common hepatic artery",
+        "Splenic artery",
+        "Left gastric artery",
+        "Inferior mesenteric artery"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 3,
+      "question": "A 30-year-old patient presents with acute appendicitis. Which artery is primarily responsible for supplying blood to the appendix?",
+      "options": [
+        "Ileocolic artery",
+        "Right colic artery",
+        "Middle colic artery",
+        "Inferior mesenteric artery"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 4,
+      "question": "A 70-year-old man has ischemia of the distal transverse colon. Which major artery is most likely compromised?",
+      "options": [
+        "Celiac trunk",
+        "Superior mesenteric artery",
+        "Inferior mesenteric artery",
+        "Splenic artery"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 5,
+      "question": "A 25-year-old woman is found to have a congenital anomaly where the right hepatic artery arises from the superior mesenteric artery. Normally, the right hepatic artery is a branch of which vessel?",
+      "options": [
+        "Left gastric artery",
+        "Common hepatic artery",
+        "Splenic artery",
+        "Inferior mesenteric artery"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 6,
+      "question": "A patient develops an infarction of the jejunum. Which branch of the superior mesenteric artery is directly responsible for supplying the jejunum?",
+      "options": [
+        "Ileal branches",
+        "Jejunal branches",
+        "Right colic artery",
+        "Middle colic artery"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 7,
+      "question": "A 60-year-old man is found to have a blockage at the origin of the celiac trunk. Which of the following organs would be most affected by this blockage?",
+      "options": [
+        "Cecum",
+        "Ascending colon",
+        "Stomach",
+        "Sigmoid colon"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 8,
+      "question": "During surgery for colon cancer, the surgeon ligates an artery that runs in the transverse mesocolon and supplies the proximal two-thirds of the transverse colon. Which artery is this?",
+      "options": [
+        "Middle colic artery",
+        "Left colic artery",
+        "Right colic artery",
+        "Ileocolic artery"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 9,
+      "question": "A 45-year-old man presents with rectal bleeding. Imaging shows a lesion in the upper rectum. Which artery is the primary source of blood supply to this region?",
+      "options": [
+        "Inferior rectal artery",
+        "Superior rectal artery",
+        "Middle rectal artery",
+        "Sigmoidal arteries"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 10,
+      "question": "A patient has ischemia affecting the jejunum, ileum, ascending colon, and proximal two-thirds of transverse colon. Which artery is most likely affected?",
+      "options": [
+        "Celiac trunk",
+        "Superior mesenteric artery",
+        "Inferior mesenteric artery",
+        "Internal iliac artery"
+      ],
+      "explanation": "",
+      "answer": 1
+    }
+  ]
+}

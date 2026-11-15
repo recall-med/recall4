@@ -1,0 +1,197 @@
+{
+  "subSubjectId": "anal_canal",
+  "questions": [
+    {
+      "id": 1,
+      "question": "A 45-year-old man presents with painless bright red rectal bleeding. Examination reveals dilated veins within the anal columns above the pectinate line. Which vein contributes to these structures?",
+      "options": [
+        "Inferior rectal vein",
+        "Middle rectal vein",
+        "Superior rectal vein",
+        "Internal pudendal vein"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 2,
+      "question": "A surgeon identifies a wavy line in the anal canal that marks the embryological site of attachment of the anal membrane. Which structure is being observed?",
+      "options": [
+        "Hilton's white line",
+        "Pectinate (dentate) line",
+        "Anal verge",
+        "Anorectal junction"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 3,
+      "question": "A patient with chronic constipation is found to have thickening of the internal anal sphincter. Which statement regarding this sphincter is correct?",
+      "options": [
+        "It is composed of skeletal muscle.",
+        "It surrounds the entire anal canal.",
+        "It is continuous with the circular muscle layer of the gut.",
+        "It is supplied by the inferior rectal nerve."
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 4,
+      "question": "During pelvic surgery, parasympathetic fibers to the internal anal sphincter are damaged. Which spinal segments give rise to these fibers?",
+      "options": [
+        "T10–T12",
+        "L1–L2",
+        "S2–S4",
+        "S5–Co1"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 5,
+      "question": "A 32-year-old woman has an injury to the inferior rectal nerve. Which muscle is most likely affected?",
+      "options": [
+        "Internal anal sphincter",
+        "Levator ani",
+        "External anal sphincter",
+        "Obturator internus"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 6,
+      "question": "A patient has a lesion supplied by the inferior rectal artery. The lesion is most likely located in which part of the anal canal?",
+      "options": [
+        "Upper part above the pectinate line",
+        "At the anorectal junction",
+        "Lower part below the pectinate line",
+        "Anal columns"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 7,
+      "question": "A surgeon is operating in the ischiorectal fossa and identifies a wedge-shaped fat-filled space lateral to the anal canal. Which structure forms the medial wall of this fossa?",
+      "options": [
+        "Obturator internus muscle",
+        "Ischium",
+        "Sacrotuberous ligament",
+        "External anal sphincter"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 8,
+      "question": "A patient suffers trauma to the coccygeal region affecting the origin of a portion of the external anal sphincter. Which part arises from the tip of the coccyx and the anococcygeal body?",
+      "options": [
+        "Deep part",
+        "Superficial part",
+        "Subcutaneous part",
+        "Internal part"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 9,
+      "question": "A 58-year-old man undergoes surgery that damages the circular smooth muscle surrounding the upper two-thirds of the anal canal. Which structure has most likely been injured?",
+      "options": [
+        "Deep external anal sphincter",
+        "Internal anal sphincter",
+        "Levator ani",
+        "Subcutaneous external sphincter"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 10,
+      "question": "A patient loses voluntary control of defecation after injury to the inferior rectal nerve. Which muscle is primarily affected?",
+      "options": [
+        "Internal anal sphincter",
+        "Circular muscle of rectum",
+        "External anal sphincter",
+        "Longitudinal muscle of rectum"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 11,
+      "question": "A medical student is asked which anal sphincter is a continuation of the circular muscle layer of the gut. The correct answer is:",
+      "options": [
+        "Deep external sphincter",
+        "Superficial external sphincter",
+        "Internal anal sphincter",
+        "Subcutaneous external sphincter"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 12,
+      "question": "During a practical exam, a student is asked which part of the external anal sphincter forms the \"true sphincter\" and has no bony attachment. Which is correct?",
+      "options": [
+        "Superficial part",
+        "Subcutaneous part",
+        "Deep part",
+        "Internal part"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 13,
+      "question": "A surgeon identifies muscle fibers arising from the tip of the coccyx and passing around the anus to insert into the perineal body. Which part of the external anal sphincter is this?",
+      "options": [
+        "Deep part",
+        "Internal sphincter",
+        "Subcutaneous part",
+        "Superficial part"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 14,
+      "question": "A patient with spinal cord injury at L1-L2 experiences altered autonomic control of the anal canal. Which sphincter receives sympathetic fibers from these segments?",
+      "options": [
+        "External anal sphincter",
+        "Levator ani",
+        "Internal anal sphincter",
+        "Coccygeus"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 15,
+      "question": "Which pair correctly matches muscle type and sphincter?",
+      "options": [
+        "Internal sphincter – skeletal muscle",
+        "External sphincter – smooth muscle",
+        "Internal sphincter – smooth muscle",
+        "External sphincter – involuntary smooth muscle"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 16,
+      "question": "A surgeon accidentally damages the perineal branch of the 4th sacral nerve. Which structure may lose part of its motor innervation?",
+      "options": [
+        "Internal anal sphincter",
+        "External anal sphincter",
+        "Superior rectal artery",
+        "Anal columns"
+      ],
+      "explanation": "",
+      "answer": 1
+    }
+  ]
+}

@@ -1,0 +1,325 @@
+{
+  "subSubjectId": "small_intestine",
+  "questions": [
+    {
+      "id": 1,
+      "question": "The epithelium covering intestinal villi mainly consists of:",
+      "options": [
+        "Stratified squamous epithelium",
+        "Simple columnar epithelium",
+        "Transitional epithelium",
+        "Pseudostratified epithelium"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 2,
+      "question": "Plicae circularis are formed by:",
+      "options": [
+        "Mucosa only",
+        "Submucosa only",
+        "Mucosa and part of submucosa",
+        "Muscularis externa"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 3,
+      "question": "Peyer's patches are mainly found in the:",
+      "options": [
+        "Duodenum",
+        "Jejunum",
+        "Ileum",
+        "Stomach"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 4,
+      "question": "The central lymphatic vessel inside the villus is called:",
+      "options": [
+        "Lacteal",
+        "Sinusoid",
+        "Canaliculus",
+        "Duct"
+      ],
+      "answer": 0,
+      "explanation": ""
+    },
+    {
+      "id": 5,
+      "question": "Paneth cells secrete:",
+      "options": [
+        "Mucin",
+        "HCl",
+        "Lysozyme",
+        "Gastrin"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 6,
+      "question": "Which of the following structures contributes MOST to the 30-fold increase in absorptive surface area?",
+      "options": [
+        "Plicae circularis",
+        "Intestinal villi",
+        "Microvilli",
+        "Crypts of Lieberkühn"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 7,
+      "question": "The actin filaments within microvilli are attached at their bases to:",
+      "options": [
+        "Zonula occludens",
+        "Terminal web",
+        "Desmosomes",
+        "Glycocalyx"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 8,
+      "question": "Which junction prevents paracellular leakage of intestinal contents?",
+      "options": [
+        "Macula adherens",
+        "Gap junction",
+        "Zonula occludens",
+        "Hemidesmosome"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 9,
+      "question": "A histological section shows intestinal mucosa with broad leaf-shaped villi and Brunner's glands in submucosa. The section is from:",
+      "options": [
+        "Jejunum",
+        "Ileum",
+        "Duodenum",
+        "Colon"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 10,
+      "question": "Peyer's patches penetrate through:",
+      "options": [
+        "Muscularis externa",
+        "Serosa",
+        "Muscularis mucosa",
+        "Adventitia"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 11,
+      "question": "The upper half of the crypt of Lieberkühn is lined mainly by:",
+      "options": [
+        "Paneth cells and stem cells",
+        "Goblet cells and absorptive cells",
+        "M cells only",
+        "Enteroendocrine cells only"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 12,
+      "question": "Which enteroendocrine cell increases peristaltic movement?",
+      "options": [
+        "D cell",
+        "EC cell",
+        "K cell",
+        "A cell"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 13,
+      "question": "A tumor destroying Paneth cells would MOST likely lead to:",
+      "options": [
+        "Reduced mucus production",
+        "Decreased HCl secretion",
+        "Increased bacterial overgrowth",
+        "Impaired glycogenolysis"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 14,
+      "question": "Which of the following is NOT found in the lower half of intestinal crypts?",
+      "options": [
+        "Paneth cells",
+        "Stem cells",
+        "Enterocytes",
+        "Enteroendocrine cells"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 15,
+      "question": "The central core of an intestinal villus contains ALL EXCEPT:",
+      "options": [
+        "Lacteal",
+        "Blood capillaries",
+        "Smooth muscle fibers",
+        "Myenteric plexus"
+      ],
+      "answer": 3,
+      "explanation": ""
+    },
+    {
+      "id": 16,
+      "question": "M cells differ from enterocytes because they:",
+      "options": [
+        "Have abundant microvilli",
+        "Secrete digestive enzymes",
+        "Possess basal invaginations containing lymphocytes",
+        "Contain brush border"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 17,
+      "question": "Which feature distinguishes ileum from jejunum?",
+      "options": [
+        "Brunner's glands",
+        "Absence of goblet cells",
+        "Peyer's patches",
+        "Tongue-shaped villi"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 18,
+      "question": "Urogastrone secreted by intestinal glands:",
+      "options": [
+        "Stimulates HCl secretion",
+        "Inhibits HCl secretion",
+        "Increases motility",
+        "Stimulates bile release"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 19,
+      "question": "Which structure is retroperitoneal in part?",
+      "options": [
+        "Jejunum",
+        "Ileum",
+        "Duodenum",
+        "Colon"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 20,
+      "question": "A biopsy shows abundant goblet cells, fewer villi, and large lymphoid aggregates opposite mesenteric attachment. Diagnosis?",
+      "options": [
+        "Duodenum",
+        "Jejunum",
+        "Ileum",
+        "Stomach"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 21,
+      "question": "Goblet cells increase in number from duodenum to ileum.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": ""
+    },
+    {
+      "id": 22,
+      "question": "Auerbach's plexus is found in the submucosa.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 23,
+      "question": "Microvilli increase absorptive surface area by about 30 times.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": ""
+    },
+    {
+      "id": 24,
+      "question": "M cells are responsible for mucus secretion.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 25,
+      "question": "Goblet cells decrease in number from duodenum to ileum.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 26,
+      "question": "Enteroendocrine cells are stained with silver and chromium salts.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": ""
+    },
+    {
+      "id": 27,
+      "question": "Paneth cells have basophilic apical granules and acidophilic basal cytoplasm.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 28,
+      "question": "The serosa of the small intestine is formed by mesothelium + thin loose connective tissue.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": ""
+    }
+  ]
+}

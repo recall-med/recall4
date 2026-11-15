@@ -34,6 +34,14 @@
   <link rel="icon" type="image/png" href="assets/images/favicon.png" />
   <link rel="apple-touch-icon" href="assets/images/favicon.png" />
 
+  <!-- Theme: apply before render to prevent flash -->
+  <script>
+    (function() {
+      var t = localStorage.getItem('dqb_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+
   <!-- Styles -->
   <link rel="stylesheet" href="assets/css/styles.css" />
 

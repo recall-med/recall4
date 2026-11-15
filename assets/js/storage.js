@@ -144,4 +144,11 @@ const Storage = {
   resetAll() {
     Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
   },
+
+  // Wipe all history but keep flagged questions
+  wipeHistory() {
+    const flagged = this.getFlagged();
+    Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+    if (flagged.length > 0) this._set(STORAGE_KEYS.FLAGGED, flagged);
+  },
 };

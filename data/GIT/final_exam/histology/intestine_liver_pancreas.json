@@ -1,0 +1,365 @@
+{
+  "subSubjectId": "intestine_liver_pancreas",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Paneth cells are located:",
+      "options": [
+        "At the tips of villi",
+        "In the crypts of Lieberkuhn",
+        "In the submucosa",
+        "In the muscularis externa"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 2,
+      "question": "Which layer contains myenteric plexus?",
+      "options": [
+        "Lamina propria",
+        "Muscularis externa",
+        "Submucosa",
+        "Muscularis mucosa"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 3,
+      "question": "A histological section shows numerous goblet cells, Peyer's patches and short villi. This section is taken from:",
+      "options": [
+        "Duodenum",
+        "Ileum",
+        "Jejunum",
+        "Transverse colon"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 4,
+      "question": "Which feature best distinguishes the jejunum from the duodenum histologically?",
+      "options": [
+        "Presence of villi",
+        "Presence of crypts",
+        "Presence of enterocytes",
+        "Absence of Brunner's glands"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 5,
+      "question": "Compared with the small intestine, the large intestine contains:",
+      "options": [
+        "More Paneth cells",
+        "More villi",
+        "Brunner's glands",
+        "More goblet cells"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 6,
+      "question": "Which feature helps distinguish the large intestine from the small intestine histologically?",
+      "options": [
+        "Presence of simple columnar epithelium",
+        "Presence of crypts",
+        "Presence of lamina propria",
+        "Absence of villi"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 7,
+      "question": "Which cell type is most numerous in the surface epithelium of the large intestine?",
+      "options": [
+        "Paneth cells",
+        "Goblet cells",
+        "Chief cells",
+        "M cells"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 8,
+      "question": "The secretory units of exocrine portion of pancreas are:",
+      "options": [
+        "Mucus acini",
+        "Serous acini",
+        "Mixed acini",
+        "Islets of Langerhans"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 9,
+      "question": "Which feature distinguishes the exocrine portion of pancreas from the parotid gland histologically?",
+      "options": [
+        "Presence of striated ducts",
+        "Presence of Serous acini",
+        "Presence of connective tissue septa",
+        "Presence of Centroacinar cells"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 10,
+      "question": "A histological section shows dark staining serous acini, centroacinar cells and pale staining islets. This section is taken from:",
+      "options": [
+        "Parotid gland",
+        "Pancreas",
+        "Liver",
+        "Submandibular gland"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 11,
+      "question": "The functional unit of the liver which is classically hexagonal in shape is:",
+      "options": [
+        "Portal lobule",
+        "Classical hepatic lobule",
+        "Portal triad",
+        "Hepatic acinus"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 12,
+      "question": "Kupffer cells are:",
+      "options": [
+        "Hepatic stem cell",
+        "Macrophage lining the sinusoids",
+        "Ito cells",
+        "Pit cells"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 13,
+      "question": "Ito cells are responsible for:",
+      "options": [
+        "Bile secretion",
+        "Vitamin A storage",
+        "Phagocytosis",
+        "Plasma protein production"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 14,
+      "question": "Sinusoids differ from capillaries because they:",
+      "options": [
+        "Are non-fenestrated",
+        "Have thick basement membrane",
+        "Are discontinuous and fenestrated",
+        "Lack endothelial cells"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 15,
+      "question": "A patient has Vitamin A deficiency due to liver failure. Which liver cell normally stores Vitamin A?",
+      "options": [
+        "Hepatocytes",
+        "Kupffer cells",
+        "Ito cells",
+        "Pit cells"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 16,
+      "question": "Hepatocytes are arranged in:",
+      "options": [
+        "Plates",
+        "Follicles",
+        "Rosettes",
+        "Acini"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 17,
+      "question": "The hepatic acinus is primarily based on:",
+      "options": [
+        "Blood flow gradient",
+        "Bile flow direction",
+        "Connective tissue pattern",
+        "Central vein location"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 18,
+      "question": "Centroacinar cells are:",
+      "options": [
+        "Endocrine cells",
+        "The intra-acinar portion of intercalated ducts",
+        "Mucus secreting cells",
+        "Cells of islets of Langerhans"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 19,
+      "question": "Which duct is absent in the pancreas?",
+      "options": [
+        "Intercalated ducts",
+        "Intralobular ducts",
+        "Interlobular ducts",
+        "Striated ducts"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 20,
+      "question": "The zymogen granules of pancreatic acinar cells are located in the:",
+      "options": [
+        "Basal cytoplasm",
+        "Nucleus",
+        "Basement membrane",
+        "Apical cytoplasm"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 21,
+      "question": "Basophilia of pancreatic acinar cells is mainly due to:",
+      "options": [
+        "Mitochondria",
+        "Smooth endoplasmic reticulum",
+        "Rough endoplasmic reticulum",
+        "Lysosome"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 22,
+      "question": "Which enzyme is secreted by the exocrine pancreas?",
+      "options": [
+        "Insulin",
+        "Glucagon",
+        "Trypsinogen",
+        "Somatostatin"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 23,
+      "question": "Which of the following is not a feature of the exocrine pancreas?",
+      "options": [
+        "Serous acini",
+        "Centroacinar cells",
+        "Striated ducts",
+        "The zymogen granules"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 24,
+      "question": "The pancreas is considered as:",
+      "options": [
+        "Compound serous tubuloacinar gland",
+        "Compound mucous tubuloacinar gland",
+        "Simple tubular gland",
+        "Mixed tubuloalveolar gland"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 25,
+      "question": "The space of Disse is located between:",
+      "options": [
+        "Hepatocytes and blood sinusoid",
+        "Hepatocytes and bile canaliculi",
+        "Portal triad and bile canal",
+        "Kupffer cells and blood sinusoids"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 26,
+      "question": "The direction of blood flow in the liver is:",
+      "options": [
+        "From portal triad to central vein",
+        "From central vein to portal triad",
+        "From bile duct to central vein",
+        "From bile duct to portal vein"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 27,
+      "question": "The direction of bile flow in the liver is:",
+      "options": [
+        "From portal triad to central vein",
+        "From central vein to portal triad",
+        "From bile duct to central vein",
+        "From bile duct to portal vein"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 28,
+      "question": "A toxic drug causes damage to macrophage in liver sinusoids. Which function will be impaired?",
+      "options": [
+        "Bile production",
+        "Phagocytosis of bacteria",
+        "Glycogen storage",
+        "Albumin synthesis"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 29,
+      "question": "A patient has jaundice due to obstruction of bile flow. Bile normally flows:",
+      "options": [
+        "Hepatocytes → sinusoid → central vein",
+        "Hepatocytes → bile canaliculi → portal triad",
+        "Portal triad → hepatocytes",
+        "Central vein → bile duct"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 30,
+      "question": "Studying hepatic acinus, oxygen concentration is highest near:",
+      "options": [
+        "Central vein",
+        "Portal triad (Zone 1)",
+        "Zone 3",
+        "Sinusoids only"
+      ],
+      "explanation": "",
+      "answer": 1
+    }
+  ]
+}

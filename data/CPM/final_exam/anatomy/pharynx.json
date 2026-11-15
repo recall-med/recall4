@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "module": "CPM",
+    "examType": "final_exam",
+    "subject": "anatomy",
+    "subSubject": "pharynx",
+    "totalQuestions": 14
+  },
+  "questions": [
+    {
+      "question": "A 7-year-old boy presents with mouth breathing and snoring. On examination, enlarged lymphoid tissue is noted at the junction of the roof and posterior wall of the nasopharynx. What is this structure called?",
+      "options": [
+        "Palatine tonsil",
+        "Lingual tonsil",
+        "Pharyngeal tonsil (adenoid)",
+        "Tubal elevation"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Pharyngeal tonsil (adenoid)",
+      "id": 1
+    },
+    {
+      "question": "A patient with a history of recurrent otitis media is found to have a nasopharyngeal mass obstructing the opening of the auditory tube. Which structure is most likely involved?",
+      "options": [
+        "Palatine tonsil",
+        "Lingual tonsil",
+        "Pharyngeal tonsil",
+        "Piriform fossa"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Pharyngeal tonsil",
+      "id": 2
+    },
+    {
+      "question": "A 25-year-old woman complains of difficulty swallowing and pain in the throat. On examination, a foreign body is visualized in the piriform fossa. Which nerve is at risk of injury during removal?",
+      "options": [
+        "Glossopharyngeal nerve",
+        "Internal laryngeal nerve",
+        "Recurrent laryngeal nerve",
+        "Hypoglossal nerve"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Internal laryngeal nerve",
+      "id": 3
+    },
+    {
+      "question": "A 50-year-old man is diagnosed with a tumor involving the pharyngeal wall. Which layer is most superficial?",
+      "options": [
+        "Mucous membrane",
+        "Pharyngobasilar fascia",
+        "Muscular coat",
+        "Buccopharyngeal fascia"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Buccopharyngeal fascia",
+      "id": 4
+    },
+    {
+      "question": "A 5-year-old boy presents with nasal regurgitation of food and a nasal quality of speech. Examination reveals paralysis of the soft palate. Which part of the pharynx is most directly affected?",
+      "options": [
+        "Nasopharynx",
+        "Oropharynx",
+        "Laryngopharynx",
+        "Piriform recess"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Nasopharynx",
+      "id": 5
+    },
+    {
+      "question": "A 55-year-old female accidentally swallows a fish bone that becomes lodged in a recess on either side of the laryngeal inlet. Which anatomical space is most likely involved?",
+      "options": [
+        "Vallecula",
+        "Piriform recess",
+        "Rima glottidis",
+        "Pharyngeal tonsil"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Piriform recess",
+      "id": 6
+    },
+    {
+      "question": "A 6-year-old child presents with nasal obstruction and mouth breathing. Examination reveals enlarged adenoids. Which structure is enlarged?",
+      "options": [
+        "Palatine tonsil",
+        "Lingual tonsil",
+        "Pharyngeal tonsil",
+        "Tubal tonsil"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Pharyngeal tonsil",
+      "id": 7
+    },
+    {
+      "question": "A 40-year-old male has severe sore throat and difficulty swallowing. Examination shows enlarged tonsils located between the palatoglossal and palatopharyngeal arches. Which tonsil is affected?",
+      "options": [
+        "Pharyngeal tonsil",
+        "Lingual tonsil",
+        "Palatine tonsil",
+        "Tubal tonsil"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Palatine tonsil",
+      "id": 8
+    },
+    {
+      "question": "A 25-year-old female develops infection spreading from the nasal cavity to the middle ear via a pharyngeal structure. Which structure provides this connection?",
+      "options": [
+        "Auditory (pharyngotympanic) tube",
+        "Laryngeal inlet",
+        "Piriform recess",
+        "Epiglottis"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Auditory (pharyngotympanic) tube",
+      "id": 9
+    },
+    {
+      "question": "A 50-year-old male with carcinoma of the pharynx has difficulty swallowing and breathing. The tumor is located posterior to the larynx. Which part of the pharynx is affected?",
+      "options": [
+        "Nasopharynx",
+        "Oropharynx",
+        "Laryngopharynx",
+        "Tonsillar fossa"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Laryngopharynx",
+      "id": 10
+    },
+    {
+      "question": "A 22-year-old female complains of pain when swallowing. Which muscle group is primarily responsible for elevating the pharynx during swallowing?",
+      "options": [
+        "Constrictor muscles",
+        "Longitudinal muscles",
+        "Intercostal muscles",
+        "Diaphragm"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Longitudinal muscles",
+      "id": 11
+    },
+    {
+      "question": "A 45-year-old male has a tumor affecting the pharyngeal constrictor muscles. What is the main function of these muscles?",
+      "options": [
+        "Elevate the pharynx",
+        "Constrict the pharynx during swallowing",
+        "Open the auditory tube",
+        "Control vocal cords"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Constrict the pharynx during swallowing",
+      "id": 12
+    },
+    {
+      "question": "A 35-year-old female has infection in the oropharynx. Which structure marks the boundary between nasopharynx and oropharynx?",
+      "options": [
+        "Soft palate",
+        "Epiglottis",
+        "Hyoid bone",
+        "Vocal cords"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Soft palate",
+      "id": 13
+    },
+    {
+      "question": "A patient with a nasopharyngeal tumor is found to have obstruction of the auditory tube. Which structure is located on the lateral wall of the nasopharynx?",
+      "options": [
+        "Pharyngeal tonsil",
+        "Tubal elevation",
+        "Lingual tonsil",
+        "Palatine tonsil"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Pharyngeal tonsil",
+      "id": 14
+    }
+  ]
+}

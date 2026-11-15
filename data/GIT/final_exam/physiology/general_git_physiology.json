@@ -1,0 +1,1229 @@
+{
+  "subSubjectId": "general_git_physiology",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Deglutition is defined as:",
+      "options": [
+        "Digestion of food in the stomach",
+        "Propelling food bolus from mouth to stomach",
+        "Absorption of nutrients in the intestine",
+        "Formation of saliva"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 2,
+      "question": "The swallowing center is located in the:",
+      "options": [
+        "Hypothalamus",
+        "Pons",
+        "Medulla oblongata",
+        "Cerebral cortex"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 3,
+      "question": "Which phase of swallowing is voluntary?",
+      "options": [
+        "Pharyngeal phase",
+        "Esophageal phase",
+        "Buccal phase",
+        "Gastric phase"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 4,
+      "question": "During the buccal phase, the food bolus is propelled by:",
+      "options": [
+        "Contraction of esophageal muscles",
+        "Elevation and retraction of the tongue",
+        "Relaxation of the LES",
+        "Closure of the glottis"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 5,
+      "question": "The afferent nerve of the swallowing reflex is the:",
+      "options": [
+        "Vagus nerve",
+        "Trigeminal nerve",
+        "Glossopharyngeal nerve",
+        "Hypoglossal nerve"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 6,
+      "question": "Closure of the glottis during swallowing is aided by:",
+      "options": [
+        "Relaxation of vocal cords",
+        "Folding of the epiglottis",
+        "Contraction of the LES",
+        "Opening of the pylorus"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 7,
+      "question": "Temporary inhibition of breathing during swallowing is called:",
+      "options": [
+        "Dyspnea",
+        "Apnea",
+        "Swallowing apnea",
+        "Hyperventilation"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 8,
+      "question": "The upper esophageal sphincter is normally closed to prevent:",
+      "options": [
+        "Gastric reflux",
+        "Entry of inspired air into the stomach",
+        "Food entering the mouth",
+        "Duodenal reflux"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 9,
+      "question": "Primary peristaltic waves are:",
+      "options": [
+        "Initiated by food remaining in the esophagus",
+        "Continuation of pharyngeal peristalsis",
+        "Present only in the lower esophagus",
+        "Controlled solely by local reflexes"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 10,
+      "question": "Secondary peristaltic waves are initiated by:",
+      "options": [
+        "Gastrin secretion",
+        "Presence of bolus in the esophagus",
+        "Swallowing center stimulation",
+        "LES contraction"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 11,
+      "question": "The lower esophageal sphincter is also called the:",
+      "options": [
+        "Pyloric sphincter",
+        "Pharyngoesophageal sphincter",
+        "Cardiac sphincter",
+        "Ileocecal sphincter"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 12,
+      "question": "tone of the LES is increased by:",
+      "options": [
+        "VIP",
+        "Fatty foods",
+        "Gastrin",
+        "Coffee"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 13,
+      "question": "A food bolus becomes lodged within the esophagus. Additional peristaltic waves are generated until the bolus reaches the stomach. These waves are called:",
+      "options": [
+        "Primary peristalsis",
+        "Reverse peristalsis",
+        "Secondary peristalsis",
+        "Mass movement"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 14,
+      "question": "Which of the following decreases LES tone?",
+      "options": [
+        "Sympathetic α-adrenergic stimulation",
+        "Gastrin",
+        "Myenteric excitatory stimulation",
+        "Chocolate"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 15,
+      "question": "Gastric reflux is prevented by all EXCEPT:",
+      "options": [
+        "High-pressure LES zone",
+        "Acute angle of entry into stomach",
+        "Gastrin-induced LES contraction",
+        "Relaxed LES tone"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 16,
+      "question": "Dysphagia means:",
+      "options": [
+        "Painful swallowing",
+        "Difficult swallowing",
+        "Excessive swallowing",
+        "Absence of swallowing"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 17,
+      "question": "A patient complains of recurrent heartburn after meals. Examination reveals reduced tone of the lower esophageal sphincter (LES). Which factor normally increases LES tone?",
+      "options": [
+        "VIP",
+        "Gastrin",
+        "Chocolate",
+        "Coffee"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 18,
+      "question": "Achalasia results mainly from deficiency of:",
+      "options": [
+        "Histamine and gastrin",
+        "Acetylcholine and gastrin",
+        "NO and VIP",
+        "Secretin and CCK"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 19,
+      "question": "A patient with congenital absence of inhibitory neurons in the lower esophagus develops marked esophageal dilatation. The diagnosis is:",
+      "options": [
+        "GERD",
+        "Dysphagia",
+        "Achalasia",
+        "Hiatal hernia"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 20,
+      "question": "Which gastric cells secrete HCl and intrinsic factor?",
+      "options": [
+        "Chief cells",
+        "G cells",
+        "Parietal cells",
+        "D cells"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 21,
+      "question": "Chief cells secrete:",
+      "options": [
+        "Gastrin",
+        "Pepsinogen",
+        "Histamine",
+        "Somatostatin"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 22,
+      "question": "A 62-year-old patient presents with fatigue, pallor, glossitis, and numbness in the hands and feet. Laboratory investigations reveal a macrocytic anemia with low serum vitamin B12 levels. Further evaluation suggests autoimmune destruction of gastric parietal cells .The patient's anemia is most likely due to a deficiency of:",
+      "options": [
+        "Gastrin",
+        "Hydrochloric acid (HCl)",
+        "Intrinsic factor",
+        "Pepsin"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 23,
+      "question": "Acetylcholine stimulates HCl secretion through:",
+      "options": [
+        "M3 receptors",
+        "H2 receptors",
+        "CCK-B receptors",
+        "β2 receptors"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 24,
+      "question": "Which drug blocks histamine-stimulated gastric acid secretion?",
+      "options": [
+        "Atropine",
+        "Omeprazole",
+        "Cimetidine",
+        "Misoprostol"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 25,
+      "question": "Gastrin stimulates acid secretion by acting on:",
+      "options": [
+        "M3 receptors",
+        "H2 receptors",
+        "CCK-B receptors",
+        "α receptors"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 26,
+      "question": "Postprandial alkaline tide is due to:",
+      "options": [
+        "Secretion of HCl into blood",
+        "Diffusion of bicarbonate into blood",
+        "Secretion of pepsin",
+        "Gastrin release"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 27,
+      "question": "The optimum pH for pepsin activity is:",
+      "options": [
+        "6–7",
+        "4–5",
+        "1.8–3.5",
+        "8–9"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 28,
+      "question": "Gastric lipase acts mainly on:",
+      "options": [
+        "Long-chain fats",
+        "Medium-chain fats",
+        "Short-chain fats",
+        "Cholesterol"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 29,
+      "question": "The thick alkaline mucus protecting gastric mucosa is secreted by:",
+      "options": [
+        "Chief cells",
+        "Surface epithelial cells",
+        "G cells",
+        "D cells"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 30,
+      "question": "Gastrin is secreted mainly from:",
+      "options": [
+        "Fundus",
+        "Body of stomach",
+        "Pyloric antrum G cells",
+        "Duodenum"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 31,
+      "question": "Which hormone increases LES tone?",
+      "options": [
+        "Secretin",
+        "VIP",
+        "Gastrin",
+        "GIP"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 32,
+      "question": "A patient with peptic ulcer disease is treated with cimetidine. The drug decreases gastric acid secretion by blocking the action of:",
+      "options": [
+        "Gastrin on CCK-B receptors",
+        "Acetylcholine on M3 receptors",
+        "Histamine on H2 receptors",
+        "Somatostatin receptors"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 33,
+      "question": "Prostaglandin E₂ protects the stomach by:",
+      "options": [
+        "Increasing HCl secretion",
+        "Decreasing mucus secretion",
+        "Increasing alkaline mucus and reducing acid secretion",
+        "Relaxing the LES"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 34,
+      "question": "The neurotransmitter responsible for receptive relaxation is:",
+      "options": [
+        "Acetylcholine",
+        "Norepinephrine",
+        "VIP",
+        "Dopamine"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 35,
+      "question": "Gastric peristalsis begins mainly at the:",
+      "options": [
+        "Cardia",
+        "Middle of the stomach",
+        "Duodenum",
+        "Fundus"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 36,
+      "question": "Hunger contractions are triggered mainly by:",
+      "options": [
+        "Hyperglycemia",
+        "Hypoglycemia",
+        "Hypercalcemia",
+        "Hyperlipidemia"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 37,
+      "question": "Hunger contractions can be abolished by:",
+      "options": [
+        "Secretin",
+        "CCK",
+        "Atropine or vagotomy",
+        "Gastrin"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 38,
+      "question": "Parasympathetic stimulation of the stomach is:",
+      "options": [
+        "Inhibitory",
+        "Excitatory cholinergic",
+        "Adrenergic",
+        "Absent"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 39,
+      "question": "Sympathetic stimulation of gastric motility is:",
+      "options": [
+        "Excitatory",
+        "Cholinergic",
+        "Inhibitory",
+        "Mixed"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 40,
+      "question": "The slowest gastric emptying occurs with:",
+      "options": [
+        "Carbohydrates",
+        "Fats",
+        "Water",
+        "Proteins"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 41,
+      "question": "Moderate gastric distension increases emptying mainly through:",
+      "options": [
+        "Secretin release",
+        "Vago-vagal reflex and gastrin",
+        "CCK release",
+        "Sympathetic stimulation"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 42,
+      "question": "A medical student experiences acute emotional stress while fasting (interdigestive period). Under these conditions, there would be an increase in the secretion of which of the following:",
+      "options": [
+        "Mucus only",
+        "Acidic peptic gastric juice",
+        "Bile",
+        "Pancreatic enzymes"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 43,
+      "question": "A healthy volunteer swallows a large meal. The fundus and body of the stomach relax to accommodate the incoming food without a significant rise in intragastric pressure. This response is known as:",
+      "options": [
+        "Hunger contractions",
+        "Retropulsion",
+        "Receptive relaxation",
+        "Mass movement"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 44,
+      "question": "Gastric emptying is accelerated by:",
+      "options": [
+        "Atropine",
+        "Adrenergic drugs",
+        "Alcohol",
+        "Smoking"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 45,
+      "question": "45-year-old male presents to the clinic with persistent early satiety, upper abdominal bloating, and nausea. Which of the following medications is most likely contributing to his symptoms by causing delayed gastric emptying?",
+      "options": [
+        "Coffee",
+        "Bicarbonate",
+        "Atropine",
+        "Cholinergic drugs"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 46,
+      "question": "The vomiting center is located in the:",
+      "options": [
+        "Hypothalamus",
+        "Pons",
+        "Medulla oblongata",
+        "Cerebral cortex"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 47,
+      "question": "The chemoreceptor trigger zone (CTZ) is located:",
+      "options": [
+        "In the stomach wall",
+        "Near the fourth ventricle",
+        "In the hypothalamus",
+        "In the cerebellum"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 48,
+      "question": "Motion sickness induces vomiting mainly through:",
+      "options": [
+        "Gastric receptors",
+        "CTZ stimulation",
+        "Liver receptors",
+        "Pancreatic receptors"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 49,
+      "question": "Which cranial nerve is NOT involved in vomiting?",
+      "options": [
+        "Trigeminal nerve",
+        "Facial nerve",
+        "Glossopharyngeal nerve",
+        "Optic nerve"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 50,
+      "question": "During retching, the lower esophageal sphincter is:",
+      "options": [
+        "Relaxed",
+        "Contracted (closed)",
+        "Absent",
+        "Dilated"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 51,
+      "question": "During actual vomiting, the stomach is:",
+      "options": [
+        "Strongly contracted throughout",
+        "Passive and relaxed",
+        "Emptying by peristalsis only",
+        "Contracting rhythmically"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 52,
+      "question": "During vomiting, aspiration is prevented by:",
+      "options": [
+        "Opening of glottis",
+        "Elevation of soft palate and closure of glottis",
+        "Relaxation of pharynx",
+        "Increased respiration"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 53,
+      "question": "Tetany after prolonged vomiting occurs mainly due to:",
+      "options": [
+        "Hypercalcemia",
+        "Hypernatremia",
+        "Decreased ionized calcium secondary to alkalemia",
+        "Hypermagnesemia"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 54,
+      "question": "A 45-year-old patient presents with a 3-day history of persistent vomiting. Laboratory results are most likely to show which of the following electrolyte abnormalities?:",
+      "options": [
+        "Hyperkalemia",
+        "Hypercalcemia",
+        "Hypokalemia",
+        "Hyperphosphatemia"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 55,
+      "question": "Which hormone is responsible for the fasting \" contractions of the stomach?",
+      "options": [
+        "Gastrin",
+        "Secretin",
+        "Motilin",
+        "CCK"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 56,
+      "question": "A patient undergoes vagotomy. Which gastric activity is abolished?",
+      "options": [
+        "Gastric acid secretion completely",
+        "Hunger contractions",
+        "Gastric slow waves",
+        "BER generation"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 57,
+      "question": "Excess duodenal acidity delays gastric emptying by:",
+      "options": [
+        "Enterogastric reflex only",
+        "GIH release only",
+        "Both enterogastric reflex and gastric inhibitory hormones",
+        "Gastrin release"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 58,
+      "question": "Gastric emptying of a mixed meal normally takes approximately:",
+      "options": [
+        "30 minutes",
+        "1 hour",
+        "3 hours",
+        "8 hours"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 59,
+      "question": "A patient experiences powerful colonic contractions shortly after breakfast. These contractions are known as:",
+      "options": [
+        "Haustrations",
+        "Weak peristalsis",
+        "Antiperistalsis",
+        "Mass movements"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 60,
+      "question": "The predominant movement responsible for water and electrolyte absorption in the colon is:",
+      "options": [
+        "Mass movement",
+        "Segmentation (haustral contractions)",
+        "Antiperistalsis",
+        "Vomiting reflex"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 61,
+      "question": "A microbiologist studies beneficial bacterial actions in the colon. Which vitamin is synthesized by colonic bacteria?",
+      "options": [
+        "Vitamin A",
+        "Vitamin D",
+        "Vitamin K",
+        "Vitamin E"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 62,
+      "question": "A patient receives prolonged broad-spectrum antibiotics resulting in loss of normal colonic flora.Which function is likely impaired?",
+      "options": [
+        "HCl secretion",
+        "Vitamin K synthesis",
+        "Bile secretion",
+        "Gastrin release"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 63,
+      "question": "A patient develops damage to the pudendal nerve. Which structure loses voluntary control?",
+      "options": [
+        "Rectum",
+        "Internal anal sphincter",
+        "External anal sphincter",
+        "Sigmoid colon"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 64,
+      "question": "The involuntary defecation center is located mainly in:",
+      "options": [
+        "Cervical spinal cord",
+        "Thoracic spinal cord",
+        "Sacral segments S2–S4",
+        "Medulla only"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 65,
+      "question": "A 24-year-old man voluntarily suppresses the urge to defecate while attending a long examination. Several hours later, the urge disappears temporarily. Which physiological event is most responsible for postponement of defecation?",
+      "options": [
+        "Activation of the spinal defecation reflex with relaxation of both anal sphincters",
+        "Cortical stimulation of the defecation center causing increased peristalsis",
+        "Cortical inhibition of the defecation center associated with rectal relaxation and contraction of the internal anal sphincter",
+        "Relaxation of the external anal sphincter through pudendal nerve stimulation"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 66,
+      "question": "Completion of defecation requires:",
+      "options": [
+        "Contraction of external anal sphincter",
+        "Relaxation of internal sphincter only",
+        "Voluntary relaxation of external anal sphincter",
+        "Closure of internal sphincter"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 67,
+      "question": "The main stimulus for pancreatic bicarbonate secretion is:",
+      "options": [
+        "Gastrin",
+        "CCK",
+        "Secretin",
+        "Histamine"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 68,
+      "question": "Pancreatic enzymatic secretion is produced by:",
+      "options": [
+        "Duct cells",
+        "Acinar cells",
+        "Alpha cells",
+        "Goblet cells"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 69,
+      "question": "The principal stimulant of acinar enzyme secretion is:",
+      "options": [
+        "Secretin",
+        "CCK-PZ",
+        "Histamine",
+        "Somatostatin"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 70,
+      "question": "Acid tide in pancreatic secretion refers to:",
+      "options": [
+        "Increased HCO₃⁻ in blood",
+        "Increased H⁺ in pancreatic venous blood",
+        "Increased Cl⁻ secretion",
+        "Increased Na⁺ absorption"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 71,
+      "question": "A patient with obstruction of the pancreatic duct is most likely to develop impaired digestion of:",
+      "options": [
+        "Fats and proteins",
+        "Water only",
+        "Sodium only",
+        "Vitamin B12 only"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 72,
+      "question": "What is the primary function of the bicarbonate-rich fluid secreted by the pancreatic ductal cells?",
+      "options": [
+        "To emulsify dietary lipids",
+        "To activate salivary amylase in the stomach",
+        "To neutralize acidic chyme entering the duodenum",
+        "To regulate blood glucose levels"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 73,
+      "question": "A healthy person consumes a meal rich in fats. Which hormone will increase the most to stimulate pancreatic enzyme secretion?",
+      "options": [
+        "Secretin",
+        "Gastrin",
+        "CCK",
+        "Somatostatin"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 74,
+      "question": "A patient develops a pancreatic duct obstruction due to a tumor of the head of the pancreas. Which pancreatic secretion would decrease most directly?",
+      "options": [
+        "HCl secretion into the stomach",
+        "Enzymes and bicarbonate entering the duodenum",
+        "Bile synthesis in the liver",
+        "Intrinsic factor secretion"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 75,
+      "question": "A patient has excessive gastric acid secretion due to a gastrinoma. Which pancreatic response helps protect the duodenal mucosa?",
+      "options": [
+        "Increased trypsin secretion",
+        "Increased bicarbonate secretion",
+        "Increased insulin secretion",
+        "Increased glucagon secretion"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 76,
+      "question": "Which process releases glucose from liver glycogen stores?",
+      "options": [
+        "Glycogenesis",
+        "Glycogenolysis",
+        "Lipogenesis",
+        "Ketogenesis"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 77,
+      "question": "Which plasma protein is NOT synthesized by the liver?",
+      "options": [
+        "Albumin",
+        "Fibrinogen",
+        "Gamma globulin",
+        "Prothrombin"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 78,
+      "question": "Which of the following is a function of liver fat metabolism?",
+      "options": [
+        "Insulin synthesis",
+        "Cholesterol synthesis",
+        "Renin production",
+        "Pepsin secretion"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 79,
+      "question": "The liver stores iron mainly in the form of:",
+      "options": [
+        "Hemoglobin",
+        "Hemosiderin only",
+        "Ferritin",
+        "Transferrin"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 80,
+      "question": "Vitamin K is required for hepatic synthesis of:",
+      "options": [
+        "Factors I, V, VIII, XII",
+        "Factors II, VII, IX, X",
+        "Factors II, V, VII, XI",
+        "Factors VIII, IX, XI, XII"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 81,
+      "question": "Approximately how much blood is stored in the liver?",
+      "options": [
+        "100 mL",
+        "250 mL",
+        "450 mL",
+        "900 mL"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 82,
+      "question": "After 24 hours of fasting, maintenance of blood glucose is primarily achieved by the liver through:",
+      "options": [
+        "Lipogenesis",
+        "Glycogenesis",
+        "Glycogenolysis",
+        "Cholesterol synthesis"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 83,
+      "question": "A patient develops prolonged bleeding due to severe liver disease. Which clotting factors are most likely reduced because of impaired vitamin K-dependent synthesis?",
+      "options": [
+        "I, V, VIII, XII",
+        "II, VII, IX, X",
+        "VIII, IX, XI, XII",
+        "I, II, V, VIII"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 84,
+      "question": "A 55-year-old man with advanced liver disease develops confusion and altered mental status. Laboratory investigations reveal elevated blood ammonia levels. Which hepatic function normally prevents this complication?",
+      "options": [
+        "Conversion of cholesterol into bile salts",
+        "Conversion of ammonia into urea",
+        "Storage of vitamin B12",
+        "Formation of bile pigments"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 85,
+      "question": "Acidification of bile in the gallbladder helps prevent:",
+      "options": [
+        "Cholesterol synthesis",
+        "Calcium stone precipitation",
+        "Protein digestion",
+        "Bile secretion"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 86,
+      "question": "Bile pigment stones are mainly composed of:",
+      "options": [
+        "Cholesterol crystals",
+        "Calcium bilirubinate",
+        "Calcium oxalate",
+        "Uric acid"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 87,
+      "question": "The most potent choleretic factor is:",
+      "options": [
+        "Secretin",
+        "Vagal stimulation",
+        "Bile salts",
+        "Magnesium sulfate"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 88,
+      "question": "A 40-year-old woman eats a fatty meal and shortly afterward her gallbladder contracts while the sphincter of Oddi relaxes, allowing bile to enter the duodenum. Which hormone is primarily responsible for this response?",
+      "options": [
+        "Secretin",
+        "Gastrin",
+        "Cholecystokinin (CCK)",
+        "Somatostatin"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 89,
+      "question": "Surgical resection of the terminal ileum is most likely to cause:",
+      "options": [
+        "Increased enterohepatic circulation",
+        "Decreased bile salt reabsorption",
+        "Increased bile salt synthesis only",
+        "Gallbladder enlargement"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 90,
+      "question": "A patient with terminal ileal disease develops steatorrhea and deficiency of fat-soluble vitamins despite normal pancreatic function. The symptoms are mainly due to impaired ability of bile salts to:",
+      "options": [
+        "Activate pepsinogen",
+        "Form micelles for fat absorption",
+        "Stimulate HCl secretion",
+        "Convert bilirubin into urobilinogen"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 91,
+      "question": "Trypsinogen is activated initially by:",
+      "options": [
+        "Secretin",
+        "Gastrin",
+        "Enterokinase",
+        "Lipase"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 92,
+      "question": "Secretin is released mainly in response to:",
+      "options": [
+        "Amino acids",
+        "Fatty acids only",
+        "Acidic chyme in the duodenum",
+        "Distension of stomach"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 93,
+      "question": "Which hormone causes gallbladder contraction?",
+      "options": [
+        "Secretin",
+        "CCK-PZ",
+        "Gastrin",
+        "Somatostatin"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 94,
+      "question": "A patient with terminal ileal disease develops steatorrhea.The defect is most directly related to impaired:",
+      "options": [
+        "HCl secretion",
+        "Micelle formation",
+        "Gastrin secretion",
+        "Pepsin activation"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 95,
+      "question": "A patient presents complete obstruction of the common bile duct. Formation of bilirubin continues normally, but its passage into the intestine is blocked. Which substance will be markedly reduced in the feces?",
+      "options": [
+        "Hemobilirubin",
+        "Conjugated bilirubin",
+        "Urobilinogen",
+        "Stercobilin"
+      ],
+      "explanation": "",
+      "answer": 3
+    },
+    {
+      "id": 96,
+      "question": "A patient has been fasting for 48 hours. Which hormonal pattern is expected?",
+      "options": [
+        "Increased insulin",
+        "Increased insulin and decreased glucagon",
+        "Decreased insulin with increased glucagon",
+        "Increased insulin and catecholamines"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 97,
+      "question": "A starving patient develops ketonemia.The primary source of ketone body production is:",
+      "options": [
+        "Glycogenolysis",
+        "Protein synthesis",
+        "β-oxidation of fatty acids",
+        "Calcium metabolism"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 98,
+      "question": "A prolonged starvation state is associated with:",
+      "options": [
+        "Hyperproteinemia",
+        "Ketonuria",
+        "Increased urinary sodium excretion",
+        "Metabolic alkalosis"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 99,
+      "question": "A 32-year-old woman with obesity starts a weight reduction program. After significant weight loss, she experiences increased hunger due to activation of the feeding center in the hypothalamus. Which physiological stimulus is most closely associated with activation of the feeding center and hunger contractions?",
+      "options": [
+        "Hyperglycemia",
+        "Increased gastric acidity",
+        "Hypoglycemia",
+        "Increased bile salt secretion"
+      ],
+      "explanation": "",
+      "answer": 2
+    },
+    {
+      "id": 100,
+      "question": "A hypothalamic lesion produces excessive food intake and weight gain. The lesion most likely affects the:",
+      "options": [
+        "Feeding inhibition mechanism",
+        "Pancreas",
+        "Liver",
+        "Adrenal cortex"
+      ],
+      "explanation": "",
+      "answer": 0
+    },
+    {
+      "id": 101,
+      "question": "Which cardiovascular complication is commonly associated with obesity?",
+      "options": [
+        "Hypotension",
+        "Atherosclerosis",
+        "Bradycardia",
+        "Heart block"
+      ],
+      "explanation": "",
+      "answer": 1
+    },
+    {
+      "id": 102,
+      "question": "A physician advises an obese patient to consume food rich in cellulose, vegetables, salads, and fruits with reduced fat intake.This recommendation aims primarily to:",
+      "options": [
+        "Increase energy input",
+        "Decrease energy input",
+        "Increase ketogenesis",
+        "Increase cholesterol synthesis"
+      ],
+      "explanation": "",
+      "answer": 1
+    }
+  ]
+}

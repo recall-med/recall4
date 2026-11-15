@@ -1,0 +1,101 @@
+{
+  "subSubjectId": "xenobiotic_metabolism",
+  "questions": [
+    {
+      "id": 1,
+      "question": "The main enzyme system responsible for the activation/oxidation of xenobiotics in Phase I is:",
+      "options": [
+        "Cytochrome P-450 monooxygenase",
+        "Glutathione S-transferase",
+        "UDP-glucuronosyltransferase",
+        "N-acetyltransferase"
+      ],
+      "answer": 0,
+      "explanation": ""
+    },
+    {
+      "id": 2,
+      "question": "In the metabolism of xenobiotics, all of the following reactions occur in Phase I EXCEPT:",
+      "options": [
+        "Conjugation",
+        "Reduction",
+        "Hydrolysis",
+        "Oxidation"
+      ],
+      "answer": 0,
+      "explanation": ""
+    },
+    {
+      "id": 3,
+      "question": "Which organ possesses the greatest quantitative capacity for xenobiotic metabolism?",
+      "options": [
+        "Kidney",
+        "Liver",
+        "Lung",
+        "Intestine"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 4,
+      "question": "Sulfation of xenobiotics during Phase II conjugation reactions requires which active sulfate donor cofactor?",
+      "options": [
+        "S-adenosylmethionine (SAM)",
+        "3'-Phosphoadenosine-5'-phosphosulfate (PAPS)",
+        "UDP-glucuronic acid",
+        "Acetyl-CoA"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 5,
+      "question": "Glucuronidation is the most common Phase II reaction. The active nucleotide sugar donor for this reaction is:",
+      "options": [
+        "UDP-glucose",
+        "UDP-glucuronic acid",
+        "CDP-choline",
+        "PAPS"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 6,
+      "question": "Conjugation with Glutathione (GSH) is a crucial Phase II reaction for detoxifying electrophilic xenobiotics, catalyzed by which enzyme?",
+      "options": [
+        "Glutathione peroxidase",
+        "Glutathione S-transferase (GST)",
+        "Glutathione reductase",
+        "γ-Glutamyltransferase"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 7,
+      "question": "Which of the following cofactors acts as the acetyl group donor in the acetylation of xenobiotics like isoniazid (anti-TB drug) during Phase II metabolism?",
+      "options": [
+        "S-adenosylmethionine (SAM)",
+        "Acetyl-CoA",
+        "PAPS",
+        "UDP-glucuronic acid"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 8,
+      "question": "Methylation of xenobiotics and certain endogenous compounds (like catecholamines) is catalyzed by methyltransferases using which active methyl donor?",
+      "options": [
+        "N5-methyl-THF",
+        "S-adenosylmethionine (SAM)",
+        "Acetyl-CoA",
+        "PAPS"
+      ],
+      "answer": 1,
+      "explanation": ""
+    }
+  ]
+}

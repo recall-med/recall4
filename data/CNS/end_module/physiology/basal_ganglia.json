@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "physiology",
+    "subSubject": "basal_ganglia",
+    "totalQuestions": 3
+  },
+  "questions": [
+    {
+      "question": "What is the normal effect of the corpus striatum on muscle tone?",
+      "options": [
+        "It facilitates muscle tone",
+        "It abolishes muscle tone",
+        "It inhibits muscle tone",
+        "It maintains muscle tone"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. It inhibits muscle tone",
+      "id": 1
+    },
+    {
+      "question": "Which of the following neurotransmitter particularly associated with Parkinson's syndrome ?",
+      "options": [
+        "Acetylcholine only",
+        "Dopamine",
+        "Glycine only",
+        "histamine"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Dopamine",
+      "id": 2
+    },
+    {
+      "question": "A lesion of the basal ganglia typically causes:",
+      "options": [
+        "Complete skeletal muscle paralysis",
+        "Disturbances of muscle tone and involuntary movements",
+        "Loss of all sensory modalities",
+        "Complete loss of tendon reflex arcs"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Disturbances of muscle tone and involuntary movements",
+      "id": 3
+    }
+  ]
+}

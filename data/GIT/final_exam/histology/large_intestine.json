@@ -1,0 +1,185 @@
+{
+  "subSubjectId": "large_intestine",
+  "questions": [
+    {
+      "id": 1,
+      "question": "The primary function of the large intestine is:",
+      "options": [
+        "Protein digestion",
+        "Absorption of nutrients",
+        "Absorption of water and electrolytes",
+        "Bile storage"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 2,
+      "question": "Which of the following is NOT a part of the large intestine?",
+      "options": [
+        "Cecum",
+        "Jejunum",
+        "Sigmoid colon",
+        "Rectum"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 3,
+      "question": "The longitudinal muscle layer of the large intestine forms:",
+      "options": [
+        "Villi",
+        "Taeniae coli",
+        "Plicae circulares",
+        "Microvilli"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 4,
+      "question": "The pouch-like structures in the large intestine is caused by:",
+      "options": [
+        "Plica circularis",
+        "Appendices epiploicae",
+        "Rugae",
+        "Taeniae coli"
+      ],
+      "answer": 3,
+      "explanation": ""
+    },
+    {
+      "id": 5,
+      "question": "Vitamin K is mainly synthesized by:",
+      "options": [
+        "Esophageal glands",
+        "Bacteria in the large intestine",
+        "Pancreatic enzymes",
+        "Gastric glands"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 6,
+      "question": "The large intestine, in adults, is approximately?",
+      "options": [
+        "6–7 meters",
+        "1.5 meters",
+        "25 cm",
+        "3 meters"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 7,
+      "question": "Which type of cells in the large intestine are primarily responsible for mucus secretion?",
+      "options": [
+        "Enteroendocrine cells",
+        "Absorptive columnar cells",
+        "Goblet cells",
+        "Basal stem cells"
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 8,
+      "question": "Which anatomical feature characterizes the muscularis externa of the large intestine?",
+      "options": [
+        "Circular smooth muscle layer arranged in folds",
+        "Longitudinal muscle arranged in three bands called teniae coli",
+        "A single layer of longitudinal smooth muscle",
+        "Presence of skeletal muscle"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 9,
+      "question": "What is the primary role of the abundant bacterial flora present in the large intestine?",
+      "options": [
+        "To produce digestive enzymes",
+        "To synthesize vitamins",
+        "To increase absorption",
+        "To facilitate peristalsis"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 10,
+      "question": "In the context of the appendix, which of the following statements is true?",
+      "options": [
+        "The appendix has many villi for absorption.",
+        "The appendix is larger in diameter than the cecum.",
+        "The appendix contains extensive lymphoid follicles.",
+        "The muscularis mucosa layer is well-defined throughout the appendix."
+      ],
+      "answer": 2,
+      "explanation": ""
+    },
+    {
+      "id": 11,
+      "question": "The large intestine is longer than the small intestine.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 12,
+      "question": "The large intestine has many villi for absorption.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 13,
+      "question": "Taeniae coli help in the formation of haustra (sacules).",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": ""
+    },
+    {
+      "id": 14,
+      "question": "Chemical digestion of food occurs mainly in the large intestine.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": ""
+    },
+    {
+      "id": 15,
+      "question": "The appendix is attached to the cecum.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": ""
+    },
+    {
+      "id": 16,
+      "question": "Appendices epiploicae are fat-filled pouches on the surface of the colon.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": ""
+    }
+  ]
+}

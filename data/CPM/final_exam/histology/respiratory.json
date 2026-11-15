@@ -1,0 +1,275 @@
+{
+  "meta": {
+    "module": "CPM",
+    "examType": "final_exam",
+    "subject": "histology",
+    "subSubject": "respiratory",
+    "totalQuestions": 22
+  },
+  "questions": [
+    {
+      "question": "Which structural change best explains the transition from trachea to intrapulmonary bronchi?",
+      "options": [
+        "Increase in goblet cells",
+        "Replacement of C-shaped cartilage by irregular plates",
+        "Appearance of Clara cells",
+        "Loss of cilia"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Replacement of C-shaped cartilage by irregular plates",
+      "id": 1
+    },
+    {
+      "question": "Which cell type is primarily responsible for surfactant secretion?",
+      "options": [
+        "Type I pneumocyte",
+        "Type II pneumocyte",
+        "Clara cell",
+        "Goblet cell"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Type II pneumocyte",
+      "id": 2
+    },
+    {
+      "question": "Which structure lacks cartilage and glands?",
+      "options": [
+        "Bronchus",
+        "Trachea",
+        "Bronchiole",
+        "Larynx"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Bronchiole",
+      "id": 3
+    },
+    {
+      "question": "Which of the following structure is not a component of blood air-barrier:",
+      "options": [
+        "Type I pneumocyte",
+        "Type II pneumocyte",
+        "Capillary endothelium",
+        "Fused basal lamina"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Type II pneumocyte",
+      "id": 4
+    },
+    {
+      "question": "Which cell acts as stem cell in bronchioles?",
+      "options": [
+        "Goblet cell",
+        "Clara cell",
+        "Type I pneumocyte",
+        "Macrophage"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Clara cell",
+      "id": 5
+    },
+    {
+      "question": "Increase in goblet cells is most associated with:",
+      "options": [
+        "Alveoli",
+        "Bronchi",
+        "Bronchioles",
+        "Pleura"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Bronchi",
+      "id": 6
+    },
+    {
+      "question": "Which cell type covers 95% of alveolar surface?",
+      "options": [
+        "Type I pneumocyte",
+        "Type II pneumocyte",
+        "Macrophage",
+        "Clara cell"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Type I pneumocyte",
+      "id": 7
+    },
+    {
+      "question": "Which of the following structure regulates tracheal diameter?",
+      "options": [
+        "Elastic lamina",
+        "Trachealis muscle",
+        "Goblet cells",
+        "Adventitia"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Trachealis muscle",
+      "id": 8
+    },
+    {
+      "question": "Which structure first shows simple cuboidal epithelium?",
+      "options": [
+        "Trachea",
+        "Bronchi",
+        "Bronchioles",
+        "Alveoli"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Bronchioles",
+      "id": 9
+    },
+    {
+      "question": "Which component is absent in alveolar septum?",
+      "options": [
+        "Capillaries",
+        "Elastic fibers",
+        "Smooth muscle",
+        "Macrophages"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Smooth muscle",
+      "id": 10
+    },
+    {
+      "question": "Which cell is involved in immune defense in bronchioles?",
+      "options": [
+        "Clara cell",
+        "Type I pneumocyte",
+        "Basal cell",
+        "Sustentacular cell"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Clara cell",
+      "id": 11
+    },
+    {
+      "question": "What is the structure increases as airway diameter decreases?",
+      "options": [
+        "Cartilage",
+        "Goblet cells",
+        "Smooth muscle relative amount",
+        "Glands"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Smooth muscle relative amount",
+      "id": 12
+    },
+    {
+      "question": "A pathology slide shows thin squamous cells covering most of the alveolar surface and forming part of the blood-air barrier. These cells are:",
+      "options": [
+        "Type II pneumocytes",
+        "Type I pneumocytes",
+        "Clara cells",
+        "Ciliated cuboidal cells"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Type I pneumocytes",
+      "id": 13
+    },
+    {
+      "question": "As you move from the trachea toward the alveoli, what happens to the number of goblet cells and the height of the epithelial cells?",
+      "options": [
+        "Both increase",
+        "Both decrease",
+        "Goblet cells increase; cell height decreases",
+        "Goblet cells decrease; cell height increases"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Both decrease",
+      "id": 14
+    },
+    {
+      "question": "Which histological feature disappears first as the bronchi branch into bronchioles?",
+      "options": [
+        "Smooth muscle",
+        "Elastic fibers",
+        "Hyaline cartilage",
+        "Cilia"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Hyaline cartilage",
+      "id": 15
+    },
+    {
+      "question": "During gas exchange, oxygen must cross the blood-air barrier. Which of the following is a core component of this barrier?",
+      "options": [
+        "Type II Pneumocytes",
+        "Fused basement membranes of the capillary and Type I Pneumocyte",
+        "Smooth muscle of the alveolar duct",
+        "Hyaline cartilage of the tertiary bronchus"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Fused basement membranes of the capillary and Type I Pneumocyte",
+      "id": 16
+    },
+    {
+      "question": "A 4-year-old child accidentally inhales a small plastic bead. During an emergency bronchoscopy, the physician notes the bead is lodged in a passage that contains smooth muscle and cilia but lacks cartilage and submucosal glands. Based on the histological landmarks, where is the bead most likely located?",
+      "options": [
+        "Primary Bronchus",
+        "Segmental (Tertiary) Bronchus",
+        "Bronchiole",
+        "Trachea"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Bronchiole",
+      "id": 17
+    },
+    {
+      "question": "A patient with a chronic cough shows a biopsy with islands of hyaline cartilage and smooth muscle—which airway is being sampled?",
+      "options": [
+        "Trachea",
+        "Intrapulmonary bronchus",
+        "Bronchiole",
+        "Alveolar duct"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Intrapulmonary bronchus",
+      "id": 18
+    },
+    {
+      "question": "An infant with respiratory distress lacks a substance produced by cuboidal cells containing lamellar bodies—which cell is deficient?",
+      "options": [
+        "Type I Pneumocyte",
+        "Type II Pneumocyte",
+        "Club (Clara) cell",
+        "Goblet cell"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Type II Pneumocyte",
+      "id": 19
+    },
+    {
+      "question": "In a patient with Kartagener’s syndrome, which specific 9+2 apical structure in the trachea is immobile?",
+      "options": [
+        "Microvilli",
+        "Stereocilia",
+        "Cilia",
+        "Flagella"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Cilia",
+      "id": 20
+    },
+    {
+      "question": "A biopsy of a 1 mm airway shows no cartilage, no glands, but numerous dome-shaped non-ciliated cells—what are these cells?",
+      "options": [
+        "Goblet cells",
+        "Basal cells",
+        "Club (Clara) cells",
+        "Brush cells"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Club (Clara) cells",
+      "id": 21
+    },
+    {
+      "question": "In pulmonary edema, fluid accumulates first in the interstitial space of the blood-air barrier—which structures form this barrier?",
+      "options": [
+        "Type I pneumocyte, fused basement membranes, and capillary endothelium",
+        "Type II pneumocyte, smooth muscle, and elastic fibers",
+        "Goblet cell, cilia, and hyaline cartilage",
+        "Alveolar macrophage and Type II pneumocyte"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Type I pneumocyte, fused basement membranes, and capillary endothelium",
+      "id": 22
+    }
+  ]
+}

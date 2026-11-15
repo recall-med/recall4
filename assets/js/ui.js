@@ -611,7 +611,7 @@ const UI = {
             this.subjectIcon(subjectId, 'module-icon module-icon--lg')
           )
         : `<div class="page-label page-label--wide">Exam</div>
-          <div class="stats-strip" style="margin-bottom:18px">${statPills}</div>
+          <div class="stats-strip" style="margin-bottom:1.125rem">${statPills}</div>
           <div class="topic-panel">
             <div class="topic-panel__primary">
               <button class="btn btn--primary btn--lg" id="start-exam-btn">
@@ -718,9 +718,9 @@ const UI = {
       ${noQ
         ? this.emptyState('No Questions Available', 'No questions have been added to this section yet.', icon.replace('module-icon', 'module-icon module-icon--lg'))
         : `<div class="page-label page-label--wide">Exam</div>
-          <div class="stats-strip" style="margin-bottom:18px">${statPills}</div>
+          <div class="stats-strip" style="margin-bottom:1.125rem">${statPills}</div>
 
-          <div class="topic-panel" style="margin-bottom:18px">
+          <div class="topic-panel" style="margin-bottom:1.125rem">
             <p class="wide-exam-note">Questions from all topics are shuffled together into one randomized exam.</p>
             <div class="topic-panel__primary">
               <button class="btn btn--primary btn--lg" id="start-wide-exam-btn">

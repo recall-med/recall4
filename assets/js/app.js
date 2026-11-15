@@ -519,8 +519,12 @@ const App = {
   // kind: 'enter'  = opening the exam (one quick fade)
   //       'change' = moving between questions: nothing flashes; only the question and its options ease in
   _renderExam(kind = 'enter') {
+    const idx = ExamEngine.state.currentIndex;
+    const dir = kind === 'change' && this._examIdx != null ? Math.sign(idx - this._examIdx) : 0;   // 1 = forward, -1 = back
+    this._examIdx = idx;
     UI.setContent(UI.renderExam(ExamEngine, this.config), kind === 'change' ? 'none' : 'swap');
     UI.root.classList.toggle('exam-q-change', kind === 'change');
+    UI.root.dataset.qdir = dir < 0 ? 'prev' : 'next';
     window.scrollTo(0, 0);
     document.querySelectorAll('.exam-layout .palette').forEach(pal => {
       const cur = pal.querySelector('.palette-btn--current');
@@ -743,10 +747,10 @@ const App = {
       return;
     }
     container.innerHTML = Array(4).fill(`<div class="search-result-item" style="cursor:default">
-      ${UI._skel('34px', '34px', 'var(--radius-sm)')}
+      ${UI._skel('2.125rem', '2.125rem', 'var(--radius-sm)')}
       <div style="flex:1">
-        ${UI._skel('55%', '12px', '4px')}
-        <div style="margin-top:6px">${UI._skel('35%', '9px', '4px')}</div>
+        ${UI._skel('55%', '0.75rem', '0.25rem')}
+        <div style="margin-top:0.375rem">${UI._skel('35%', '0.5625rem', '0.25rem')}</div>
       </div>
     </div>`).join('');
     const q = query.toLowerCase().trim();

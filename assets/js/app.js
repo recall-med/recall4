@@ -1,23 +1,15 @@
 /**
  * ============================================================
- * DEPT. Q. BANK — app.js
- * ============================================================
- * Main application controller. Orchestrates navigation,
- * data loading, and page rendering.
- *
- * HOW TO ADD A NEW PAGE:
- * 1. Add a navigate case in App._renderPage().
- * 2. Add a UI.renderMyPage() method in ui.js.
- * 3. Add event binding in App._bindPageEvents().
+ * DEPT. Q. BANK — app.js  (v2 — sub-subject support)
  * ============================================================
  */
 
 const App = {
 
-  config: null,       // loaded from config/modules.json
+  config: null,
   currentPage: null,
   currentParams: {},
-  lastResults: null,  // holds most recent exam results for retry flows
+  lastResults: null,
 
   // ─── Bootstrap ───────────────────────────────────────────────────────────
 
@@ -35,10 +27,17 @@ const App = {
       return;
     }
 
-    // Attach global click delegation
     document.addEventListener('click', e => this._handleGlobalClick(e));
 
-    // Restore last page or go to dashboard
+    // Browser back/forward button support
+    window.addEventListener('popstate', e => {
+      if (e.state && e.state.page) {
+        this._navigateWithoutHistory(e.state.page, e.state.params || {});
+      } else {
+        this._navigateWithoutHistory('dashboard', {});
+      }
+    });
+
     const last = Storage.loadLastPage();
     if (last && last.page) {
       this.navigate(last.page, last.params);
@@ -53,6 +52,15 @@ const App = {
     this.currentPage   = page;
     this.currentParams = params;
     Storage.saveLastPage({ page, params });
+    history.pushState({ page, params }, '', '#' + page);
+    this._renderPage(page, params);
+  },
+
+  // Navigate without pushing a new history entry (used by popstate)
+  _navigateWithoutHistory(page, params = {}) {
+    this.currentPage   = page;
+    this.currentParams = params;
+    Storage.saveLastPage({ page, params });
     this._renderPage(page, params);
   },
 
@@ -63,7 +71,6 @@ const App = {
         const progress = Storage.getProgress();
         const stats    = Storage.getStats();
         UI.setContent(UI.renderDashboard(this.config, progress, stats));
-        this._bindDashboardEvents();
         break;
       }
 
@@ -72,28 +79,40 @@ const App = {
         if (!mod) { this.navigate('dashboard'); break; }
         const progress = Storage.getProgress();
         UI.setContent(UI.renderModule(mod, this.config, progress));
-        this._bindPageEvents();
         break;
       }
 
+      // Subject page now shows sub-subjects instead of going straight to exam
       case 'subject': {
         const mod     = this._getModule(params.moduleId);
         const subject = params.subject;
         const et      = params.examType;
         if (!mod) { this.navigate('dashboard'); break; }
-        UI.loading('Loading subject…');
-        const count    = await this._getQuestionCount(mod, et, subject);
-        const progress = Storage.getSubjectProgress(mod.id, et, subject);
-        UI.setContent(UI.renderSubject(mod, et, subject, count, progress, this.config));
-        this._bindSubjectEvents(mod, et, subject);
-        this._bindPageEvents();
+        const subSubjects = (mod.subSubjects && mod.subSubjects[et] && mod.subSubjects[et][subject]) || [];
+        const progress    = Storage.getProgress();
+        UI.setContent(UI.renderSubject(mod, et, subject, subSubjects, progress, this.config));
+        break;
+      }
+
+      // New page: sub-subject (shows exam start for a specific sub-subject)
+      case 'subsubject': {
+        const mod        = this._getModule(params.moduleId);
+        const subject    = params.subject;
+        const et         = params.examType;
+        const subSubject = params.subSubject;
+        if (!mod) { this.navigate('dashboard'); break; }
+        UI.loading('Loading…');
+        const count    = await this._getQuestionCount(mod, et, subject, subSubject);
+        const progress = Storage.getSubjectProgress(mod.id, et, subject, subSubject);
+        UI.setContent(UI.renderSubSubject(mod, et, subject, subSubject, count, progress, this.config));
+        this._bindSubSubjectEvents(mod, et, subject, subSubject);
         break;
       }
 
       case 'exam': {
         UI.loading('Preparing exam…');
         const started = await this._startExam(params);
-        if (!started) { this.navigate('subject', params); break; }
+        if (!started) { this.navigate('subsubject', params); break; }
         UI.setContent(UI.renderExam(ExamEngine, this.config));
         this._bindExamEvents();
         break;
@@ -103,7 +122,6 @@ const App = {
         if (!this.lastResults) { this.navigate('dashboard'); break; }
         UI.setContent(UI.renderResults(this.lastResults, this.config));
         this._bindResultsEvents();
-        this._bindPageEvents();
         break;
       }
 
@@ -111,14 +129,45 @@ const App = {
         const incorrect = Storage.getIncorrect();
         UI.setContent(UI.renderReview(incorrect, this.config));
         this._bindReviewEvents();
-        this._bindPageEvents();
+        break;
+      }
+
+      case 'scoped-review': {
+        const filter   = params;
+        const incorrect = Storage.getIncorrect().filter(q =>
+          q.module     === filter.moduleId   &&
+          q.examType   === filter.examType   &&
+          q.subject    === filter.subject    &&
+          q.subSubject === filter.subSubject
+        );
+        UI.setContent(UI.renderReview(incorrect, this.config, filter));
+        this._bindReviewEvents();
+        break;
+      }
+
+      case 'flagged-review': {
+        const flagged = Storage.getFlagged();
+        UI.setContent(UI.renderFlagged(flagged, this.config));
+        this._bindFlaggedReviewEvents();
+        break;
+      }
+
+      case 'scoped-flagged': {
+        const filter  = params;
+        const flagged = Storage.getFlagged().filter(q =>
+          q.module     === filter.moduleId   &&
+          q.examType   === filter.examType   &&
+          q.subject    === filter.subject    &&
+          q.subSubject === filter.subSubject
+        );
+        UI.setContent(UI.renderFlagged(flagged, this.config, filter));
+        this._bindFlaggedReviewEvents();
         break;
       }
 
       case 'search': {
         UI.setContent(UI.renderSearch(this.config));
         this._bindSearchEvents();
-        this._bindPageEvents();
         break;
       }
 
@@ -133,39 +182,25 @@ const App = {
     const el = e.target.closest('[data-nav]');
     if (!el) return;
     e.preventDefault();
-    const page   = el.dataset.nav;
+    const page = el.dataset.nav;
     let params = {};
     try { params = JSON.parse(el.dataset.params || '{}'); } catch {}
     this.navigate(page, params);
   },
 
-  // ─── Dashboard events ─────────────────────────────────────────────────────
+  // ─── Sub-subject page events ──────────────────────────────────────────────
 
-  _bindDashboardEvents() {
-    // Module cards are handled by global click delegation
-    // Nothing extra needed
-  },
-
-  // ─── Generic page events (back buttons, breadcrumbs) ──────────────────────
-
-  _bindPageEvents() {
-    // All [data-nav] elements handled by global click delegation
-  },
-
-  // ─── Subject page events ──────────────────────────────────────────────────
-
-  _bindSubjectEvents(mod, examType, subject) {
+  _bindSubSubjectEvents(mod, examType, subject, subSubject) {
     const startBtn = document.getElementById('start-exam-btn');
     if (startBtn) {
       startBtn.addEventListener('click', () => {
-        const feedback = document.getElementById('opt-feedback')?.checked ?? false;
-        const random   = document.getElementById('opt-random')?.checked ?? false;
         this.navigate('exam', {
-          moduleId:         mod.id,
+          moduleId:           mod.id,
           examType,
           subject,
-          immediateFeedback: feedback,
-          randomize:         random,
+          subSubject,
+          immediateFeedback:  true,
+          randomize:          false,
           retryIncorrectOnly: false,
         });
       });
@@ -173,14 +208,13 @@ const App = {
     const retryBtn = document.getElementById('retry-exam-btn');
     if (retryBtn) {
       retryBtn.addEventListener('click', () => {
-        const feedback = document.getElementById('opt-feedback')?.checked ?? false;
-        const random   = document.getElementById('opt-random')?.checked ?? false;
         this.navigate('exam', {
-          moduleId:         mod.id,
+          moduleId:           mod.id,
           examType,
           subject,
-          immediateFeedback: feedback,
-          randomize:         random,
+          subSubject,
+          immediateFeedback:  true,
+          randomize:          false,
           retryIncorrectOnly: false,
         });
       });
@@ -190,25 +224,26 @@ const App = {
   // ─── Exam events ──────────────────────────────────────────────────────────
 
   _bindExamEvents() {
-    // Option selection
+    // Remove any previously-attached handler before adding a new one,
+    // so clicks on Next/Prev don't stack up duplicate listeners.
+    if (this._examClickHandler) {
+      document.removeEventListener('click', this._examClickHandler);
+      this._examClickHandler = null;
+    }
+
     document.addEventListener('click', this._examClickHandler = e => {
       const optBtn = e.target.closest('.option:not([disabled])');
       if (optBtn) {
-        const idx = parseInt(optBtn.dataset.option, 10);
+        const idx    = parseInt(optBtn.dataset.option, 10);
         const result = ExamEngine.answer(idx);
         if (result) {
-          // Re-render question area
           const opts = document.querySelectorAll('.option');
           opts.forEach((btn, i) => {
             btn.disabled = true;
-            if (i === result.correctIndex)          btn.classList.add('option--correct');
-            else if (i === idx && !result.correct)  btn.classList.add('option--wrong');
+            if (i === result.correctIndex)         btn.classList.add('option--correct');
+            else if (i === idx && !result.correct) btn.classList.add('option--wrong');
           });
-
-          // Update palette
           this._updatePalette();
-
-          // Show explanation if immediate feedback
           if (ExamEngine.config.immediateFeedback) {
             const existing = document.querySelector('.explanation-box');
             if (!existing) {
@@ -225,27 +260,24 @@ const App = {
         }
       }
 
-      // Palette navigation
       const palBtn = e.target.closest('.palette-btn');
       if (palBtn && palBtn.dataset.goto !== undefined) {
         ExamEngine.goTo(parseInt(palBtn.dataset.goto, 10));
         UI.setContent(UI.renderExam(ExamEngine, this.config));
-        this._bindExamEvents();
+        // No need to re-bind — the existing listener on document is still active.
       }
 
-      // Next/Prev
       if (e.target.id === 'next-btn') {
         ExamEngine.next();
         UI.setContent(UI.renderExam(ExamEngine, this.config));
-        this._bindExamEvents();
+        // No need to re-bind — the existing listener on document is still active.
       }
       if (e.target.id === 'prev-btn') {
         ExamEngine.prev();
         UI.setContent(UI.renderExam(ExamEngine, this.config));
-        this._bindExamEvents();
+        // No need to re-bind — the existing listener on document is still active.
       }
 
-      // Flag
       if (e.target.id === 'flag-btn' || e.target.closest('#flag-btn')) {
         const nowFlagged = ExamEngine.toggleFlag(ExamEngine.state.currentIndex);
         const btn = document.getElementById('flag-btn');
@@ -257,7 +289,6 @@ const App = {
         UI.toast(nowFlagged ? 'Question flagged.' : 'Flag removed.', 'info', 1500);
       }
 
-      // Submit
       if (e.target.id === 'submit-exam-btn' || e.target.closest('#submit-exam-btn')) {
         const unanswered = ExamEngine.getProgress().unanswered;
         if (unanswered > 0) {
@@ -268,7 +299,6 @@ const App = {
       }
     });
 
-    // Remove handler when leaving exam
     this._cleanupExamListeners = () => {
       document.removeEventListener('click', this._examClickHandler);
     };
@@ -285,7 +315,6 @@ const App = {
       else if (ExamEngine.isAnswered(i))       btn.classList.add('palette-btn--answered');
       if (ExamEngine.isFlagged(i))             btn.classList.add('palette-btn--flagged');
     });
-
     const info = document.querySelector('.exam-progress-info');
     if (info) {
       const p = ExamEngine.getProgress();
@@ -309,7 +338,8 @@ const App = {
           moduleId:           btn.dataset.module,
           examType:           btn.dataset.examType,
           subject:            btn.dataset.subject,
-          immediateFeedback:  this.lastResults?.config?.immediateFeedback ?? false,
+          subSubject:         btn.dataset.subSubject,
+          immediateFeedback:  true,
           randomize:          true,
           retryIncorrectOnly: true,
         });
@@ -320,7 +350,8 @@ const App = {
           moduleId:           btn.dataset.module,
           examType:           btn.dataset.examType,
           subject:            btn.dataset.subject,
-          immediateFeedback:  false,
+          subSubject:         btn.dataset.subSubject,
+          immediateFeedback:  true,
           randomize:          false,
           retryIncorrectOnly: false,
         });
@@ -331,10 +362,10 @@ const App = {
   // ─── Review events ────────────────────────────────────────────────────────
 
   _bindReviewEvents() {
-    const list   = document.getElementById('review-list');
-    const search = document.getElementById('review-search');
-    const fMod   = document.getElementById('review-filter-module');
-    const fSub   = document.getElementById('review-filter-subject');
+    const list    = document.getElementById('review-list');
+    const search  = document.getElementById('review-search');
+    const fMod    = document.getElementById('review-filter-module');
+    const fSub    = document.getElementById('review-filter-subject');
     const clearAll = document.getElementById('clear-all-review');
 
     const filterAndRender = () => {
@@ -345,10 +376,9 @@ const App = {
       if (q) items = items.filter(i => i.question.toLowerCase().includes(q));
       if (m) items = items.filter(i => i.module === m);
       if (s) items = items.filter(i => i.subject === s);
-
       if (list) {
         list.innerHTML = items.length === 0
-          ? UI.emptyState('No Matches', 'Try adjusting your filters or search term.', '🔍')
+          ? UI.emptyState('No Matches', 'Try adjusting your filters.', '🔍')
           : items.map(q => {
               const sub = this.config.subjects.find(s => s.id === q.subject);
               const et  = this.config.examTypes.find(e => e.id === q.examType);
@@ -356,6 +386,7 @@ const App = {
                 <div class="review-item__meta">
                   <span class="badge" style="background:${sub?.color}20;color:${sub?.color}">${sub?.icon} ${sub?.label}</span>
                   <span class="badge badge--ghost">${q.module}</span>
+                  ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
                   <span class="badge badge--ghost">${et?.label}</span>
                 </div>
                 <p class="review-item__question">${q.question}</p>
@@ -390,13 +421,76 @@ const App = {
     });
   },
 
+  // ─── Flagged review events ───────────────────────────────────────────────
+
+  _bindFlaggedReviewEvents() {
+    const list    = document.getElementById('flagged-list');
+    const search  = document.getElementById('flagged-search');
+    const fMod    = document.getElementById('flagged-filter-module');
+    const fSub    = document.getElementById('flagged-filter-subject');
+    const clearAll = document.getElementById('clear-all-flagged');
+
+    const filterAndRender = () => {
+      let items = Storage.getFlagged();
+      const q = search?.value.toLowerCase() ?? '';
+      const m = fMod?.value ?? '';
+      const s = fSub?.value ?? '';
+      if (q) items = items.filter(i => i.question.toLowerCase().includes(q));
+      if (m) items = items.filter(i => i.module === m);
+      if (s) items = items.filter(i => i.subject === s);
+      if (list) {
+        list.innerHTML = items.length === 0
+          ? UI.emptyState('No Matches', 'Try adjusting your filters.', '🔍')
+          : items.map(q => {
+              const sub = this.config.subjects.find(s => s.id === q.subject);
+              const et  = this.config.examTypes.find(e => e.id === q.examType);
+              return `<div class="review-item" data-uid="${q.uid}">
+                <div class="review-item__meta">
+                  <span class="badge" style="background:${sub?.color}20;color:${sub?.color}">${sub?.icon} ${sub?.label}</span>
+                  <span class="badge badge--ghost">${q.module}</span>
+                  ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
+                  <span class="badge badge--ghost">${et?.label}</span>
+                  <span class="badge" style="background:#4A9E8E20;color:#4A9E8E">🚩 Flagged</span>
+                </div>
+                <p class="review-item__question">${q.question}</p>
+                <div class="review-item__options">
+                  ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : ''}">${['A','B','C','D'][i]}. ${opt}</span>`).join('')}
+                </div>
+                <div class="review-item__explanation">${q.explanation}</div>
+                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">🚩 Remove Flag</button>
+              </div>`;
+            }).join('');
+      }
+    };
+
+    search?.addEventListener('input', filterAndRender);
+    fMod?.addEventListener('change', filterAndRender);
+    fSub?.addEventListener('change', filterAndRender);
+
+    clearAll?.addEventListener('click', () => {
+      if (confirm('Remove all flags? This cannot be undone.')) {
+        Storage.getFlagged().forEach(f => Storage.toggleFlag(f));
+        this.navigate('dashboard');
+      }
+    });
+
+    list?.addEventListener('click', e => {
+      const btn = e.target.closest('[data-remove-uid]');
+      if (btn) {
+        const item = Storage.getFlagged().find(f => f.uid === btn.dataset.removeUid);
+        if (item) Storage.toggleFlag(item);
+        btn.closest('.review-item')?.remove();
+        UI.toast('Flag removed.', 'info');
+      }
+    });
+  },
+
   // ─── Search events ────────────────────────────────────────────────────────
 
   _bindSearchEvents() {
     const input   = document.getElementById('global-search');
     const results = document.getElementById('search-results');
     if (!input || !results) return;
-
     let debounceTimer;
     input.addEventListener('input', () => {
       clearTimeout(debounceTimer);
@@ -413,7 +507,6 @@ const App = {
     const q = query.toLowerCase().trim();
     const found = [];
 
-    // Search modules and subjects by name
     this.config.modules.forEach(mod => {
       if (mod.title.toLowerCase().includes(q) || mod.fullTitle.toLowerCase().includes(q)) {
         found.push({ type: 'module', label: mod.title, sub: mod.fullTitle, nav: 'module', params: { moduleId: mod.id } });
@@ -424,8 +517,6 @@ const App = {
         found.push({ type: 'subject', label: sub.label, sub: 'Subject', nav: 'dashboard', params: {} });
       }
     });
-
-    // Search incorrect questions bank (already loaded)
     Storage.getIncorrect().forEach(iq => {
       if (iq.question.toLowerCase().includes(q)) {
         found.push({ type: 'question', label: iq.question, sub: `${iq.module} · ${iq.subject}`, nav: 'review', params: {} });
@@ -436,7 +527,6 @@ const App = {
       container.innerHTML = `<p class="search-hint">No results for "<strong>${query}</strong>".</p>`;
       return;
     }
-
     container.innerHTML = found.slice(0, 30).map(r => `
       <div class="search-result-item" data-nav="${r.nav}" data-params='${JSON.stringify(r.params)}'>
         <span class="search-result-item__type">${r.type}</span>
@@ -450,26 +540,24 @@ const App = {
   // ─── Exam start helper ───────────────────────────────────────────────────
 
   async _startExam(params) {
-    let questions;
-
     if (params.retryIncorrectOnly) {
-      // Filter from global incorrect bank
       const all = Storage.getIncorrect().filter(
         q => q.module === params.moduleId &&
              q.examType === params.examType &&
-             q.subject === params.subject
+             q.subject === params.subject &&
+             q.subSubject === params.subSubject
       );
       if (all.length === 0) {
         UI.toast('No incorrect questions to retry.', 'info');
         return false;
       }
-      // Inject as questions array
       ExamEngine.config = {
         module:            params.moduleId,
         examType:          params.examType,
         subject:           params.subject,
-        immediateFeedback: params.immediateFeedback ?? false,
-        randomize:         params.randomize ?? true,
+        subSubject:        params.subSubject,
+        immediateFeedback: true,
+        randomize:         params.randomize ?? false,
       };
       ExamEngine.questions = params.randomize ? ExamEngine._shuffle([...all]) : all;
       ExamEngine.state = {
@@ -487,18 +575,19 @@ const App = {
       module:            params.moduleId,
       examType:          params.examType,
       subject:           params.subject,
-      immediateFeedback: params.immediateFeedback ?? false,
+      subSubject:        params.subSubject,
+      immediateFeedback: true,
       randomize:         params.randomize ?? false,
     });
 
     if (count === 0) {
-      UI.toast('No questions available for this subject.', 'info');
+      UI.toast('No questions available for this sub-subject yet.', 'info');
       return false;
     }
     return true;
   },
 
-  // ─── Config loader ───────────────────────────────────────────────────────
+  // ─── Config / data loaders ────────────────────────────────────────────────
 
   async _loadConfig() {
     const res = await fetch('config/modules.json');
@@ -506,8 +595,8 @@ const App = {
     return await res.json();
   },
 
-  async _getQuestionCount(mod, examType, subject) {
-    const path = `data/${mod.dataPath}/${examType}/${subject}.json`;
+  async _getQuestionCount(mod, examType, subject, subSubject) {
+    const path = `data/${mod.dataPath}/${examType}/${subject}/${subSubject}.json`;
     try {
       const res = await fetch(path);
       if (!res.ok) return 0;
@@ -521,5 +610,4 @@ const App = {
   },
 };
 
-// ─── Start the application ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => App.init());

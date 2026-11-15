@@ -1,0 +1,160 @@
+{
+  "siteTitle": "Dept. Q. Bank",
+  "siteSubtitle": "Professional Medical Question Bank",
+  "version": "2.0.0",
+  "examSettings": {
+    "defaultImmediateFeedback": false,
+    "defaultRandomize": false,
+    "defaultTimedExam": false,
+    "defaultTimeLimitMinutes": 60,
+    "questionsPerPage": 1,
+    "showExplanationAfterAnswer": true,
+    "allowFlagging": true,
+    "allowNavigation": true
+  },
+  "examTypes": [
+    {
+      "id": "end_module",
+      "label": "End Module Exam",
+      "description": "Comprehensive exam covering all topics in this module",
+      "color": "#2563eb"
+    },
+    {
+      "id": "final_exam",
+      "label": "Final Exam",
+      "description": "Final comprehensive assessment for this module",
+      "color": "#2a5298"
+    }
+  ],
+  "subjects": [
+    { "id": "anatomy",      "label": "Anatomy",      "icon": "🦴", "color": "#4A9E8E" },
+    { "id": "physiology",   "label": "Physiology",   "icon": "🫀", "color": "#4A9E8E" },
+    { "id": "biochemistry", "label": "Biochemistry", "icon": "🧬", "color": "#d97706" },
+    { "id": "histology",    "label": "Histology",    "icon": "🔬", "color": "#dc2626" }
+  ],
+  "modules": [
+    {
+      "id": "CPM",
+      "title": "CPM",
+      "fullTitle": "Cardio-Pulmonary Medicine",
+      "shortTitle": "CPM",
+      "description": "Cardiovascular and pulmonary system questions",
+      "color": "#dc2626",
+      "icon": "❤️",
+      "dataPath": "CPM",
+      "subSubjects": {
+        "end_module": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        },
+        "final_exam": {
+          "anatomy":      [],
+          "physiology": [
+            { "id": "cvs",         "label": "CVS",         "icon": "❤️" },
+            { "id": "respiration", "label": "Respiration", "icon": "🫁" }
+          ],
+          "biochemistry": [],
+          "histology":    []
+        }
+      }
+    },
+    {
+      "id": "GIT",
+      "title": "GIT",
+      "fullTitle": "Gastrointestinal Tract",
+      "shortTitle": "GIT",
+      "description": "Gastrointestinal system and hepatobiliary questions",
+      "color": "#d97706",
+      "icon": "🫁",
+      "dataPath": "GIT",
+      "subSubjects": {
+        "end_module": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        },
+        "final_exam": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        }
+      }
+    },
+    {
+      "id": "CNS",
+      "title": "CNS",
+      "fullTitle": "Central Nervous System",
+      "shortTitle": "CNS",
+      "description": "Neuroscience and central nervous system questions",
+      "color": "#2a5298",
+      "icon": "🧠",
+      "dataPath": "CNS",
+      "subSubjects": {
+        "end_module": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        },
+        "final_exam": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        }
+      }
+    },
+    {
+      "id": "ENDO_REPRO",
+      "title": "ENDO & REPRO",
+      "fullTitle": "Endocrinology & Reproductive",
+      "shortTitle": "ENDO",
+      "description": "Endocrine system and reproductive medicine questions",
+      "color": "#4A9E8E",
+      "icon": "⚗️",
+      "dataPath": "ENDO_REPRO",
+      "subSubjects": {
+        "end_module": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        },
+        "final_exam": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        }
+      }
+    },
+    {
+      "id": "URINARY",
+      "title": "Urinary",
+      "fullTitle": "Urinary System",
+      "shortTitle": "URIN",
+      "description": "Renal and urinary tract questions",
+      "color": "#4A9E8E",
+      "icon": "🫘",
+      "dataPath": "URINARY",
+      "subSubjects": {
+        "end_module": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        },
+        "final_exam": {
+          "anatomy":      [],
+          "physiology":   [],
+          "biochemistry": [],
+          "histology":    []
+        }
+      }
+    }
+  ]
+}

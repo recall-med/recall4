@@ -543,7 +543,7 @@ const App = {
         if (!btn) return;
         btn.className = 'palette-btn';
         if (i === ExamEngine.state.currentIndex) btn.classList.add('palette-btn--current');
-        else if (ExamEngine.isAnswered(i))       btn.classList.add('palette-btn--answered');
+        else { const st = UI.examPaletteState(ExamEngine, i).trim(); if (st) btn.classList.add(st); }
         if (ExamEngine.isFlagged(i))             btn.classList.add('palette-btn--flagged');
       });
     });

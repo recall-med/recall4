@@ -188,22 +188,21 @@ const UI = {
     const currentQ = (saved.state?.currentIndex ?? 0) + 1;
     const totalQ   = (saved.questions || []).length;
 
+    const arrow = '<svg class="icon icon--sm resume-banner__arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
     return `<div class="resume-banner" id="resume-banner">
-      <div class="resume-banner__info">
+      <button class="resume-banner__main" type="button" data-nav="resume-exam" aria-label="Continue exam, question ${currentQ} of ${totalQ}">
         <span class="resume-banner__icon">
-          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="10,8.3 16,12 10,15.7" fill="currentColor" stroke="none"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="10,8.3 16,12 10,15.7" fill="currentColor" stroke="none"/></svg>
         </span>
-        <div class="resume-banner__text">
-          <div class="resume-banner__title">Continue Exam</div>
-          <div class="resume-banner__subtitle">${mod?.title || saved.config.module} · ${setLabel} — Question ${currentQ} / ${totalQ}</div>
-        </div>
-      </div>
-      <div class="resume-banner__actions">
-        <button class="btn btn--primary btn--sm" data-nav="resume-exam">Resume <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
-        <button class="icon-btn resume-banner__dismiss" id="resume-dismiss-btn" aria-label="Abandon exam">
-          <svg class="icon icon--sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
+        <span class="resume-banner__text">
+          <span class="resume-banner__title">Continue Exam</span>
+          <span class="resume-banner__subtitle">${mod?.title || saved.config.module} · ${setLabel} — Question ${currentQ} / ${totalQ}</span>
+        </span>
+        ${arrow}
+      </button>
+      <button class="icon-btn resume-banner__dismiss" id="resume-dismiss-btn" type="button" aria-label="Abandon exam">
+        <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>`;
   },
 
@@ -305,9 +304,9 @@ const UI = {
           ${flaggedBtn}
         </div>
       </div>
-      ${resumeBannerHTML}
       <aside class="dashboard__rail">
         <h2 class="section__title">Progress</h2>
+        ${resumeBannerHTML}
         <div class="stats-strip">${statsHTML}${actionsHTML}</div>
       </aside>
       <section class="section">
@@ -776,6 +775,14 @@ const UI = {
 
   // Returns '' when the question has no explanation text — the option check/cross already
   // signals correctness, so an empty card would only be noise.
+  // Green once answered correctly, red once answered wrongly (every exam here shows feedback straight away;
+  // if one ever hides it, the button stays a neutral "answered" so nothing leaks).
+  examPaletteState(engine, i) {
+    if (!engine.isAnswered(i)) return '';
+    if (!engine.config.immediateFeedback) return ' palette-btn--answered';
+    return engine.state.answers[i] === engine.questions[i].answer ? ' palette-btn--correct' : ' palette-btn--wrong';
+  },
+
   examExplanation({ correct, correctIndex, explanation, topic, correctText }) {
     if (this.isRedundantExplanation(explanation, correctText)) return '';
     return `<div class="explanation-box ${correct ? 'explanation-box--correct' : 'explanation-box--wrong'}">
@@ -824,9 +831,9 @@ const UI = {
 
     const paletteHTML = engine.questions.map((_, i) => {
       let cls = 'palette-btn';
-      if (i === idx)                 cls += ' palette-btn--current';
-      else if (engine.isAnswered(i)) cls += ' palette-btn--answered';
-      if (engine.isFlagged(i))       cls += ' palette-btn--flagged';
+      if (i === idx) cls += ' palette-btn--current';
+      else           cls += this.examPaletteState(engine, i);
+      if (engine.isFlagged(i)) cls += ' palette-btn--flagged';
       return `<button class="${cls}" data-goto="${i}" title="Question ${i + 1}" aria-label="Question ${i + 1}"${i === idx ? ' aria-current="true"' : ''}>${i + 1}</button>`;
     }).join('');
 
@@ -877,11 +884,6 @@ const UI = {
         <div class="exam-progress-info">${this.examProgressInfo(progress)}</div>
         ${this.progressBar(progressPct, 'var(--mod-color, var(--primary))')}
         <div class="palette">${paletteHTML}</div>
-        <div class="palette-legend">
-          <span class="legend-item legend-item--current">Current</span>
-          <span class="legend-item legend-item--answered">Answered</span>
-          <span class="legend-item legend-item--flagged">Saved</span>
-        </div>
         <button class="btn btn--ghost btn--sm exam-submit-btn submit-exam-trigger">
           ${this.examIcon('check')} Submit Exam
         </button>

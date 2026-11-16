@@ -417,7 +417,7 @@ Edit the CSS variables at the top of `assets/css/styles.css`:
 The same file holds two more colours worth knowing:
 ```css
 --saved:    #A8842C;  /* saved questions: star button, badge, ring in the number box. Dark theme: #D8C58A */
---bar-from: #1B3A6B;  /* every progress bar is one gradient from --bar-from to --bar-to */
+--bar-from: #1B3A6B;  /* every progress bar is one gradient from --bar-from to --bar-to. Dark theme: #203B63 to #3B5B86 (calmer) */
 --bar-to:   #3f6dbb;
 ```
 
@@ -498,7 +498,11 @@ Rules the interface follows. Keep them when you change anything.
 - **Page height uses `dvh`**, not `vh`, so phones and tablets get no false scroll space under the address bar.
 - **Pressing:** rows, cards and chips do not shrink when pressed. A soft tint fades in over exactly the element and follows its own corner radius (the `Pressing` block at the end of `styles.css`). Only stand-alone buttons keep a small press.
 - **One progress bar.** The exam sidebar, module cards and subject rows all use the same 0.375rem track and the same navy gradient.
-- **Saved is sand gold, not green.** Green means correct and red means wrong, and nothing else uses them.
+- **Saved is sand gold, not green.** Green means correct and red means wrong, and nothing else uses them. That includes the Saved page (header, icon, stripe) and the phone dashboard badge.
+- **Topic rows:** a topic with a professor reads `14 Qs · Prof. Samaa` (plain text, one grey, no badge; the professor is cut with an ellipsis if the row is narrow). A topic without one keeps the full `14 Questions`. The short form exists only to save space.
+- **No "Done" badge** on subject rows in the module page; the full bar and `N/N topics` already say it.
+- **Header buttons** (Sign in, bin, theme) are all 2.25rem tall with the same border, fill and corner.
+- **Number box** with fewer than 6 questions must stay one normal row of square cells (grid columns are `minmax(0,1fr)`, rows never stretch).
 - **Motion is short and quiet:** moving between questions slides the new question in from the side you are heading to (220ms, never from fully transparent); an explanation grows open inside its own wrapper (360ms); pop-ups fade and rise.
 - **Admin page** classes start with `rc-`. Never use `ad-` or words like banner or sponsor in class names: ad blockers hide them.
 - **Dark mode** must keep working after every change: colours come from the variables, never hard-coded.

@@ -47,7 +47,7 @@ const App = {
 
     window.addEventListener('popstate', e => {
       if (e.state && e.state.page) {
-        this._navigateWithoutHistory(e.state.page, e.state.params || {});
+        this._navigateWithoutHistory(this._routeName(e.state.page), e.state.params || {});
       } else {
         this._navigateWithoutHistory('dashboard', {});
       }
@@ -68,10 +68,16 @@ const App = {
     // A remembered page inside a module that is hidden for this person (or no longer exists) falls back to the dashboard.
     if (last && last.params && last.params.moduleId && !this._getModule(last.params.moduleId)) last = null;
     if (last && last.page) {
-      this.navigate(last.page, last.params);
+      this.navigate(this._routeName(last.page), last.params);
     } else {
       this.navigate('dashboard');
     }
+  },
+
+  // Pages were renamed flagged-review → saved-review and scoped-flagged → scoped-saved. A remembered last page or an old
+  // history entry on a device that has not reloaded yet may still carry the old name, so it is mapped here.
+  _routeName(page) {
+    return ({ 'flagged-review': 'saved-review', 'scoped-flagged': 'scoped-saved' })[page] || page;
   },
 
   // ─── Theme toggle ────────────────────────────────────────────────────────
@@ -277,14 +283,14 @@ const App = {
         break;
       }
 
-      case 'flagged-review': {
+      case 'saved-review': {
         const flagged = Storage.getFlagged();
         UI.setContent(UI.renderFlagged(flagged, this.config));
         this._bindFlaggedReviewEvents();
         break;
       }
 
-      case 'scoped-flagged': {
+      case 'scoped-saved': {
         const filter  = params;
         const flagged = Storage.getFlagged().filter(q =>
           q.module === filter.moduleId &&

@@ -198,7 +198,7 @@ const UI = {
           <span class="resume-banner__subtitle"><span class="resume-banner__name">${mod?.title || saved.config.module} · ${setLabel}</span><span class="resume-banner__q"> · Q${currentQ}/${totalQ}</span></span>
         </span>
       </button>
-      <button class="icon-btn resume-banner__dismiss" id="resume-dismiss-btn" type="button" aria-label="Abandon exam">
+      <button class="resume-banner__dismiss" id="resume-dismiss-btn" type="button" aria-label="Abandon exam">
         <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>`;
@@ -276,7 +276,7 @@ const UI = {
           ${incorrect.length > 0 ? `<span class="quick-icon-btn__badge">${incorrect.length}</span>` : ''}
         </button>`;
 
-    const flaggedBtn = `<button class="quick-icon-btn quick-icon-btn--saved${flagged.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="flagged-review" title="Saved" aria-label="Saved questions${flagged.length > 0 ? ` (${flagged.length})` : ''}">
+    const flaggedBtn = `<button class="quick-icon-btn quick-icon-btn--saved${flagged.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="saved-review" title="Saved" aria-label="Saved questions${flagged.length > 0 ? ` (${flagged.length})` : ''}">
           <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           ${flagged.length > 0 ? `<span class="quick-icon-btn__badge quick-icon-btn__badge--saved">${flagged.length}</span>` : ''}
         </button>`;
@@ -288,7 +288,7 @@ const UI = {
         </button>`;
     const incIcon  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
     const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-    const actionsHTML = railAction('review', incIcon, 'Incorrect', incorrect.length) + railAction('flagged-review', flagIcon, 'Saved', flagged.length);
+    const actionsHTML = railAction('review', incIcon, 'Incorrect', incorrect.length) + railAction('saved-review', flagIcon, 'Saved', flagged.length);
 
     return `
     <div class="dashboard">
@@ -365,7 +365,7 @@ const UI = {
       </button>`;
     return `<aside class="dashboard__rail">
       <h2 class="section__title">Progress</h2>
-      <div class="stats-strip">${lead}${stats}${action('scoped-review', incIcon, 'Incorrect', st.incorrect)}${action('scoped-flagged', flagIcon, 'Saved', st.flagged)}</div>
+      <div class="stats-strip">${lead}${stats}${action('scoped-review', incIcon, 'Incorrect', st.incorrect)}${action('scoped-saved', flagIcon, 'Saved', st.flagged)}</div>
     </aside>`;
   },
 
@@ -407,7 +407,6 @@ const UI = {
           </div>
           <div class="subject-card__bar" aria-hidden="true"><span style="width:${pct}%"></span></div>
           <div class="subject-card__right">
-            ${completed === subSubs.length && subSubs.length > 0 ? `<span class="badge badge--success">Done</span>` : ''}
             <span class="subject-card__arrow"><svg class="icon icon--sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
           </div>
         </div>`;
@@ -514,7 +513,7 @@ const UI = {
           <span class="topic-row__icon">${this.topicIcon()}</span>
           <div class="topic-row__text">
             <div class="topic-row__name">${ss.label}${ss.hidden ? ' <span class="badge badge--hidden" title="Only admins see this">Hidden</span>' : ''}</div>
-            <div class="topic-row__meta"><span>${qCount} Question${qCount === 1 ? '' : 's'}</span>${this.professorBadge(ss.professor)}</div>
+            <div class="topic-row__meta">${this.topicMeta(qCount, ss.professor)}</div>
           </div>
         </div>
         <div class="topic-row__right">
@@ -626,7 +625,7 @@ const UI = {
                   <svg class="icon icon--sm" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
                   <span>Incorrect</span>
                 </button>
-                <button class="topic-action-btn topic-action-btn--saved" data-nav="scoped-flagged"
+                <button class="topic-action-btn topic-action-btn--saved" data-nav="scoped-saved"
                   data-params='${JSON.stringify({ moduleId: mod.id, examType, subject: subjectId, subSubject: subSubjectId, label: ss.label })}'
                   title="Saved questions in this topic">
                   <svg class="icon icon--sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -1158,7 +1157,7 @@ const UI = {
     <div class="page review-page">
       ${this.backBtn(backPage, backParams)}
       ${this.breadcrumb(crumbs)}
-      <header class="page__header" style="--mod-color:var(--success)">
+      <header class="page__header" style="--mod-color:var(--saved)">
         <span class="page__icon"><svg class="icon icon--lg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
         <div>
           <h1 class="page__title">${title}</h1>
@@ -1225,6 +1224,16 @@ const UI = {
   // One unified dot for every topic (topics are added over time, so no per-topic glyphs)
   topicIcon() {
     return '<svg class="topic-dot" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>';
+  },
+
+  // Topic row meta line. With a professor the count is shortened to save space: "14 Qs · Prof. Samaa" (plain text, one grey,
+  // no badge; if the row is too narrow the end of the line, the professor, is cut with an ellipsis). Without a professor
+  // there is room, so the count keeps its full words: "14 Questions".
+  topicMeta(count, professor) {
+    const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const n = Number(count) || 0;
+    if (!professor) return `<span class="topic-row__line">${n} Question${n === 1 ? '' : 's'}</span>`;
+    return `<span class="topic-row__line" title="Questions by ${esc(professor)}">${n} ${n === 1 ? 'Q' : 'Qs'} · ${esc(professor)}</span>`;
   },
 
   // Professor badge — returns '' when no professor is set on the topic

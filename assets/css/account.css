@@ -5,7 +5,19 @@
    ============================================================ */
 
 /* Header: text button for guests, icon button once signed in */
-.account-signin { white-space: nowrap; }
+.account-signin {                    /* same height, border, fill and corner as the round icon buttons beside it */
+  box-sizing:      border-box;
+  height:          2.25rem;
+  padding:         0 0.875rem;
+  justify-content: center;
+  border:          1.5px solid var(--border-strong);
+  border-radius:   var(--radius);
+  background:      var(--surface);
+  backdrop-filter: var(--glass-blur-sm);
+  color:           var(--text-2);
+  white-space:     nowrap;
+}
+.account-signin:hover { background: var(--surface-solid); border-color: var(--primary); color: var(--primary); box-shadow: none; }
 .account-signin[hidden], .account-btn[hidden], #wipe-history-btn[hidden] { display: none; }
 .account-btn { color: var(--accent-text); }
 

@@ -925,6 +925,26 @@ try {
     check('resume card: the whole card is one button that resumes; no Resume button, no arrow; the X is a separate button', !!main && main.getAttribute('data-nav') === 'resume-exam' && !rb.querySelector('.resume-banner__actions, .resume-banner__arrow') && !main.contains(rb.querySelector('#resume-dismiss-btn')) && !!rb.querySelector('#resume-dismiss-btn'));
     const nm = rb && rb.querySelector('.resume-banner__name'), qq = rb && rb.querySelector('.resume-banner__q');
     check('resume card: detail reads "CPM · Larynx · Q2/6" on one line (only the name part can be cut with an ellipsis)', !!nm && !!qq && /^CPM\s\S{1,2}\s/.test(nm.textContent) && /\sQ2\/6$/.test(qq.textContent), (nm && nm.textContent) + '|' + (qq && qq.textContent));   // the middle dot is read as 2 characters by this harness's loader, in a real browser it is one
+    // --- v5.1 fixes (2026-11-16 phone check) ---
+    const acss = rd('assets/css/account.css');
+    const darkBlock = css.slice(css.indexOf('[data-theme="dark"] {'), css.indexOf('[data-theme="dark"] {') + 2600);
+    check('v5.1 bars: dark mode uses the calmer #203B63 to #3B5B86; light mode is unchanged (#1B3A6B to #3f6dbb)', /--bar-from:\s+#203B63/.test(darkBlock) && /--bar-to:\s+#3B5B86/.test(darkBlock) && /--bar-from:\s+#1B3A6B/.test(css) && /--bar-to:\s+#3f6dbb/.test(css));
+    check('v5.1 Saved badge on the phone dashboard button is gold: the rule has two classes so the red base rule cannot win', /\.quick-icon-btn__badge\.quick-icon-btn__badge--saved\s*\{[^}]*var\(--saved\)/.test(css));
+    const fakeQ = { uid: 'CPM|final_exam|anatomy|larynx|1', module: 'CPM', examType: 'final_exam', subject: 'anatomy', subSubject: 'larynx', subSubjectLabel: 'Larynx', question: 'Q?', options: ['a', 'b'], answer: 0, explanation: 'e' };
+    App.config.__fakeSaved = [fakeQ];
+    const savedHTML = V.w.eval('UI.renderFlagged(App.config.__fakeSaved, App.config)');
+    check('v5.1 Saved page: header, icon and stripe use the Saved gold, not green', /page__header" style="--mod-color:var\(--saved\)"/.test(savedHTML) && !/--mod-color:var\(--success\)/.test(savedHTML));
+    check('v5.1 Saved page route is saved-review / scoped-saved; the old names still resolve for remembered pages', /case 'saved-review'/.test(app) && /case 'scoped-saved'/.test(app) && !/case 'flagged-review'|case 'scoped-flagged'/.test(app) && !/data-nav="flagged-review"|data-nav="scoped-flagged"/.test(ui) && V.w.eval("App._routeName('flagged-review')") === 'saved-review' && V.w.eval("App._routeName('scoped-flagged')") === 'scoped-saved' && V.w.eval("App._routeName('dashboard')") === 'dashboard');
+    await App.navigate('saved-review'); await sleep(200);
+    check('v5.1 Saved page opens by its new name', V.w.eval('App.currentPage') === 'saved-review' && V.w.location.hash === '#saved-review', V.w.location.hash);
+    check('v5.1 number box: columns are minmax(0,1fr) and rows never stretch, so a deck of fewer than 6 questions cannot push the cells wider than the card', /\.palette \{[^}]*minmax\(0,\s*1fr\)[^}]*align-content:\s*start/.test(css) && /\.palette:not\(:has\(\.palette-btn:nth-child\(6\)\)\)\s*\{\s*min-height:\s*0/.test(css));
+    check('v5.1 resume X: a bare button, not an .icon-btn; no fill, border, blur or shadow in any state', !/class="[^"]*icon-btn[^"]*"\s+id="resume-dismiss-btn"/.test(ui) && /\.resume-banner__dismiss \{[^}]*background:\s*transparent[^}]*backdrop-filter:\s*none/.test(css) && /\.resume-banner__dismiss \.icon \{ width: 0\.875rem; height: 0\.875rem; \}/.test(css));
+    const meta = (n, p) => V.w.eval(`UI.topicMeta(${n}, ${p ? JSON.stringify(p) : 'null'})`);
+    const m14 = meta(14, 'Prof. Samaa'), m1 = meta(1, ''), m0 = meta(0, '');
+    check('v5.1 subject page: topic meta is plain text "14 Qs · Prof. Samaa" (no badge, no icon); without a professor the full "N Questions" stays', /^<span class="topic-row__line"[^>]*>14 Qs \S{1,2} Prof\. Samaa<\/span>$/.test(m14) && !/badge|<svg/.test(m14) && />1 Q \S{1,2} Prof\. X<\/span>$/.test(meta(1, 'Prof. X')) && />1 Question<\/span>$/.test(m1) && />0 Questions<\/span>$/.test(m0) && /topic-row__meta">\$\{this\.topicMeta\(qCount, ss\.professor\)\}/.test(ui));
+    check('v5.1 professor name is escaped in the meta line', /&lt;b&gt;/.test(meta(3, '<b>x')) && !/<b>/.test(meta(3, '<b>x')));
+    check('v5.1 module page: no "Done" badge on a finished subject', !/badge--success">Done/.test(ui) && !/>Done</.test(ui));
+    check('v5.1 header Sign in button is 2.25rem tall like the icon buttons beside it, with the same border, fill and corner', /\.account-signin \{[^}]*height:\s*2\.25rem[^}]*border:\s*1\.5px solid var\(--border-strong\)[^}]*border-radius:\s*var\(--radius\)/.test(acss) && /\.icon-btn \{[^}]*width:\s*2\.25rem;\s*height:\s*2\.25rem/.test(css));
     V.close();
   }
 

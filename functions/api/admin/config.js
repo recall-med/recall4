@@ -70,8 +70,7 @@ function apply(cfg, b) {
     if (!SAFE.test(dir)) throw new HttpError(422, 'bad_config', 'This module has an unusable dataPath');
     let id = slug(label), n = 1;
     while (list.some((x) => x.id === id)) id = slug(label).slice(0, 36) + '_' + (++n);
-    const icon = ((cfg.subjects || []).find((s) => s.id === b.subject) || {}).icon || '📚';
-    const entry = { id, label, icon }; if (professor) entry.professor = professor; entry.hidden = true;   // new decks start hidden: an admin reviews them, then switches them on
+    const entry = { id, label }; if (professor) entry.professor = professor; entry.hidden = true;   // new decks start hidden: an admin reviews them, then switches them on
     list.push(entry);
     return {
       msg: `Admin: add topic ${id} (${m.id}/${b.exam}/${b.subject}), hidden`, topicId: id,

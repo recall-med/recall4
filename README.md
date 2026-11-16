@@ -22,6 +22,8 @@ Built with plain HTML, CSS, and JavaScript, with no build step. It works fully a
 - [Adding a New Module](#adding-a-new-module)
 - [Adding a New Subject](#adding-a-new-subject)
 - [Customisation](#customisation)
+- [Interface Standards](#interface-standards)
+- [Admin Dashboard](#admin-dashboard)
 - [LocalStorage Data](#localstorage-data)
 - [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
@@ -51,12 +53,14 @@ All question content lives in plain JSON files. Adding or updating questions req
 
 - Professional medical Q-bank interface, in the style of UWorld or AMBOSS
 - Full exam engine with immediate feedback or end-of-exam review mode
-- Question palette showing answered, unanswered, and saved status
+- Question number box: green once answered correctly, red once answered wrongly, a gold ring on saved questions; it scrolls inside the sidebar and keeps its place from question to question
 - Save questions (star) for later review
 - Incorrect questions automatically saved to a review bank
 - Dashboard analytics: questions solved, accuracy, and total study time
 - Per-module progress rings with completion count and average score
-- Resume banner for continuing an in-progress exam from the dashboard
+- Resume card under "Progress" on the dashboard: one tap anywhere on the card continues the exam (the small X abandons it)
+- Interface that scales itself to the screen: the same proportions on a phone, a laptop and a 1920px monitor, with nothing to zoom
+- Admin dashboard (`admin.html`) for owners and admins: overview, question editor, students, retention, system
 - Results page with full question review and explanations
 - Retry incorrect questions only
 - Search functionality
@@ -131,15 +135,19 @@ The question bank itself runs on any static host, including GitHub Pages. **Acco
 ```
 /
 ├── index.html              Single-page app entry point
+├── admin.html              Admin dashboard (owners and admins only)
+├── _headers                Safe response headers for Cloudflare Pages
 ├── README.md
 │
 ├── assets/
 │   ├── css/
-│   │   ├── styles.css      All styles (edit colours, fonts here)
-│   │   └── account.css     Account window, loading cover and notification colours
+│   │   ├── styles.css      All styles of the app (colours, fonts, the one scale value). Every length is rem
+│   │   ├── account.css     Account window, loading cover and notification colours
+│   │   └── console.css     Admin dashboard only (class names start with rc-)
 │   └── js/
 │       ├── app.js          Main application controller and navigation
 │       ├── sync.js         Cloud sync engine and account window (loads after exam.js)
+│       ├── layers.js       Pop-up windows: open/close motion, Back-button support, the confirmation window
 │       ├── auth.js         Firebase sign-in (loaded on demand by sync.js)
 │       ├── storage.js      LocalStorage persistence layer
 │       ├── exam.js         Exam engine (loading, scoring, state)
@@ -195,7 +203,7 @@ Questions are organised as **module → exam type → subject → topic**. Each 
    {
      "id": "spinal_cord",
      "label": "Spinal Cord",
-     "icon": "🧠",
+     "icon": "brain",
      "professor": "Prof. Samaa"
    }
    ```
@@ -276,7 +284,7 @@ If the source material gives no explanation for a question, use `"Correct answer
 Every question in this bank comes from a professor's exam guide. To show who wrote a topic's questions, add a `professor` field to the topic's entry in `config/modules.json`:
 
 ```json
-{ "id": "ventricles", "label": "Ventricles", "icon": "🧠", "professor": "Prof. Samaa" }
+{ "id": "ventricles", "label": "Ventricles", "icon": "brain", "professor": "Prof. Samaa" }
 ```
 
 - The text is displayed exactly as written, so include the title yourself (`Prof. Samaa`, `Dr. Hala`).
@@ -337,7 +345,7 @@ Add `"hidden": true` to a module or to a topic entry in `config/modules.json` an
 
 2. Copy one of the existing module objects in the `"modules"` array and add it to the end.
 
-3. Update `id`, `title`, `fullTitle`, `shortTitle`, `description`, `color`, `icon`, and `dataPath`.
+3. Update `id`, `title`, `fullTitle`, `shortTitle`, `description`, `color` and `dataPath`.
 
 4. Create the matching data folder structure:
    ```bash
@@ -360,12 +368,11 @@ Add `"hidden": true` to a module or to a topic entry in `config/modules.json` an
   "shortTitle": "MSK",
   "description": "Musculoskeletal anatomy and pathology questions",
   "color": "#7c3aed",
-  "icon": "bone",
   "dataPath": "MSK"
 }
 ```
 
-Note: the `icon` field is rendered verbatim in the interface. The placeholder above is for readability in this document; substitute an actual glyph (for example an emoji character) to match the existing modules.
+Note: there is no `icon` field. Icons are drawn by the app from the module or subject `id` (`UI.moduleIcon()` and `UI.subjectIcon()` in `assets/js/ui.js`). A new module shows a neutral person icon until you add an SVG for its id to the `moduleIcon` list in `ui.js`. Emoji are not used anywhere on the site.
 
 ---
 
@@ -375,9 +382,9 @@ Note: the `icon` field is rendered verbatim in the interface. The placeholder ab
 
 2. Add a new object to the `"subjects"` array:
    ```json
-   { "id": "pathology", "label": "Pathology", "icon": "microscope", "color": "#be185d" }
+   { "id": "pathology", "label": "Pathology", "color": "#be185d" }
    ```
-   (as above, use an actual glyph for `icon` to match the existing subjects)
+   (its icon comes from `UI.subjectIcon()` by id, as for modules; until you add one it shows the neutral icon)
 
 3. Add the subject to each module's `subSubjects` list in `config/modules.json` (for every exam type), then add topic files under `data/<MODULE>/<exam_type>/pathology/` as described in [Adding Questions](#adding-questions).
 
@@ -406,6 +413,21 @@ Edit the CSS variables at the top of `assets/css/styles.css`:
   /* ... */
 }
 ```
+
+The same file holds two more colours worth knowing:
+```css
+--saved:    #A8842C;  /* saved questions: star button, badge, ring in the number box. Dark theme: #D8C58A */
+--bar-from: #1B3A6B;  /* every progress bar is one gradient from --bar-from to --bar-to */
+--bar-to:   #3f6dbb;
+```
+
+### Interface size
+
+One line near the top of `styles.css` sets the size of the whole interface:
+```css
+html { font-size: clamp(100%, calc(33.333% + 0.8333vw), 150%); }
+```
+It is 100% (16px) up to 1280px wide, grows smoothly to 133% at 1920px and stops at 150%. Because every length in the stylesheet is in `rem`, everything (text, spacing, widths) scales together, so a big monitor looks like a phone with the same proportions. The value is a percentage, so a person's own browser text-size setting still applies. To make the interface bigger or smaller everywhere, change the two numbers (`33.333%` is the base, `0.8333vw` the growth).
 
 ### Change fonts
 
@@ -467,6 +489,28 @@ Storage.resetAll(); location.reload();
 
 ---
 
+## Interface Standards
+
+Rules the interface follows. Keep them when you change anything.
+
+- **No emoji anywhere.** Icons are inline SVG (`UI.examIcon()`, `UI.moduleIcon()`, `UI.subjectIcon()` in `ui.js`). A test fails if an emoji appears in any file the site serves.
+- **Sizes are in `rem`, never `px`** (except 1 to 2px borders and the two `@container` thresholds). That is what lets the one root value above scale everything. Media-query breakpoints stay in px (600, 768, 840, 1024).
+- **Page height uses `dvh`**, not `vh`, so phones and tablets get no false scroll space under the address bar.
+- **Pressing:** rows, cards and chips do not shrink when pressed. A soft tint fades in over exactly the element and follows its own corner radius (the `Pressing` block at the end of `styles.css`). Only stand-alone buttons keep a small press.
+- **One progress bar.** The exam sidebar, module cards and subject rows all use the same 0.375rem track and the same navy gradient.
+- **Saved is sand gold, not green.** Green means correct and red means wrong, and nothing else uses them.
+- **Motion is short and quiet:** moving between questions slides the new question in from the side you are heading to (220ms, never from fully transparent); an explanation grows open inside its own wrapper (360ms); pop-ups fade and rise.
+- **Admin page** classes start with `rc-`. Never use `ad-` or words like banner or sponsor in class names: ad blockers hide them.
+- **Dark mode** must keep working after every change: colours come from the variables, never hard-coded.
+
+---
+
+## Admin Dashboard
+
+`admin.html` is for owners (`ADMIN_UIDS`) and admins made by an owner. Tabs: Overview, Content (modules, exam types, subjects, topics and questions, with Edit and Add and Remove, visibility switches and the Ongoing switch), Students (search, Remove, Unblock, make admin), Retention and System. Editing a question commits to GitHub through `/api/admin/question`; it needs the encrypted Cloudflare variable `GITHUB_TOKEN`. The full setup, the D1 `ALTER TABLE` lines to run before uploading, the roles and the limits are in [BACKEND_GUIDE.md](BACKEND_GUIDE.md).
+
+---
+
 ## Troubleshooting
 
 **Questions don't load / "No questions available"**
@@ -499,7 +543,7 @@ Accounts are optional. Guests keep using the app exactly as before, with progres
 - **Guest progress:** signing in to a brand-new account adds the progress made as a guest. Signing in to an account that already has data keeps the account's data and offers "Add it to this account" in the account window. Nothing is overwritten.
 - **Reset progress:** once signed in it moves from the header to the account window and clears scores, progress and incorrect questions on all devices (flagged questions are kept).
 - **Delete account:** in the account window. It asks for your password (or Google), then permanently deletes your cloud data and your sign-in.
-- **Privacy:** the server stores question ids and exam results, not email addresses. Administrators see combined usage totals only.
+- **Privacy:** the server stores question ids, exam results, the display name and the email address from the verified sign-in (so admins can list students and remove an account). Admins see per-student exam counts and accuracy in the dashboard; the questions a student saved are their own review list and are shown to admins only as a combined count.
 - **Switch:** while `cloudEnabled` in `config/sync-config.json` is `false`, nobody sees a Sign in button. Open the site once with `?cloud=1` to try it on one device (`?cloud=0` turns that off).
 
 How it works, the API, the database, how to add features and the project status are in [BACKEND_GUIDE.md](BACKEND_GUIDE.md).
@@ -511,6 +555,8 @@ How it works, the API, the database, how to add features and the project status 
 Recently added:
 
 - Optional accounts and cloud sync (Google or email), guest progress import, Reset progress and Delete account in the account window
+- Admin dashboard: Overview, Content editor, Students, Retention, System
+- Interface refresh: one fluid scale for every screen, one-tap resume card, correct/wrong colours in the number box, gold Saved, unified progress bars, directional question transitions, no emoji
 - Navy notifications that match the app in light and dark mode
 
 - Redesigned dashboard stats (questions solved, accuracy, study time)
@@ -526,7 +572,7 @@ Planned:
 - [ ] PDF export of results
 - [ ] Offline PWA support (service worker)
 - [ ] Resume an in-progress exam on another device
-- [ ] Admin usage dashboard (the server side exists, the page does not)
+- [ ] Past-attempt review
 
 ---
 

@@ -30,25 +30,21 @@
     {
       "id": "anatomy",
       "label": "Anatomy",
-      "icon": "🦴",
       "color": "#4A9E8E"
     },
     {
       "id": "physiology",
       "label": "Physiology",
-      "icon": "🫀",
       "color": "#4A9E8E"
     },
     {
       "id": "biochemistry",
       "label": "Biochemistry",
-      "icon": "🧬",
       "color": "#d97706"
     },
     {
       "id": "histology",
       "label": "Histology",
-      "icon": "🔬",
       "color": "#dc2626"
     }
   ],
@@ -60,7 +56,6 @@
       "shortTitle": "CPM",
       "description": "Cardiovascular and pulmonary system questions",
       "color": "#dc2626",
-      "icon": "❤️",
       "dataPath": "CPM",
       "subSubjects": {
         "end_module": {
@@ -74,45 +69,38 @@
             {
               "id": "pharynx",
               "label": "Pharynx",
-              "icon": "🗣️",
               "professor": "Prof. Samaa"
             },
             {
               "id": "larynx",
               "label": "Larynx",
-              "icon": "🎙️",
               "professor": "Prof. Samaa"
             },
             {
               "id": "heart",
               "label": "Pericardium & Heart",
-              "icon": "🫀",
               "professor": "Prof. Samaa"
             }
           ],
           "physiology": [
             {
               "id": "cvs",
-              "label": "CVS",
-              "icon": "❤️"
+              "label": "CVS"
             },
             {
               "id": "respiration",
-              "label": "Respiration",
-              "icon": "🫁"
+              "label": "Respiration"
             }
           ],
           "biochemistry": [],
           "histology": [
             {
               "id": "lymphatic",
-              "label": "Lymphatic System",
-              "icon": "🔬"
+              "label": "Lymphatic System"
             },
             {
               "id": "respiratory",
-              "label": "Respiratory System",
-              "icon": "🫁"
+              "label": "Respiratory System"
             }
           ]
         }
@@ -125,7 +113,6 @@
       "shortTitle": "GIT",
       "description": "Gastrointestinal system and hepatobiliary questions",
       "color": "#d97706",
-      "icon": "🍏",
       "dataPath": "GIT",
       "subSubjects": {
         "end_module": {
@@ -138,84 +125,69 @@
           "anatomy": [
             {
               "id": "liver_biliary_portal",
-              "label": "Liver, Biliary System & Portal Circulation",
-              "icon": "🫀"
+              "label": "Liver, Biliary System & Portal Circulation"
             },
             {
               "id": "arterial_supply",
-              "label": "Arterial Blood Supply of the GIT",
-              "icon": "🩸"
+              "label": "Arterial Blood Supply of the GIT"
             },
             {
               "id": "rectum",
-              "label": "Rectum",
-              "icon": "🔻"
+              "label": "Rectum"
             },
             {
               "id": "anal_canal",
-              "label": "Anal Canal",
-              "icon": "🔻"
+              "label": "Anal Canal"
             },
             {
               "id": "parotid_tongue",
-              "label": "Parotid Gland & Tongue",
-              "icon": "👅"
+              "label": "Parotid Gland & Tongue"
             },
             {
               "id": "peritoneum",
-              "label": "Peritoneum",
-              "icon": "🫁"
+              "label": "Peritoneum"
             }
           ],
           "physiology": [
             {
               "id": "general_git_physiology",
-              "label": "General GIT Physiology",
-              "icon": "🫀"
+              "label": "General GIT Physiology"
             }
           ],
           "biochemistry": [
             {
               "id": "tca_cycle",
-              "label": "TCA Cycle",
-              "icon": "🧬"
+              "label": "TCA Cycle"
             },
             {
               "id": "nitrogen_metabolism",
-              "label": "Overall Nitrogen Metabolism",
-              "icon": "🧬"
+              "label": "Overall Nitrogen Metabolism"
             },
             {
               "id": "ammonia_urea_cycle",
-              "label": "Ammonia Metabolism & Urea Cycle",
-              "icon": "🧬"
+              "label": "Ammonia Metabolism & Urea Cycle"
             },
             {
               "id": "amino_acids_metabolism",
-              "label": "Amino Acids Metabolism",
-              "icon": "🧬"
+              "label": "Amino Acids Metabolism"
             },
             {
               "id": "xenobiotic_metabolism",
-              "label": "Xenobiotic Metabolism",
-              "icon": "🧬"
+              "label": "Xenobiotic Metabolism"
             }
           ],
           "histology": [
             {
               "id": "intestine_liver_pancreas",
-              "label": "Small & Large Intestine, Liver & Pancreas",
-              "icon": "🔬"
+              "label": "Small & Large Intestine, Liver & Pancreas"
             },
             {
               "id": "large_intestine",
-              "label": "Large Intestine (Dr. Hala)",
-              "icon": "🔬"
+              "label": "Large Intestine (Dr. Hala)"
             },
             {
               "id": "small_intestine",
-              "label": "Small Intestine (Dr. Hala)",
-              "icon": "🔬"
+              "label": "Small Intestine (Dr. Hala)"
             }
           ]
         }
@@ -228,7 +200,6 @@
       "shortTitle": "CNS",
       "description": "Neuroscience and central nervous system questions",
       "color": "#2a5298",
-      "icon": "🧠",
       "dataPath": "CNS",
       "redlineLinks": {
         "end_module": "https://redlineeducation.pages.dev/guide?id=p7pOoxivzDrBhpoTTq0r"
@@ -239,80 +210,66 @@
             {
               "id": "spinal_cord",
               "label": "Spinal Cord",
-              "icon": "🧠",
               "professor": "Prof. Samaa"
             },
             {
               "id": "diencephalon",
               "label": "Diencephalon",
-              "icon": "🧠",
               "professor": "Prof. Samaa"
             },
             {
               "id": "ventricles",
               "label": "Ventricles",
-              "icon": "🧠",
               "professor": "Prof. Samaa"
             },
             {
               "id": "csf_circulation",
               "label": "CSF Circulation",
-              "icon": "🧠",
               "professor": "Prof. Samaa"
             },
             {
               "id": "scalp_and_face",
               "label": "Scalp and Face",
-              "icon": "🧠",
               "professor": "Prof. Samaa"
             },
             {
               "id": "limbic_system_grey_white_matter",
               "label": "Limbic System, Grey & White Matter",
-              "icon": "🧠",
               "professor": "Prof. Samaa"
             }
           ],
           "physiology": [
             {
               "id": "receptors",
-              "label": "Receptors",
-              "icon": "🧠"
+              "label": "Receptors"
             },
             {
               "id": "stretch_reflex",
-              "label": "Stretch Reflex",
-              "icon": "🧠"
+              "label": "Stretch Reflex"
             },
             {
               "id": "internal_capsule_umnl_lmnl",
-              "label": "Internal Capsule, UMNL & LMNL",
-              "icon": "🧠"
+              "label": "Internal Capsule, UMNL & LMNL"
             },
             {
               "id": "thalamus_rf_hypothalamus_limbic",
-              "label": "Thalamus, RF, Hypothalamus & Limbic System",
-              "icon": "🧠"
+              "label": "Thalamus, RF, Hypothalamus & Limbic System"
             },
             {
               "id": "basal_ganglia",
-              "label": "Basal Ganglia",
-              "icon": "🧠"
+              "label": "Basal Ganglia"
             },
             {
               "id": "hearing",
-              "label": "Hearing",
-              "icon": "🧠"
+              "label": "Hearing"
             },
             {
               "id": "vision",
-              "label": "Vision",
-              "icon": "🧠"
+              "label": "Vision"
             },
             {
               "id": "vestibular_apparatus",
               "label": "Vestibular Apparatus",
-              "icon": "🧠",
               "professor": "Prof. Nanees"
             }
           ],
@@ -321,13 +278,11 @@
             {
               "id": "meninges_ear",
               "label": "Meninges & Ear",
-              "icon": "🧠",
               "professor": "Prof. Abeer"
             },
             {
               "id": "ear",
               "label": "Ear",
-              "icon": "🧠",
               "professor": "Prof. Hala"
             }
           ]
@@ -347,7 +302,6 @@
       "shortTitle": "ENDO",
       "description": "Endocrine system and reproductive medicine questions",
       "color": "#4A9E8E",
-      "icon": "⚗️",
       "dataPath": "ENDO_REPRO",
       "subSubjects": {
         "end_module": {
@@ -372,7 +326,6 @@
       "shortTitle": "URIN",
       "description": "Renal and urinary tract questions",
       "color": "#4A9E8E",
-      "icon": "🫘",
       "dataPath": "URINARY",
       "subSubjects": {
         "end_module": {

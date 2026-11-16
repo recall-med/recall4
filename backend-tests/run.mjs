@@ -599,7 +599,7 @@ try {
     // topic details
     r = await post({ action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'pharynx', label: "Pharynx & Larynx's  parts", professor: "Prof. D'Souza", hidden: true });
     let t = topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'pharynx');
-    check('config: topic name, professor and visibility change together; spaces tidied; a straight apostrophe becomes a typographic one', r.status === 200 && t.label === 'Pharynx & Larynx\u2019s parts' && t.professor === 'Prof. D\u2019Souza' && t.hidden === true && t.id === 'pharynx' && t.icon, J(t));
+    check('config: topic name, professor and visibility change together; spaces tidied; a straight apostrophe becomes a typographic one', r.status === 200 && t.label === 'Pharynx & Larynx\u2019s parts' && t.professor === 'Prof. D\u2019Souza' && t.hidden === true && t.id === 'pharynx' && !('icon' in t), J(t));
     r = await post({ action: 'set_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', topicId: 'pharynx', professor: '', hidden: false });
     t = topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'pharynx');
     check('config: an empty professor removes the field; showing removes hidden; the id never changes', r.status === 200 && !('professor' in t) && !('hidden' in t) && t.id === 'pharynx');
@@ -608,7 +608,7 @@ try {
     r = await post({ action: 'add_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', label: 'Bronchi & Lungs', professor: 'Prof. Samaa' });
     t = topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'bronchi_lungs');
     const newPath = '/repos/recall-med/recall4/contents/data/CPM/final_exam/anatomy/bronchi_lungs.json', nf = gh.files[newPath];
-    check('add topic: registered as HIDDEN with the subject icon and the professor; id made from the name', r.status === 200 && r.data.topicId === 'bronchi_lungs' && t && t.hidden === true && t.label === 'Bronchi & Lungs' && t.professor === 'Prof. Samaa' && !!t.icon, J(r.data));
+    check('add topic: registered as HIDDEN with the professor and no icon field (icons come from the app, by id); id made from the name', r.status === 200 && r.data.topicId === 'bronchi_lungs' && t && t.hidden === true && t.label === 'Bronchi & Lungs' && t.professor === 'Prof. Samaa' && !('icon' in t), J(r.data));
     check('add topic: an EMPTY data file was created first (meta, no questions, nextId 1), then the config; two commits', !!nf && gh.cfgPuts.length === before + 2 && gh.cfgPuts[before].path === newPath && /bronchi_lungs\.json/.test(gh.cfgPuts[before].message) && JSON.parse(nf.text).questions.length === 0 && JSON.parse(nf.text).nextId === 1 && JSON.parse(nf.text).meta.subSubject === 'bronchi_lungs');
     r = await post({ action: 'add_topic', moduleId: 'CPM', exam: 'final_exam', subject: 'anatomy', label: 'Bronchi & Lungs' });
     check('add topic: the same name again gets a numbered id, never overwrites the first', r.status === 200 && r.data.topicId === 'bronchi_lungs_2' && !!topic(cfgNow(), 'CPM', 'final_exam', 'anatomy', 'bronchi_lungs'));

@@ -23,7 +23,7 @@ const App = {
     } catch (e) {
       clearTimeout(bootTimer);
       UI.setContent(`<div class="error-screen">
-        <h2>⚠️ Configuration Error</h2>
+        <h2>Configuration Error</h2>
         <p>Could not load <code>config/modules.json</code>. Check the file exists and is valid JSON.</p>
         <pre>${e.message}</pre>
       </div>`);
@@ -456,15 +456,23 @@ const App = {
           if (ExamEngine.config.immediateFeedback && !document.querySelector('.explanation-box')) {
             const q = ExamEngine.getCurrent();
             const topic = (ExamEngine.config.scope && q._subSubjectLabel) ? q._subSubjectLabel : '';
-            document.querySelector('.options-list').insertAdjacentHTML('afterend', UI.examExplanation({
+            const html = UI.examExplanation({
               correct:      result.correct,
               correctIndex: result.correctIndex,
               explanation:  result.explanation,
               topic,
               correctText:  q.options[result.correctIndex],
-            }));
-            const box = document.querySelector('.explanation-box');
-            if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+            if (html) {
+              // The box grows open inside a wrapper (see .explanation-reveal in the stylesheet); once it has
+              // finished opening, bring it fully into view if it ends up under the bottom bar.
+              document.querySelector('.options-list').insertAdjacentHTML('afterend',
+                `<div class="explanation-reveal"><div class="explanation-reveal__inner">${html}</div></div>`);
+              const wrap = document.querySelector('.explanation-reveal');
+              const settle = () => { const box = document.querySelector('.explanation-box'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+              if (wrap && wrap.getAnimations && wrap.getAnimations().length) wrap.getAnimations()[0].finished.then(settle).catch(() => {});
+              else settle();
+            }
           }
         }
       }
@@ -522,15 +530,52 @@ const App = {
     const idx = ExamEngine.state.currentIndex;
     const dir = kind === 'change' && this._examIdx != null ? Math.sign(idx - this._examIdx) : 0;   // 1 = forward, -1 = back
     this._examIdx = idx;
-    UI.setContent(UI.renderExam(ExamEngine, this.config), kind === 'change' ? 'none' : 'swap');
+    const html = UI.renderExam(ExamEngine, this.config);
+
+    // Moving between questions: swap ONLY the question column. The sidebar (with its number box and scroll
+    // position), the header and the page background are never re-drawn, so nothing flickers and the number
+    // box keeps its scroll. The phone's number strip lives in the column, so its scroll is carried over.
+    const layout = UI.root.querySelector('.exam-layout');
+    if (kind === 'change' && layout) {
+      const tpl = document.createElement('template');
+      tpl.innerHTML = html;
+      const newMain = tpl.content.querySelector('.exam-main');
+      const oldMain = layout.querySelector('.exam-main');
+      if (newMain && oldMain) {
+        const strip = oldMain.querySelector('.palette--strip');
+        const stripLeft = strip ? strip.scrollLeft : 0;
+        UI.root.dataset.qdir = dir < 0 ? 'prev' : 'next';
+        UI.root.classList.add('exam-q-change');
+        oldMain.replaceWith(newMain);
+        const newStrip = newMain.querySelector('.palette--strip');
+        if (newStrip) newStrip.scrollLeft = stripLeft;
+        this._updatePalette();
+        window.scrollTo(0, 0);
+        this._keepCurrentChipInView();
+        return;
+      }
+    }
+
+    UI.setContent(html, kind === 'change' ? 'none' : 'swap');
     UI.root.classList.toggle('exam-q-change', kind === 'change');
     UI.root.dataset.qdir = dir < 0 ? 'prev' : 'next';
     window.scrollTo(0, 0);
+    this._keepCurrentChipInView(true);
+  },
+
+  // Scrolls a number box (vertical on desktop, a strip on phones) only if the current question's chip is out of view,
+  // and only as far as needed. `jump` places it without animation (opening an exam).
+  _keepCurrentChipInView(jump = false) {
     document.querySelectorAll('.exam-layout .palette').forEach(pal => {
       const cur = pal.querySelector('.palette-btn--current');
       if (!cur || !pal.clientWidth) return;   // skip the palette hidden at this breakpoint
-      pal.scrollTop  = cur.offsetTop  - pal.clientHeight / 2 + cur.offsetHeight / 2;
-      pal.scrollLeft = cur.offsetLeft - pal.clientWidth  / 2 + cur.offsetWidth  / 2;
+      const pr = pal.getBoundingClientRect(), cr = cur.getBoundingClientRect();
+      const out = cr.top < pr.top || cr.bottom > pr.bottom || cr.left < pr.left || cr.right > pr.right;
+      if (!out && !jump) return;
+      const top  = pal.scrollTop  + (cr.top  - pr.top)  - pal.clientHeight / 2 + cur.offsetHeight / 2;
+      const left = pal.scrollLeft + (cr.left - pr.left) - pal.clientWidth  / 2 + cur.offsetWidth  / 2;
+      if (jump) { pal.scrollTop = top; pal.scrollLeft = left; }
+      else pal.scrollTo({ top, left, behavior: 'smooth' });
     });
   },
 
@@ -619,7 +664,7 @@ const App = {
       if (s) items = items.filter(i => i.subject === s);
       if (list) {
         list.innerHTML = items.length === 0
-          ? UI.emptyState('No Matches', 'Try adjusting your filters.', '🔍')
+          ? UI.emptyState('No Matches', 'Try adjusting your filters.', UI.examIcon('search', 'icon icon--xl'))
           : items.map(q => {
               const sub = this.config.subjects.find(s => s.id === q.subject);
               const et  = this.config.examTypes.find(e => e.id === q.examType);
@@ -635,7 +680,7 @@ const App = {
                   ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : i === q.userAnswer ? 'review-opt--wrong' : ''}">${['A','B','C','D'][i]}. ${opt}</span>`).join('')}
                 </div>
                 <div class="review-item__explanation">${q.explanation}</div>
-                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">✓ Mark as Mastered</button>
+                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">${UI.examIcon('check')} Mark as Mastered</button>
               </div>`;
             }).join('');
       }
@@ -682,7 +727,7 @@ const App = {
       if (s) items = items.filter(i => i.subject === s);
       if (list) {
         list.innerHTML = items.length === 0
-          ? UI.emptyState('No Matches', 'Try adjusting your filters.', '🔍')
+          ? UI.emptyState('No Matches', 'Try adjusting your filters.', UI.examIcon('search', 'icon icon--xl'))
           : items.map(q => {
               const sub = this.config.subjects.find(s => s.id === q.subject);
               const et  = this.config.examTypes.find(e => e.id === q.examType);
@@ -692,7 +737,7 @@ const App = {
                   <span class="badge badge--ghost">${q.module}</span>
                   ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
                   <span class="badge badge--ghost">${et?.label}</span>
-                  <span class="badge" style="background:#4A9E8E20;color:#4A9E8E">⭐ Saved</span>
+                  <span class="badge badge--saved">${UI.examIcon('flag')}Saved</span>
                 </div>
                 <p class="review-item__question">${q.question}</p>
                 <div class="review-item__options">

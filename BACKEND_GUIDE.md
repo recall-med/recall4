@@ -136,7 +136,19 @@ Algorithm RS256, `kid` present in Google's key list, signature, issuer `https://
 - A student whose saved or incorrect list points at a topic that later becomes hidden simply sees nothing for it until it is visible again.
 - Pop-up layers (account window, reset window, every confirmation, all admin drawers and dialogs) close only with X, Escape or Back; tapping outside never closes them. `assets/js/layers.js` adds the Back support and the shared motion: `RecallLayers.show/hide` (fade and rise in, fade and sink out, class `is-closing`) and `RecallLayers.confirm({title, message, ok, cancel, danger})`, a promise that replaces the browser `confirm()` and looks like the account window. There is no native `confirm()` left in the app. The admin drawer and dialog keep their own look; only their closing animation was added.
 - Admin page (`admin.html`, `assets/css/console.css`) is built from the app's own components: `module-card`, `subject-card`, `topic-row`, `badge`, `.toggle`, `page__header`, `breadcrumb`, `stats-strip`, `empty-state`. Its own classes start with `rc-`: never use an `ad-` prefix or words like banner or sponsor for class names, because ad blockers hide them. `admin.html` loads `assets/js/ui.js` only for the module, subject and topic icons.
-- Scale: root font size is 100% (the person's own setting), 112.5% from 1440px, 125% from 1920px, 150% from 2560px; `--max-width`, `--header-h` and `--sidebar-w` are in rem so layouts grow with the text. Nothing is below .75rem. On touch screens buttons, cards and rows are at least 44px tall. Breakpoints follow the Material 3 window size classes (600, 840, 1200, 1600).
+- Icons: the `icon` field is gone from `config/modules.json` and from `add_topic` in `functions/api/admin/config.js` (nothing read it; the app draws icons by id with `UI.moduleIcon/subjectIcon`). No emoji anywhere: all glyphs are inline SVG (`UI.examIcon(name, cls)` has the small set: check, x, star, flag, inbox, search, checkcircle, alert, info). A front-end test fails on any emoji in served files.
+- Scale (v5): ONE fluid root size, `html { font-size: clamp(100%, calc(33.333% + 0.8333vw), 150%) }`, i.e. 16px up to 1280px wide, 133% at 1920px, capped at 150%. Every length in `styles.css`, `account.css`, `console.css` and the few inline styles in `ui.js`, `app.js` and `ui-skeletons.js` is in rem (only 1 to 2px borders and the two `@container` thresholds are px), so the whole interface scales together, like browser zoom. Media-query breakpoints stay in px. The earlier stepped scale (112.5/125/150% from 1440/1920/2560px) and the 12px minimum text size were removed: they scaled text but not px paddings, so proportions drifted. Page height uses `100dvh` with a `100vh` fallback (phones: `100vh` counted the area under the address bar and made false scroll space).
+
+## 5c. Interface notes (v5, 2026-11-16)
+
+- **Dashboard.** The resume card is inside `aside.dashboard__rail`, after the "Progress" heading and before the stats. It is one `button.resume-banner__main[data-nav="resume-exam"]` (icon, "Continue Exam", detail `CPM · Spinal Cord · Q2/23`; the name part is cut with an ellipsis, the `Q2/23` part never) plus a separate X button (`#resume-dismiss-btn`) centred on the right, with no background. Phones use the same card with bigger touch targets.
+- **Progress bars.** One look: `.progress-bar` (exam sidebar), `.module-card__progress-track/-fill`, `.subject-card__bar` share a 0.375rem track and `linear-gradient(90deg, var(--bar-from), var(--bar-to))`. `UI.progressBar(percent)` takes no colour.
+- **Saved** = sand gold (`--saved`, `#D8C58A` in dark, a deeper `#A8842C` in light so it stays readable). It is used for the Save/Saved button, the Saved badge, the dashboard Saved button and badge, and the ring around a saved question in the number box. Green is only "correct", red only "wrong".
+- **Exam page.** The number box shows each answered question green (`palette-btn--correct`) or red (`palette-btn--wrong`); there is no legend. On desktop the sidebar is sticky, its top is level with the question card, Back sits above it (taken out of the Back/Save row with `position:absolute`), and its bottom is NOT tied to the Previous/Next row. The number box (`.palette`) is the flexible part: it scrolls inside the sidebar, and `App._keepCurrentChipInView()` scrolls it only when the current chip is out of view.
+- **Question change.** `App._renderExam('change')` swaps ONLY `.exam-main` (the question column) and calls `_updatePalette()`; the sidebar element is never re-drawn, so the number box keeps its scroll and nothing flickers. `#app[data-qdir=next|prev]` drives a short slide-in (220ms, starts at 40% opacity). Opening an exam, or a re-render for any other reason, still draws the whole page.
+- **Explanation.** The live explanation is inserted inside `.explanation-reveal > .explanation-reveal__inner`; the row grows from `0fr` to `1fr` while the box fades in, then it is scrolled fully into view. Explanations drawn as part of a normal render are plain.
+- **Pressing.** Rows, cards and chips (module card, subject card, topic row, exam option, number-box button, rail action, resume card) have no scale-on-press; a `::after` tint with `border-radius: inherit` fades in (`--press-tint`). `-webkit-tap-highlight-color` is transparent everywhere.
+- **Module page.** The Redline Data link has no vertical padding, so its row is exactly as tall as a plain title and the section rule is level with the "Progress" rule on every module.
 
 ## 6. Recipes for adding features
 
@@ -184,10 +196,12 @@ Both suites start a **local** Worker and a **local** database with `wrangler pag
 git clone https://github.com/recall-med/recall4.git site && cd site/backend-tests
 npm install
 node run.mjs            # backend: expect 203 passed, 0 failed
-node run-frontend.mjs   # front end in jsdom: expect 198 passed, 0 failed
+node run-frontend.mjs   # front end in jsdom: expect 217 passed, 0 failed (takes about 5 minutes)
 ```
 
-The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand.
+The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand. Look (sizes, spacing, animation) was checked separately with a headless Chromium (Playwright) at 390, 820, 1366, 1536, 1919 and 2560px wide; that script is not part of the repo.
+
+Test-harness lessons: jsdom does not run `type="module"` scripts (the admin test extracts the inline module script and evals it); all tests share one local D1, so seeded test data must use ids/scopes no other test touches; `pkill -f <name>` inside the same shell command kills the shell; backgrounded processes do not survive between separate tool calls, so run a suite in the foreground; jsdom's loader reads the middle dot as two characters, so tests match it loosely; the front-end suite uses the real `config/modules.json` with a tiny fixture `data/` (larynx = 6, pharynx = 4 questions), so a test must never hard-code which module is ongoing (it changes from the admin page).
 
 ---
 
@@ -206,10 +220,11 @@ The front-end suite uses a fake sign-in provider and a simulated browser (jsdom)
 | 3b | Service worker (offline caching) and the full Content-Security-Policy | Not started |
 | 5 (admin, v2) | Questions tab is a full browser of every question (Module, Exam type, Subject, Topic; search; Add / Edit / Remove). Saving a question (formerly Flag, now a star) is a student's own review list: the dashboard shows it as a neutral "saved by" count, not as reports. Owners can make or remove admins in the Students tab; the app shows admins an "Open admin dashboard" button in the account window (`/api/state` returns `isAdmin`; the server still checks every admin call). | Built and tested in the sandbox |
 | 5 (dashboard) | `admin.html`: Overview, Questions (flagged, possible wrong key, hardest, Edit here / Edit on GitHub), Students (emails, search, Remove / Unblock), Retention (weekly cohorts, activation), System. Needs two more `ALTER TABLE` lines (section on the D1 console) and `GITHUB_TOKEN`. Server side is `/api/admin/summary` (cache key v=2). Needs `ADMIN_UIDS` set | Built and tested in the sandbox; needs `ADMIN_UIDS` and a phone/desktop check |
+| 5 (UI v5) | Fluid scale for every screen, one-tap resume card under Progress, correct/wrong number box, gold Saved, unified progress bars, directional question transition and real explanation reveal, press tint instead of shrinking, dvh page height, no emoji, no `icon` fields (section 5c) | Built and tested in the sandbox; needs a real-phone look |
 | 5 (rest) | Cross-device exam resume, past-attempt review | Not started (server parts exist) |
 | 6 | Pilot with 20 to 30 students, then announce | Not started |
 
-Test status: backend 203 of 203, front end 198 of 198 (jsdom).
+Test status: backend 203 of 203, front end 217 of 217 (jsdom).
 
 ### Verified on real devices
 Email sign-up and sign-in, studying uploads data, second-device pull, automatic import for a new account, offered import for an existing account, sign-out and sign-in, Delete account with a password (the real Firebase deletion).
@@ -220,7 +235,7 @@ Email sign-up and sign-in, studying uploads data, second-device pull, automatic 
 3. CPU time per request: your own testing averaged about 2.6 ms, against a 10 ms free-plan limit, but heavy syncs were not measured.
 4. The Firebase key restriction (done by the owner, not yet confirmed by screenshot or by a sign-in test).
 5. Whether `DB` is bound on Preview deployments (only matters for non-`main` branches). Do not bind the production database to Preview.
-6. Visual check of the newest changes (loading cover, navy notifications in both themes).
+6. Visual check of the newest changes (loading cover, navy notifications in both themes, and the v5 interface on a real phone: false scroll on the dashboard and exam pages, the resume card, the press tint, the question transition, the number box in a 200+ question exam).
 
 ---
 

@@ -39,9 +39,12 @@
   --danger:         #c0392b;
   --danger-bg:      rgba(192,57,43,.07);
   --danger-border:  rgba(192,57,43,.25);
-  --saved:          #7c5cd6;   /* saved / bookmarked question: violet, so it never reads as the red of a wrong answer */
-  --saved-bg:       rgba(124,92,214,.09);
-  --saved-border:   rgba(124,92,214,.35);
+  --saved:          #A8842C;   /* saved / bookmarked: the sand-gold of #D8C58A, deepened on light backgrounds for contrast */
+  --saved-bg:       rgba(168,132,44,.10);
+  --saved-border:   rgba(168,132,44,.38);
+  --saved-ink:      #3a2d08;   /* text on a solid saved-colour fill */
+  --bar-from:       #1B3A6B;   /* progress bars: one mild navy gradient everywhere */
+  --bar-to:         #3f6dbb;
   --warning:        #b45309;
   --warning-bg:     rgba(180,83,9,.08);
   --warning-border: rgba(180,83,9,.25);
@@ -115,9 +118,12 @@
   --danger-border:  rgba(192,57,43,.3);
   --warning-bg:     rgba(180,83,9,.1);
   --warning-border: rgba(180,83,9,.3);
-  --saved:          #a58bf5;
-  --saved-bg:       rgba(165,139,245,.12);
-  --saved-border:   rgba(165,139,245,.4);
+  --saved:          #D8C58A;
+  --saved-bg:       rgba(216,197,138,.12);
+  --saved-border:   rgba(216,197,138,.42);
+  --saved-ink:      #2b2208;
+  --bar-from:       #2a5298;
+  --bar-to:         #5b8fe3;
   --info-bg:        rgba(59,130,246,.12);
   --info-border:    rgba(59,130,246,.32);
   --shadow-sm:      0 1px 0.1875rem rgba(0,0,0,.2);
@@ -410,6 +416,7 @@ img { max-width: 100%; display: block; }
 }
 .icon--sm { width: 0.9375rem; height: 0.9375rem; }
 .icon--lg { width: 1.375rem; height: 1.375rem; }
+.icon--xl { width: 2.25rem;  height: 2.25rem; }
 
 /* ── Buttons ──────────────────────────────────────────────── */
 .btn {
@@ -493,6 +500,13 @@ img { max-width: 100%; display: block; }
   color:      var(--success);
   border-color: var(--success-border);
 }
+.badge--saved {
+  background: var(--saved-bg);
+  color:      var(--saved);
+  border-color: var(--saved-border);
+}
+.badge--saved .icon { width: 0.75rem; height: 0.75rem; fill: currentColor; }
+.quick-icon-btn__badge--saved { background: var(--saved); color: var(--saved-ink); }
 .badge--ghost {
   background: var(--surface-2);
   color:      var(--text-3);
@@ -608,18 +622,18 @@ img { max-width: 100%; display: block; }
 }
 
 /* ── Progress Bar ─────────────────────────────────────────── */
-.progress-bar {
-  height:       0.25rem;
-  background:   var(--border);
-  border-radius: 6.25rem;
-  overflow:     hidden;
-  margin-top:   0.5rem;
+.progress-bar {                              /* same track + fill as the module cards and subject rows */
+  height:        0.375rem;
+  background:    var(--border);
+  border-radius: 62.4375rem;
+  overflow:      hidden;
+  margin-top:    0.5rem;
 }
 .progress-bar__fill {
-  height:       100%;
-  border-radius: 6.25rem;
-  background:   var(--primary);
-  transition:   width .6s var(--ease);
+  height:        100%;
+  border-radius: inherit;
+  background:    linear-gradient(90deg, var(--bar-from), var(--bar-to));
+  transition:    width .6s var(--ease);
 }
 
 /* ── Score Ring ───────────────────────────────────────────── */
@@ -777,10 +791,10 @@ img { max-width: 100%; display: block; }
   border-color: var(--danger-border);
   color:        var(--danger);
 }
-.quick-icon-btn--success:hover {
-  background:   var(--success-bg);
-  border-color: var(--success-border);
-  color:        var(--success);
+.quick-icon-btn--saved:hover {
+  background:   var(--saved-bg);
+  border-color: var(--saved-border);
+  color:        var(--saved);
 }
 .quick-icon-btn--empty { opacity: .5; }
 .quick-icon-btn__badge {
@@ -828,10 +842,10 @@ img { max-width: 100%; display: block; }
   border-color: var(--danger-border);
   color:        var(--danger);
 }
-.topic-action-btn--success:hover {
-  background:   var(--success-bg);
-  border-color: var(--success-border);
-  color:        var(--success);
+.topic-action-btn--saved:hover {
+  background:   var(--saved-bg);
+  border-color: var(--saved-border);
+  color:        var(--saved);
 }
 
 /* ── Module Cards ─────────────────────────────────────────── */
@@ -918,6 +932,7 @@ img { max-width: 100%; display: block; }
 .module-card__progress-fill {
   height:        100%;
   border-radius: 62.4375rem;
+  background:    linear-gradient(90deg, var(--bar-from), var(--bar-to));
   transition:    width .6s var(--ease);
 }
 .module-card__progress-meta {
@@ -963,7 +978,7 @@ img { max-width: 100%; display: block; }
   align-items:   center;
   gap:           0.625rem;
   width:         100%;
-  padding:       0.625rem 2.5rem 0.625rem 0.75rem;
+  padding:       0.625rem 2.5rem 0.625rem 0.75rem;   /* right padding keeps the text clear of the X */
   background:    transparent;
   border:        0;
   border-radius: inherit;
@@ -984,43 +999,38 @@ img { max-width: 100%; display: block; }
   color:          var(--text);
   letter-spacing: -.01em;
 }
-.resume-banner__subtitle {
-  font-size:          .74rem;
-  line-height:        1.35;
-  font-weight:        500;
-  color:              var(--text-3);
-  display:            -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow:           hidden;
+.resume-banner__subtitle {                    /* "CNS · Spinal Cord · Q2/23": one line, only the name is ever shortened */
+  display:     flex;
+  min-width:   0;
+  font-size:   .74rem;
+  line-height: 1.35;
+  font-weight: 500;
+  color:       var(--text-3);
+  white-space: nowrap;
 }
-.resume-banner__arrow {
+.resume-banner__name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.resume-banner__q    { flex: none; white-space: pre; }   /* pre keeps the space before the dot, which a flex item would otherwise drop */
+.resume-banner__dismiss {                     /* vertically centred, no box behind it, clear of the text */
   position:   absolute;
-  right:      0.875rem;
-  bottom:     0.6875rem;
-  color:      var(--accent-text);
-  transition: transform var(--dur);
-}
-.resume-banner__main:hover .resume-banner__arrow { transform: translateX(0.1875rem); }
-.resume-banner__dismiss {
-  position:   absolute;
-  top:        0.3125rem;
-  right:      0.3125rem;
-  width:      1.5rem;
-  height:     1.5rem;
+  top:        50%;
+  right:      0.375rem;
+  translate:  0 -50%;
+  width:      1.75rem;
+  height:     1.75rem;
+  padding:    0;
   border:     0;
-  background: transparent;
+  background: none;
+  box-shadow: none;
   color:      var(--text-3);
 }
 .resume-banner__dismiss .icon { width: 0.875rem; height: 0.875rem; }
-.resume-banner__dismiss:hover { color: var(--danger); background: var(--danger-bg); }
+.resume-banner__dismiss:hover, .resume-banner__dismiss:active { background: none; border: 0; color: var(--danger); }
 @media (max-width: 767px) {                 /* phones: the same card with bigger touch targets */
   .resume-banner { margin-bottom: 1rem; }
-  .resume-banner__main { gap: 0.75rem; padding: 0.8125rem 3rem 0.8125rem 0.875rem; }
+  .resume-banner__main { gap: 0.75rem; padding: 0.8125rem 3.25rem 0.8125rem 0.875rem; }
   .resume-banner__title { font-size: .92rem; }
   .resume-banner__subtitle { font-size: .8rem; }
-  .resume-banner__arrow { right: 1rem; bottom: 0.875rem; }
-  .resume-banner__dismiss { top: 0.25rem; right: 0.25rem; width: 2.25rem; height: 2.25rem; }
+  .resume-banner__dismiss { right: 0.25rem; width: 2.5rem; height: 2.5rem; }
 }
 
 
@@ -1886,7 +1896,8 @@ img { max-width: 100%; display: block; }
   .stat-pill   { min-width: calc(33.33% - 2px); }
 }
 @media (max-width: 640px) {
-  #app { padding: 1rem 0.875rem 3.5rem; }
+  #app { padding: 1rem 0.875rem calc(1.25rem + env(safe-area-inset-bottom, 0px)); }   /* was 3.5rem of bottom padding: false scroll space on every phone page */
+  .dashboard__footer { margin-top: 1.5rem; padding-top: 1rem; }
   .dashboard__intro { flex-wrap: wrap; }
   .site-header__inner { padding: 0 0.875rem; }   /* lines up with the 14px page padding */
   .site-header__tagline { display: none; }
@@ -2318,7 +2329,6 @@ img { max-width: 100%; display: block; }
 .module-card__activity               { margin-top: 0.1875rem; font-size: .75rem; }
 
 .modules-grid .module-card__progress-track { height: 0.375rem; }
-.modules-grid .module-card__progress-fill  { background: var(--accent-text); }
 
 .module-card__row {
   display:         flex;
@@ -2815,7 +2825,7 @@ img { max-width: 100%; display: block; }
     border-radius: 62.4375rem;
     overflow:      hidden;
   }
-  .subject-card__bar span { display: block; height: 100%; background: var(--accent-text); border-radius: inherit; }
+  .subject-card__bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--bar-from), var(--bar-to)); border-radius: inherit; }
 }
 
 @media (min-width: 1024px) {
@@ -2853,7 +2863,8 @@ img { max-width: 100%; display: block; }
   align-items:     center;
   gap:             0.25rem;
   flex-shrink:     0;
-  padding:         0.25rem 0 0.25rem 0.5rem;
+  padding:         0 0 0 0.5rem;          /* no vertical padding: the link must never make its row taller than the plain title next to it */
+  line-height:     1.2;
   color:           var(--accent-text);
   font-size:       .7rem;
   font-weight:     700;
@@ -2913,20 +2924,29 @@ img { max-width: 100%; display: block; }
 
 .error-screen .btn { margin-top: 0.875rem; }
 
-/* Exam: moving between questions. The sidebar, palette and header stay still; the question card and its options
-   glide in a short way from the side you are heading to (right for Next, left for Previous) while fading in,
-   the options a beat after the card. Under 300ms, opacity and translate only. */
-@keyframes questionIn { from { opacity: 0; translate: var(--qx, 0.875rem) 0; } to { opacity: 1; translate: 0 0; } }
-@keyframes noteIn     { from { opacity: 0; translate: 0 0.25rem; } to { opacity: 1; translate: 0 0; } }
-.exam-q-change[data-qdir="prev"] { --qx: -0.875rem; }
-.exam-q-change .question-card { animation: questionIn .26s var(--ease-out-strong) backwards; }
-.exam-q-change .options-list  { animation: questionIn .3s var(--ease-out-strong) .04s backwards; }
-.exam-layout .explanation-box { animation: noteIn .2s var(--ease-out-strong) backwards; }
+/* Exam: moving between questions. Only the new question card and options are swapped; the sidebar, number box,
+   header and Previous/Next stay exactly where they are. The new content slides in a short way from the side you
+   are heading to (right for Next, left for Previous) and settles. It starts at 40% opacity, never at zero, so
+   nothing blinks. 220ms, transform and opacity only. */
+@keyframes questionIn { from { opacity: .4; translate: var(--qx, 0.75rem) 0; } to { opacity: 1; translate: 0 0; } }
+.exam-layout { --exam-gap: 0.875rem; }
+.exam-q-change[data-qdir="prev"] { --qx: -0.75rem; }
+.exam-q-change .question-card,
+.exam-q-change .options-list { animation: questionIn .22s var(--ease-out-strong) backwards; }
+
+/* Explanation reveal. The box is inserted inside a wrapper whose height grows from 0 (the row animates from 0fr
+   to 1fr, and the flex gap above it is cancelled at the start so there is no jump), while the box fades in and
+   settles down by half a rem. The content below it (Previous/Next) is pushed down smoothly instead of snapping. */
+@keyframes explRows { from { grid-template-rows: 0fr; margin-top: calc(var(--exam-gap) * -1); } to { grid-template-rows: 1fr; margin-top: 0; } }
+@keyframes explBox  { from { opacity: 0; translate: 0 -0.625rem; } to { opacity: 1; translate: 0 0; } }
+.explanation-reveal { display: grid; grid-template-rows: 1fr; animation: explRows .36s var(--ease-out-strong) backwards; }
+.explanation-reveal__inner { min-height: 0; overflow: hidden; }
+.explanation-reveal__inner > .explanation-box { animation: explBox .36s var(--ease-out-strong) backwards; }
 
 @media (prefers-reduced-motion: reduce) {
   .page-enter > :not(.dashboard), .page-enter .modules-grid .module-card { animation: pageFade .12s linear backwards; animation-delay: 0s; }
-  .exam-layout .explanation-box { animation: pageFade .12s linear backwards; }
-  .exam-q-change .question-card, .exam-q-change .options-list { animation: pageFade .12s linear backwards; animation-delay: 0s; }
+  .explanation-reveal, .explanation-reveal__inner > .explanation-box { animation: pageFade .12s linear backwards; }
+  .exam-q-change .question-card, .exam-q-change .options-list { animation: pageFade .12s linear backwards; }
   .btn:active, .icon-btn:active, .quick-icon-btn:active, .topic-action-btn:active { scale: 1; }
 }
 
@@ -2963,39 +2983,35 @@ img { max-width: 100%; display: block; }
 
 
 /* ============================================================
-   Exam page, desktop (v5.1)
-   One grid for the whole page. The sidebar starts level with the top of the question card and ends level with
-   the bottom of the Previous / Next row; the Back button sits in the free space above the sidebar and Save
-   above the question card. (Phones keep their own layout below 769px.)
+   Exam page, desktop (v5.2)
+   The sidebar's top edge is level with the top of the question card. Back sits in the free space above it
+   (taken out of the Back/Save row so Save stays on the right). The sidebar is sticky and as tall as its
+   content, capped to the window, and its question-number box scrolls inside it. Its bottom edge is NOT tied
+   to the Previous button, which moves with every question.
    ============================================================ */
 @media (min-width: 769px) {
-  .exam-layout {
-    grid-template-columns: var(--sidebar-w) minmax(1.25rem, 1fr) minmax(0, 48.75rem) minmax(0, 1fr);
-    grid-template-rows:    auto auto auto auto auto;
-    column-gap:            0;
-    row-gap:               0;
-  }
-  .exam-layout .exam-main,
-  .exam-layout .exam-topbar,
-  .exam-layout .exam-dock { display: contents; }
-  .exam-layout .exam-topbar .back-btn { grid-column: 1; grid-row: 1; justify-self: start; margin: 0 0 0.75rem; height: 2rem; }
-  .exam-layout .exam-topbar .flag-btn { grid-column: 3; grid-row: 1; justify-self: end;   margin: 0 0 0.75rem; height: 2rem; }
+  .exam-layout { position: relative; --exam-topbar-h: 2rem; --exam-gap: 0.875rem; }
+  .exam-layout .exam-topbar { min-height: var(--exam-topbar-h); }
+  .exam-layout .exam-topbar .flag-btn { margin-left: auto; height: var(--exam-topbar-h); }
+  .exam-layout .exam-topbar .back-btn { position: absolute; left: 0; top: 0; margin: 0; height: var(--exam-topbar-h); }
   .exam-layout .exam-sidebar {
-    grid-column:    1;
-    grid-row:       2 / 6;
-    align-self:     stretch;
-    position:       static;
+    position:       sticky;
+    top:            calc(var(--header-h) + 1rem);
+    margin-top:     calc(var(--exam-topbar-h) + var(--exam-gap));
+    align-self:     start;
     display:        flex;
     flex-direction: column;
-    height:         0;            /* the sidebar never makes the rows taller: the question column decides the height... */
-    min-height:     100%;         /* ...and the sidebar then fills exactly that height */
+    max-height:     calc(100dvh - var(--header-h) - 2rem - var(--exam-topbar-h) - var(--exam-gap));
   }
-  .exam-layout .exam-sidebar .palette { flex: 0 1 auto; min-height: 6rem; }   /* shrinks and scrolls inside if the column is short */
-  .exam-layout .exam-submit-btn { margin-top: auto; flex-shrink: 0; }
-  .exam-layout .question-card    { grid-column: 3; grid-row: 2; margin-bottom: 0.75rem; }
-  .exam-layout .options-list     { grid-column: 3; grid-row: 3; margin-bottom: 0.75rem; }
-  .exam-layout .explanation-box  { grid-column: 3; grid-row: 4; margin-bottom: 0.75rem; }
-  .exam-layout .exam-nav         { grid-column: 3; grid-row: 5; }
+  .exam-layout .exam-sidebar > * { flex-shrink: 0; }
+  .exam-layout .exam-sidebar .palette {
+    flex:           1 1 auto;
+    min-height:     5.5rem;
+    max-height:     none;
+    padding:        0.25rem;                 /* room for the current/saved rings so they are never clipped */
+    margin-inline:  -0.25rem;
+    overscroll-behavior: contain;
+  }
 }
 
 #app:has(.exam-layout) { padding-top: 1rem; padding-bottom: 0.75rem; }   /* the exam page needs every pixel of height */

@@ -30,7 +30,7 @@ const UI = {
     if (existing) existing.remove();
     const t = document.createElement('div');
     t.className = `toast toast--${type}`;
-    t.innerHTML = `<span class="toast__icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>${message}`;
+    t.innerHTML = `<span class="toast__icon">${this.examIcon(type === 'success' ? 'check' : type === 'error' ? 'x' : 'info')}</span>${message}`;
     document.body.appendChild(t);
     requestAnimationFrame(() => t.classList.add('toast--visible'));
     setTimeout(() => { t.classList.remove('toast--visible'); setTimeout(() => t.remove(), 400); }, duration);
@@ -61,7 +61,7 @@ const UI = {
     </div>`);
   },
 
-  emptyState(title, body, icon = '📭') {
+  emptyState(title, body, icon = this.examIcon('inbox', 'icon icon--xl')) {
     return `<div class="empty-state">
       <div class="empty-state__icon">${icon}</div>
       <h3 class="empty-state__title">${title}</h3>
@@ -77,10 +77,10 @@ const UI = {
     </div>`;
   },
 
-  progressBar(percent, color = 'var(--primary)') {
+  progressBar(percent) {   // one look for every bar (colour comes from the stylesheet)
     const p = Math.min(100, Math.max(0, percent));
     return `<div class="progress-bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100">
-      <div class="progress-bar__fill" style="width:${p}%;background:${color}"></div>
+      <div class="progress-bar__fill" style="width:${p}%"></div>
     </div>`;
   },
 
@@ -188,7 +188,6 @@ const UI = {
     const currentQ = (saved.state?.currentIndex ?? 0) + 1;
     const totalQ   = (saved.questions || []).length;
 
-    const arrow = '<svg class="icon icon--sm resume-banner__arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
     return `<div class="resume-banner" id="resume-banner">
       <button class="resume-banner__main" type="button" data-nav="resume-exam" aria-label="Continue exam, question ${currentQ} of ${totalQ}">
         <span class="resume-banner__icon">
@@ -196,9 +195,8 @@ const UI = {
         </span>
         <span class="resume-banner__text">
           <span class="resume-banner__title">Continue Exam</span>
-          <span class="resume-banner__subtitle">${mod?.title || saved.config.module} · ${setLabel} — Question ${currentQ} / ${totalQ}</span>
+          <span class="resume-banner__subtitle"><span class="resume-banner__name">${mod?.title || saved.config.module} · ${setLabel}</span><span class="resume-banner__q"> · Q${currentQ}/${totalQ}</span></span>
         </span>
-        ${arrow}
       </button>
       <button class="icon-btn resume-banner__dismiss" id="resume-dismiss-btn" type="button" aria-label="Abandon exam">
         <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -278,9 +276,9 @@ const UI = {
           ${incorrect.length > 0 ? `<span class="quick-icon-btn__badge">${incorrect.length}</span>` : ''}
         </button>`;
 
-    const flaggedBtn = `<button class="quick-icon-btn quick-icon-btn--success${flagged.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="flagged-review" title="Saved" aria-label="Saved questions${flagged.length > 0 ? ` (${flagged.length})` : ''}">
+    const flaggedBtn = `<button class="quick-icon-btn quick-icon-btn--saved${flagged.length === 0 ? ' quick-icon-btn--empty' : ''}" data-nav="flagged-review" title="Saved" aria-label="Saved questions${flagged.length > 0 ? ` (${flagged.length})` : ''}">
           <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          ${flagged.length > 0 ? `<span class="quick-icon-btn__badge" style="background:var(--success)">${flagged.length}</span>` : ''}
+          ${flagged.length > 0 ? `<span class="quick-icon-btn__badge quick-icon-btn__badge--saved">${flagged.length}</span>` : ''}
         </button>`;
 
     const chevron = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
@@ -628,7 +626,7 @@ const UI = {
                   <svg class="icon icon--sm" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
                   <span>Incorrect</span>
                 </button>
-                <button class="topic-action-btn topic-action-btn--success" data-nav="scoped-flagged"
+                <button class="topic-action-btn topic-action-btn--saved" data-nav="scoped-flagged"
                   data-params='${JSON.stringify({ moduleId: mod.id, examType, subject: subjectId, subSubject: subSubjectId, label: ss.label })}'
                   title="Saved questions in this topic">
                   <svg class="icon icon--sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -740,15 +738,20 @@ const UI = {
   // ─── Exam interface ───────────────────────────────────────────────────────
 
   // Inline SVG glyphs for exam chrome (no emoji in UI chrome — see DESIGN_STANDARDS §1/§4)
-  examIcon(name) {
+  examIcon(name, cls = 'icon icon--sm') {
     const paths = {
+      inbox:       '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>',
+      search:      '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+      checkcircle: '<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+      alert:       '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      info:        '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
       flag:  '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
       check: '<polyline points="20 6 9 17 4 12"/>',
       x:     '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
       prev:  '<polyline points="15 18 9 12 15 6"/>',
       next:  '<polyline points="9 18 15 12 9 6"/>',
     };
-    return `<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || ''}</svg>`;
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || ''}</svg>`;
   },
 
   examLetter(i) { return 'ABCDEFGH'[i] || String(i + 1); },
@@ -882,7 +885,7 @@ const UI = {
           <div class="exam-sidebar__sub">${sidebarSub}</div>
         </div>
         <div class="exam-progress-info">${this.examProgressInfo(progress)}</div>
-        ${this.progressBar(progressPct, 'var(--mod-color, var(--primary))')}
+        ${this.progressBar(progressPct)}
         <div class="palette">${paletteHTML}</div>
         <button class="btn btn--ghost btn--sm exam-submit-btn submit-exam-trigger">
           ${this.examIcon('check')} Submit Exam
@@ -1047,7 +1050,7 @@ const UI = {
       return `<div class="page">
         ${this.backBtn(backPage, backParams)}
         ${this.breadcrumb(crumbs)}
-        ${this.emptyState('Nothing to Review', 'Complete some exams and incorrect answers will appear here.', '🎉')}
+        ${this.emptyState('Nothing to Review', 'Complete some exams and incorrect answers will appear here.', this.examIcon('checkcircle', 'icon icon--xl'))}
       </div>`;
     }
 
@@ -1113,7 +1116,7 @@ const UI = {
       return `<div class="page">
         ${this.backBtn(backPage, backParams)}
         ${this.breadcrumb(crumbs)}
-        ${this.emptyState('No Saved Questions', 'Save questions during an exam to review them later.', '⭐')}
+        ${this.emptyState('No Saved Questions', 'Save questions during an exam to review them later.', this.examIcon('flag', 'icon icon--xl'))}
       </div>`;
     }
 
@@ -1126,7 +1129,7 @@ const UI = {
           <span class="badge badge--ghost">${q.module}</span>
           ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
           <span class="badge badge--ghost">${et?.label}</span>
-          <span class="badge" style="background:var(--success-bg);color:var(--success)">⭐ Saved</span>
+          <span class="badge badge--saved">${this.examIcon('flag')}Saved</span>
         </div>
         <p class="review-item__question">${q.question}</p>
         <div class="review-item__options">

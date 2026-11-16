@@ -668,7 +668,9 @@ try {
     // ---- Content: Module > exam type > Subject > Topic > Questions ----
     let c = await go(A, '#content');
     check('content: home shows one card per module (CPM, GIT, CNS, ENDO_REPRO, URINARY) with topic and question counts', A.document.querySelectorAll('.modules-grid .module-card').length === 5 && /CPM[\s\S]*Topics[\s\S]*Questions/.test(c), c.slice(0, 200));
-    check('content: CNS is badged Ongoing on its card', /CNS[\s\S]{0,60}Ongoing/.test(A.document.querySelector('a[href="#content/CNS"]').textContent));
+    const ongoingMod = cfgNow().modules.find((m) => m.ongoing);
+    const cardText = ongoingMod ? A.document.querySelector('a[href="#content/' + ongoingMod.id + '"]').textContent : '';
+    check('content: the module the config marks as ongoing is badged Ongoing on its card (' + (ongoingMod && ongoingMod.id) + ')', !!ongoingMod && /Ongoing/.test(cardText) && cardText.includes(ongoingMod.title), cardText.slice(0, 80));
     check('content: the statistics (possible wrong key, hardest, saved by the most) sit in one collapsible card', /Possible wrong answer key[\s\S]*?#3[^B]*B \(1\d%\)A \(8\d%\)2\d/.test(c) && /Hardest questions[\s\S]*?#3[^%]*1\d%[^A]*A \(8\d%\)2\d/.test(c) && /not a report/.test(c) && /Saved by the most students/.test(c) && !/flag/i.test(c));
     c = await go(A, '#content/CPM');
     check('content: module page has the Ongoing and Visible switches, the exam type tabs and one card per subject', !!A.document.querySelector('[data-sw=mod-ongoing]') && !!A.document.querySelector('[data-sw=mod-visible]') && A.document.querySelectorAll('.exam-type-section').length === 2 && A.document.querySelectorAll('.subject-card').length === 8 && /Module settings/.test(c));
@@ -869,6 +871,61 @@ try {
     av = await openAcct(NA);
     check('Admin button: an ordinary student never sees it', !/Open admin dashboard/.test(av.textContent) && !av.querySelector('.acct-adminlink'));
     NA.close();
+  }
+
+  // ===== v5: resume card, exam page, bars, Saved colour, scale, no emoji =====
+  {
+    const rd = (f) => fs.readFileSync(path.join(SITE_DIR, f), 'utf8');
+    const css = rd('assets/css/styles.css'), ui = rd('assets/js/ui.js'), app = rd('assets/js/app.js');
+    const served = ['assets/js/app.js', 'assets/js/ui.js', 'assets/js/ui-skeletons.js', 'assets/js/exam.js', 'assets/js/storage.js', 'assets/js/sync.js', 'assets/js/layers.js', 'assets/js/auth.js',
+      'index.html', 'admin.html', 'assets/css/styles.css', 'assets/css/account.css', 'assets/css/console.css'].map(rd).join('\n');
+    const emoji = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/u;
+    check('no emoji in any script, page or stylesheet the site serves (icons are inline SVG)', !emoji.test(served), (served.match(emoji) || [''])[0]);
+    const cfgText = rd('config/modules.json');
+    check('config/modules.json has no emoji and no unused "icon" fields (the app draws icons by module/subject id)', !emoji.test(cfgText) && !/"icon"\s*:/.test(cfgText));
+
+    // --- scale and page height ---
+    check('scale: one fluid root size (100% up to 1280px, 133% at 1920px, capped at 150%); every length is rem', /html\s*\{\s*font-size:\s*clamp\(100%,\s*calc\(33\.333%\s*\+\s*0\.8333vw\),\s*150%\)/.test(css) && !/[^a-z0-9.-](?:[3-9]|\d{2,})px\b/.test(css.replace(/@(?:media|container)[^{]*\{/g, '').replace(/url\([^)]*\)/g, '').replace(/\/\*[\s\S]*?\*\//g, '')));
+    check('page height uses dvh (no false scroll under phone address bars) and phones have no 3.5rem bottom padding', /min-height:\s*100dvh/.test(css) && /calc\(100dvh - var\(--header-h\)\)/.test(css) && !/#app \{ padding: 1rem 0\.875rem 3\.5rem/.test(css));
+    check('module page: the Redline link adds no height of its own, so the section rule stays level with "Progress"', /\.redline-link \{[^}]*padding:\s*0 0 0 0\.5rem/.test(css));
+
+    // --- bars, Saved colour, press ---
+    check('progress bars: sidebar, module cards and subject rows share one gradient and the same 0.375rem track', (css.match(/linear-gradient\(90deg, var\(--bar-from\), var\(--bar-to\)\)/g) || []).length >= 3 && /\.progress-bar \{[^}]*height:\s*0\.375rem/.test(css) && !/progressBar\(progressPct, /.test(ui));
+    check('Saved is sand gold #D8C58A (dark) everywhere: star button, badge, rail, palette ring; the green is retired from it', /--saved:\s+#D8C58A/.test(css) && /quick-icon-btn--saved/.test(ui) && !/quick-icon-btn--success/.test(ui + css) && !/topic-action-btn--success/.test(ui + css) && /badge badge--saved/.test(ui) && /palette-btn--flagged\s*\{[^}]*var\(--saved\)/.test(css));
+    check('pressing: rows and cards no longer scale; a tint overlay inherits their shape', !/\.option:not\(\[disabled\]\):active,\s*\n\.palette-btn:active \{ scale/.test(css) && /\.option::after[\s\S]{0,400}border-radius:\s*inherit/.test(css) && /-webkit-tap-highlight-color:\s*transparent/.test(css));
+    check('exam page (desktop): sidebar is sticky and level with the question card; its bottom is NOT tied to Previous; Back sits above it', /\.exam-layout \.exam-sidebar \{[^}]*position:\s*sticky/.test(css) && /margin-top:\s*calc\(var\(--exam-topbar-h\) \+ var\(--exam-gap\)\)/.test(css) && !/grid-row:\s*2 \/ 6/.test(css) && /\.back-btn \{ position: absolute; left: 0; top: 0/.test(css.replace(/\s+/g, ' ').replace(/\.exam-layout \.exam-topbar \.back-btn \{ position/, '.back-btn { position')));
+    check('question change: slides in from the side you are heading to, starting at 40% opacity (no blink); explanation grows open inside a wrapper', /@keyframes questionIn \{ from \{ opacity: \.4;/.test(css) && /\.exam-q-change\[data-qdir="prev"\]/.test(css) && /@keyframes explRows[\s\S]{0,200}0fr/.test(css) && /explanation-reveal__inner/.test(app));
+
+    // --- the app itself (jsdom, guest) ---
+    const V = await boot({ cloud: false });
+    const doc = V.w.document, App = lex2(V, 'App');
+    function lex2(d, n) { return d.w.eval(n); }
+    await App.navigate('exam', { moduleId: 'CPM', examType: 'final_exam', subject: 'anatomy', subSubject: 'larynx', immediateFeedback: true, randomize: false, retryIncorrectOnly: false });
+    await until(() => doc.querySelector('.exam-layout .option'));
+    check('exam: no palette legend; the number box only holds number buttons', !doc.querySelector('.palette-legend') && doc.querySelectorAll('.exam-sidebar .palette .palette-btn').length === 6);
+    const sidebar = doc.querySelector('.exam-sidebar');
+    doc.querySelectorAll('.option')[1].click();                       // Q1: B is the right answer in the fixture
+    await sleep(60);
+    check('exam: the explanation opens inside a reveal wrapper', !!doc.querySelector('.explanation-reveal .explanation-reveal__inner > .explanation-box'));
+    doc.getElementById('next-btn').click(); await sleep(60);
+    check('exam: moving on keeps the very same sidebar element (it is not re-drawn) and marks the direction', doc.querySelector('.exam-sidebar') === sidebar && doc.getElementById('app').dataset.qdir === 'next' && doc.getElementById('app').classList.contains('exam-q-change'));
+    doc.querySelectorAll('.option')[0].click(); await sleep(60);      // Q2: A is wrong
+    const cls = (i) => doc.querySelectorAll('.exam-sidebar .palette .palette-btn')[i].className;
+    doc.getElementById('prev-btn').click(); await sleep(60);
+    check('exam: going back marks the direction as prev, and the sidebar is still the same element', doc.getElementById('app').dataset.qdir === 'prev' && doc.querySelector('.exam-sidebar') === sidebar);
+    check('exam: number box shows a right answer green and a wrong one red; the open question is blue', /palette-btn--current/.test(cls(0)) && /palette-btn--wrong/.test(cls(1)) && !/palette-btn--answered/.test(cls(1)));
+    doc.getElementById('next-btn').click(); await sleep(60);
+    check('exam: answered right shows palette-btn--correct', /palette-btn--correct/.test(cls(0)) && /palette-btn--current/.test(cls(1)));
+    // dashboard: resume card sits inside the Progress column, under its heading, as ONE button
+    await App.navigate('dashboard'); await sleep(250);
+    const rail = doc.querySelector('.dashboard__rail'), rb = doc.getElementById('resume-banner');
+    const order = rb ? [...rail.children].map((c) => c.id || c.className.split(' ')[0]) : [];
+    check('resume card: lives in the Progress column under its heading and above the numbers', !!rb && order.join() === 'section__title,resume-banner,stats-strip', order.join());
+    const main = rb && rb.querySelector('.resume-banner__main');
+    check('resume card: the whole card is one button that resumes; no Resume button, no arrow; the X is a separate button', !!main && main.getAttribute('data-nav') === 'resume-exam' && !rb.querySelector('.resume-banner__actions, .resume-banner__arrow') && !main.contains(rb.querySelector('#resume-dismiss-btn')) && !!rb.querySelector('#resume-dismiss-btn'));
+    const nm = rb && rb.querySelector('.resume-banner__name'), qq = rb && rb.querySelector('.resume-banner__q');
+    check('resume card: detail reads "CPM · Larynx · Q2/6" on one line (only the name part can be cut with an ellipsis)', !!nm && !!qq && /^CPM\s\S{1,2}\s/.test(nm.textContent) && /\sQ2\/6$/.test(qq.textContent), (nm && nm.textContent) + '|' + (qq && qq.textContent));   // the middle dot is read as 2 characters by this harness's loader, in a real browser it is one
+    V.close();
   }
 
   // F16 hostile email text is escaped

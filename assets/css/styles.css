@@ -43,6 +43,7 @@
   --saved-bg:       rgba(168,132,44,.10);
   --saved-border:   rgba(168,132,44,.38);
   --saved-ink:      #3a2d08;   /* text on a solid saved-colour fill */
+  --saved-badge:    #D8C58A;   /* the phone dashboard Saved badge: the same sand gold with a white number in BOTH themes (not the deepened light-theme --saved) */
   --bar-from:       #1B3A6B;   /* progress bars: one mild navy gradient everywhere */
   --bar-to:         #3f6dbb;
   --warning:        #b45309;
@@ -506,7 +507,7 @@ img { max-width: 100%; display: block; }
   border-color: var(--saved-border);
 }
 .badge--saved .icon { width: 0.75rem; height: 0.75rem; fill: currentColor; }
-.quick-icon-btn__badge.quick-icon-btn__badge--saved { background: var(--saved); color: var(--saved-ink); }   /* two classes: the red base rule further down must not win */
+.quick-icon-btn__badge.quick-icon-btn__badge--saved { background: var(--saved-badge); color: #fff; }   /* two classes: the red base rule further down must not win */
 .badge--ghost {
   background: var(--surface-2);
   color:      var(--text-3);

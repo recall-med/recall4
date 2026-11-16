@@ -929,7 +929,7 @@ try {
     const acss = rd('assets/css/account.css');
     const darkBlock = css.slice(css.indexOf('[data-theme="dark"] {'), css.indexOf('[data-theme="dark"] {') + 2600);
     check('v5.1 bars: dark mode uses the calmer #203B63 to #3B5B86; light mode is unchanged (#1B3A6B to #3f6dbb)', /--bar-from:\s+#203B63/.test(darkBlock) && /--bar-to:\s+#3B5B86/.test(darkBlock) && /--bar-from:\s+#1B3A6B/.test(css) && /--bar-to:\s+#3f6dbb/.test(css));
-    check('v5.1 Saved badge on the phone dashboard button is the same sand gold (#D8C58A) with a white number in both themes; the rule has two classes so the red base rule cannot win', /\.quick-icon-btn__badge\.quick-icon-btn__badge--saved\s*\{[^}]*var\(--saved-badge\)[^}]*color:\s*#fff/.test(css) && /--saved-badge:\s+#D8C58A/.test(css) && !/\[data-theme=\"dark\"\] \{[^}]*--saved-badge/.test(css));
+    check('v5.1 both count badges on the phone dashboard buttons (Incorrect and Saved) are #2a5298 with a white number in both themes, from one variable', /--quick-badge:\s+#2a5298/.test(css) && !/\[data-theme="dark"\] \{[^}]*--quick-badge/.test(css) && /\.quick-icon-btn__badge \{[^}]*background:\s+var\(--quick-badge\);\s*color:\s+#fff/.test(css) && !/quick-icon-btn__badge--saved\s*\{/.test(css));
     const fakeQ = { uid: 'CPM|final_exam|anatomy|larynx|1', module: 'CPM', examType: 'final_exam', subject: 'anatomy', subSubject: 'larynx', subSubjectLabel: 'Larynx', question: 'Q?', options: ['a', 'b'], answer: 0, explanation: 'e' };
     App.config.__fakeSaved = [fakeQ];
     const savedHTML = V.w.eval('UI.renderFlagged(App.config.__fakeSaved, App.config)');

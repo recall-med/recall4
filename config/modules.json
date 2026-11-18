@@ -79,8 +79,7 @@
             {
               "id": "heart",
               "label": "Pericardium & Heart",
-              "professor": "Prof. Samaa",
-              "hidden": true
+              "professor": "Prof. Samaa"
             }
           ],
           "physiology": [

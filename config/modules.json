@@ -132,10 +132,89 @@
           "histology": []
         },
         "final_exam": {
-          "anatomy": [],
-          "physiology": [],
-          "biochemistry": [],
-          "histology": []
+          "anatomy": [
+            {
+              "id": "liver_biliary_portal",
+              "label": "Liver, Biliary System & Portal Circulation",
+              "icon": "🫀"
+            },
+            {
+              "id": "arterial_supply",
+              "label": "Arterial Blood Supply of the GIT",
+              "icon": "🩸"
+            },
+            {
+              "id": "rectum",
+              "label": "Rectum",
+              "icon": "🔻"
+            },
+            {
+              "id": "anal_canal",
+              "label": "Anal Canal",
+              "icon": "🔻"
+            },
+            {
+              "id": "parotid_tongue",
+              "label": "Parotid Gland & Tongue",
+              "icon": "👅"
+            },
+            {
+              "id": "peritoneum",
+              "label": "Peritoneum",
+              "icon": "🫁"
+            }
+          ],
+          "physiology": [
+            {
+              "id": "general_git_physiology",
+              "label": "General GIT Physiology",
+              "icon": "🫀"
+            }
+          ],
+          "biochemistry": [
+            {
+              "id": "tca_cycle",
+              "label": "TCA Cycle",
+              "icon": "🧬"
+            },
+            {
+              "id": "nitrogen_metabolism",
+              "label": "Overall Nitrogen Metabolism",
+              "icon": "🧬"
+            },
+            {
+              "id": "ammonia_urea_cycle",
+              "label": "Ammonia Metabolism & Urea Cycle",
+              "icon": "🧬"
+            },
+            {
+              "id": "amino_acids_metabolism",
+              "label": "Amino Acids Metabolism",
+              "icon": "🧬"
+            },
+            {
+              "id": "xenobiotic_metabolism",
+              "label": "Xenobiotic Metabolism",
+              "icon": "🧬"
+            }
+          ],
+          "histology": [
+            {
+              "id": "intestine_liver_pancreas",
+              "label": "Small & Large Intestine, Liver & Pancreas",
+              "icon": "🔬"
+            },
+            {
+              "id": "large_intestine",
+              "label": "Large Intestine (Dr. Hala)",
+              "icon": "🔬"
+            },
+            {
+              "id": "small_intestine",
+              "label": "Small Intestine (Dr. Hala)",
+              "icon": "🔬"
+            }
+          ]
         }
       }
     },

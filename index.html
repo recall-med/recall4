@@ -8,8 +8,9 @@
     HOW TO CHANGE SITE TITLE: Edit the <title> tag below AND
     update "siteTitle" in config/modules.json.
 
-    HOW TO CHANGE FAVICON: Replace the emoji in the <link rel="icon">
-    tag with any emoji or swap it for an actual .ico file.
+    HOW TO CHANGE FAVICON: Replace assets/images/icon.png (and
+    regenerate favicon.png / apple-touch-icon.png from it) to swap
+    the site mark shown in the browser tab and header.
 
     HOW TO CHANGE COLORS: Edit assets/css/styles.css :root {}
 
@@ -31,8 +32,9 @@
   <meta property="og:type"        content="website" />
 
   <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon.png" />
   <link rel="icon" type="image/png" href="assets/images/favicon.png" />
-  <link rel="apple-touch-icon" href="assets/images/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png" />
 
   <!-- Theme: apply before render to prevent flash -->
   <script>
@@ -50,6 +52,48 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 </head>
 <body>
+
+  <!--
+    ┌─────────────────────────────────────────────────────┐
+    │  Site Header — persistent, sits outside #app so it   │
+    │  survives every route change. Clicks are handled by  │
+    │  App's global [data-nav] / #theme-toggle delegation. │
+    └─────────────────────────────────────────────────────┘
+  -->
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="site-header__brand" data-nav="dashboard" data-params="{}" aria-label="Dept. Q. Bank — Dashboard">
+        <img src="assets/images/icon.png" alt="" class="site-header__mark" width="36" height="36" />
+        <span class="site-header__wordmark">
+          <span class="site-header__title">Dept. <em>Q.</em> Bank</span>
+          <span class="site-header__tagline">Medical Question Bank</span>
+        </span>
+      </a>
+      <div class="site-header__actions">
+        <button class="icon-btn icon-btn--danger" id="wipe-history-btn" title="Reset Progress" aria-label="Reset Progress">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+        <button class="icon-btn theme-toggle" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+          <svg class="icon theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg class="icon theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Wipe History Modal — lives here (outside #app) so Reset Progress works from any page -->
+  <div id="wipe-modal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div class="modal-divider"></div>
+      <h2 class="modal-title">Reset Progress?</h2>
+      <p class="modal-body">This will permanently delete all exam scores, progress, and incorrect question history.</p>
+      <p class="modal-note">Your flagged questions will not be affected.</p>
+      <div class="modal-actions">
+        <button class="btn btn--ghost" id="wipe-cancel-btn">Cancel</button>
+        <button class="btn btn--danger" id="wipe-confirm-btn">Reset Progress</button>
+      </div>
+    </div>
+  </div>
 
   <!--
     ┌─────────────────────────────────────────────────────┐

@@ -14,7 +14,7 @@ const App = {
   // ─── Bootstrap ───────────────────────────────────────────────────────────
 
   async init() {
-    UI.loading('Loading Dept. Q. Bank…');
+    UI.setContent(UI.skeletonAppBoot());
     try {
       this.config = await this._loadConfig();
       document.title = this.config.siteTitle;
@@ -29,6 +29,16 @@ const App = {
 
     this._initTheme();
     document.addEventListener('click', e => this._handleGlobalClick(e));
+
+    document.addEventListener('visibilitychange', () => {
+      const onExamScreen = this.currentPage === 'exam' || this.currentPage === 'resume-exam';
+      if (!onExamScreen) return;
+      if (document.hidden) {
+        ExamEngine.pause();
+      } else {
+        ExamEngine.resumeSegment();
+      }
+    });
 
     window.addEventListener('popstate', e => {
       if (e.state && e.state.page) {
@@ -57,8 +67,7 @@ const App = {
   _applyThemeIcon(theme) {
     const btn = document.getElementById('theme-toggle');
     if (!btn) return;
-    const icon = btn.querySelector('.theme-toggle__icon');
-    if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    btn.classList.toggle('theme-toggle--dark', theme === 'dark');
   },
 
   _toggleTheme() {
@@ -71,7 +80,16 @@ const App = {
 
   // ─── Navigation ──────────────────────────────────────────────────────────
 
+  // If we're leaving the exam screen while an exam is in progress, fold the
+  // active segment into elapsedMs so time away isn't counted as exam time.
+  _pauseExamIfLeaving(nextPage) {
+    const leavingExam = (this.currentPage === 'exam' || this.currentPage === 'resume-exam')
+      && nextPage !== 'exam' && nextPage !== 'resume-exam';
+    if (leavingExam) ExamEngine.pause();
+  },
+
   navigate(page, params = {}) {
+    this._pauseExamIfLeaving(page);
     this.currentPage   = page;
     this.currentParams = params;
     Storage.saveLastPage({ page, params });
@@ -80,6 +98,7 @@ const App = {
   },
 
   _navigateWithoutHistory(page, params = {}) {
+    this._pauseExamIfLeaving(page);
     this.currentPage   = page;
     this.currentParams = params;
     Storage.saveLastPage({ page, params });
@@ -92,9 +111,12 @@ const App = {
       case 'dashboard': {
         const progress = Storage.getProgress();
         const stats    = Storage.getStats();
-        UI.loading('Loading…');
-        const countMap = await this._buildCountMap(this.config);
-        UI.setContent(UI.renderDashboard(this.config, progress, stats, countMap));
+        UI.setContent(UI.skeletonDashboard());
+        const countMap  = await this._buildCountMap(this.config);
+        const savedExam = Storage.loadCurrentExam();
+        const resumeBannerHTML = (savedExam && !savedExam.state?.submitted)
+          ? UI.renderResumeBanner(savedExam, this.config) : '';
+        UI.setContent(UI.renderDashboard(this.config, progress, stats, countMap, resumeBannerHTML));
         this._applyThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
         break;
       }
@@ -103,7 +125,7 @@ const App = {
         const mod = this._getModule(params.moduleId);
         if (!mod) { this.navigate('dashboard'); break; }
         const progress = Storage.getProgress();
-        UI.loading('Loading…');
+        UI.setContent(UI.skeletonModule());
         const countMap = await this._buildCountMap(this.config, mod);
         UI.setContent(UI.renderModule(mod, this.config, progress, countMap));
         break;
@@ -117,7 +139,7 @@ const App = {
         if (!mod) { this.navigate('dashboard'); break; }
         const subSubjects = (mod.subSubjects && mod.subSubjects[et] && mod.subSubjects[et][subject]) || [];
         const progress    = Storage.getProgress();
-        UI.loading('Loading…');
+        UI.setContent(UI.skeletonSubject());
         const countMap = await this._buildCountMap(this.config, mod);
         UI.setContent(UI.renderSubject(mod, et, subject, subSubjects, progress, this.config, countMap));
         this._bindSubjectPageEvents(mod, et, subject, subSubjects, countMap);
@@ -131,7 +153,7 @@ const App = {
         const et         = params.examType;
         const subSubject = params.subSubject;
         if (!mod) { this.navigate('dashboard'); break; }
-        UI.loading('Loading…');
+        UI.setContent(UI.skeletonSubSubject());
         const count    = await this._getQuestionCount(mod, et, subject, subSubject);
         const progress = Storage.getSubjectProgress(mod.id, et, subject, subSubject);
         UI.setContent(UI.renderSubSubject(mod, et, subject, subSubject, count, progress, this.config));
@@ -143,7 +165,7 @@ const App = {
       case 'wide-exam-start': {
         const mod = this._getModule(params.moduleId);
         if (!mod) { this.navigate('dashboard'); break; }
-        UI.loading('Loading…');
+        UI.setContent(UI.skeletonWideExamStart());
         const countMap  = await this._buildCountMap(this.config, mod);
         const totalCount = await this._getWideQuestionCount(mod, params.examType, params.subject, params.scope, countMap);
         UI.setContent(UI.renderWideExamStart(mod, params, totalCount, this.config));
@@ -152,7 +174,7 @@ const App = {
       }
 
       case 'exam': {
-        UI.loading('Preparing exam…');
+        UI.setContent(UI.skeletonExam());
         const started = await this._startExam(params);
         if (!started) {
           // Go back to appropriate page
@@ -165,7 +187,16 @@ const App = {
           }
           break;
         }
-        UI.setContent(UI.renderExam(ExamEngine, this.config));
+        this._renderExam();
+        this._bindExamEvents();
+        break;
+      }
+
+      case 'resume-exam': {
+        UI.setContent(UI.skeletonExam());
+        const resumed = await ExamEngine.resume();
+        if (!resumed) { this.navigate('dashboard'); break; }
+        this._renderExam();
         this._bindExamEvents();
         break;
       }
@@ -259,6 +290,16 @@ const App = {
       this.navigate('dashboard');
       return;
     }
+    // Resume banner — dismiss (abandons the in-progress exam)
+    if (e.target.closest('#resume-dismiss-btn')) {
+      if (confirm('Abandon this exam? Your progress on this attempt will be lost.')) {
+        Storage.clearCurrentExam();
+        UI.toast('Exam abandoned.', 'success');
+        this.navigate('dashboard');
+      }
+      return;
+    }
+
     const el = e.target.closest('[data-nav]');
     if (!el) return;
     e.preventDefault();
@@ -354,33 +395,26 @@ const App = {
         const idx    = parseInt(optBtn.dataset.option, 10);
         const result = ExamEngine.answer(idx);
         if (result) {
-          const opts = document.querySelectorAll('.option');
-          opts.forEach((btn, i) => {
+          document.querySelectorAll('.exam-layout .option').forEach((btn, i) => {
             btn.disabled = true;
-            if (i === result.correctIndex)         btn.classList.add('option--correct');
-            else if (i === idx && !result.correct) btn.classList.add('option--wrong');
+            let status = null;
+            if (i === result.correctIndex)           { btn.classList.add('option--correct'); status = 'check'; }
+            else if (i === idx && !result.correct)   { btn.classList.add('option--wrong');   status = 'x'; }
+            if (status) btn.insertAdjacentHTML('beforeend', `<span class="option__status">${UI.examIcon(status)}</span>`);
           });
           this._updatePalette();
-          if (ExamEngine.config.immediateFeedback) {
-            const existing = document.querySelector('.explanation-box');
-            if (!existing) {
-              const box = document.createElement('div');
-              box.className = `explanation-box ${result.correct ? 'explanation-box--correct' : 'explanation-box--wrong'}`;
-
-              // Show topic label for wide exams
-              const q = ExamEngine.getCurrent();
-              const topicBadge = (ExamEngine.config.scope && q._subSubjectLabel)
-                ? `<div class="explanation-box__topic">📌 ${q._subSubjectLabel}</div>`
-                : '';
-
-              box.innerHTML = `
-                <div class="explanation-box__header">
-                  ${result.correct ? '✅ Correct!' : `❌ Incorrect — Correct answer: <strong>${['A','B','C','D'][result.correctIndex]}</strong>`}
-                </div>
-                ${topicBadge}
-                <p class="explanation-box__text">${result.explanation}</p>`;
-              document.querySelector('.options-list').after(box);
-            }
+          if (ExamEngine.config.immediateFeedback && !document.querySelector('.explanation-box')) {
+            const q = ExamEngine.getCurrent();
+            const topic = (ExamEngine.config.scope && q._subSubjectLabel) ? q._subSubjectLabel : '';
+            document.querySelector('.options-list').insertAdjacentHTML('afterend', UI.examExplanation({
+              correct:      result.correct,
+              correctIndex: result.correctIndex,
+              explanation:  result.explanation,
+              topic,
+              correctText:  q.options[result.correctIndex],
+            }));
+            const box = document.querySelector('.explanation-box');
+            if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
         }
       }
@@ -388,16 +422,16 @@ const App = {
       const palBtn = e.target.closest('.palette-btn');
       if (palBtn && palBtn.dataset.goto !== undefined) {
         ExamEngine.goTo(parseInt(palBtn.dataset.goto, 10));
-        UI.setContent(UI.renderExam(ExamEngine, this.config));
+        this._renderExam();
       }
 
-      if (e.target.id === 'next-btn') {
+      if (e.target.closest('#next-btn')) {
         ExamEngine.next();
-        UI.setContent(UI.renderExam(ExamEngine, this.config));
+        this._renderExam();
       }
-      if (e.target.id === 'prev-btn') {
+      if (e.target.closest('#prev-btn')) {
         ExamEngine.prev();
-        UI.setContent(UI.renderExam(ExamEngine, this.config));
+        this._renderExam();
       }
 
       if (e.target.id === 'flag-btn' || e.target.closest('#flag-btn')) {
@@ -405,13 +439,14 @@ const App = {
         const btn = document.getElementById('flag-btn');
         if (btn) {
           btn.classList.toggle('flag-btn--active', nowFlagged);
-          btn.textContent = `🚩 ${nowFlagged ? 'Flagged' : 'Flag'}`;
+          const label = btn.querySelector('.flag-btn__label');
+          if (label) label.textContent = nowFlagged ? 'Flagged' : 'Flag';
         }
         this._updatePalette();
         UI.toast(nowFlagged ? 'Question flagged.' : 'Flag removed.', 'info', 1500);
       }
 
-      if (e.target.id === 'submit-exam-btn' || e.target.closest('#submit-exam-btn')) {
+      if (e.target.closest('.submit-exam-trigger')) {
         const unanswered = ExamEngine.getProgress().unanswered;
         if (unanswered > 0) {
           const ok = confirm(`You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Submit anyway?`);
@@ -426,21 +461,42 @@ const App = {
     };
   },
 
+  // Single entry point for (re)drawing the exam screen. Always lands at the top of the
+  // new question and keeps the current palette chip in view (palette scrolls on long exams
+  // and is a horizontal strip on mobile).
+  _renderExam() {
+    UI.setContent(UI.renderExam(ExamEngine, this.config));
+    window.scrollTo(0, 0);
+    document.querySelectorAll('.exam-layout .palette').forEach(pal => {
+      const cur = pal.querySelector('.palette-btn--current');
+      if (!cur || !pal.clientWidth) return;   // skip the palette hidden at this breakpoint
+      pal.scrollTop  = cur.offsetTop  - pal.clientHeight / 2 + cur.offsetHeight / 2;
+      pal.scrollLeft = cur.offsetLeft - pal.clientWidth  / 2 + cur.offsetWidth  / 2;
+    });
+  },
+
   _updatePalette() {
-    const palette = document.querySelector('.palette');
-    if (!palette) return;
-    ExamEngine.questions.forEach((_, i) => {
-      const btn = palette.querySelector(`[data-goto="${i}"]`);
-      if (!btn) return;
-      btn.className = 'palette-btn';
-      if (i === ExamEngine.state.currentIndex) btn.classList.add('palette-btn--current');
-      else if (ExamEngine.isAnswered(i))       btn.classList.add('palette-btn--answered');
-      if (ExamEngine.isFlagged(i))             btn.classList.add('palette-btn--flagged');
+    const palettes = document.querySelectorAll('.exam-layout .palette');
+    if (!palettes.length) return;
+    palettes.forEach(palette => {
+      ExamEngine.questions.forEach((_, i) => {
+        const btn = palette.querySelector(`[data-goto="${i}"]`);
+        if (!btn) return;
+        btn.className = 'palette-btn';
+        if (i === ExamEngine.state.currentIndex) btn.classList.add('palette-btn--current');
+        else if (ExamEngine.isAnswered(i))       btn.classList.add('palette-btn--answered');
+        if (ExamEngine.isFlagged(i))             btn.classList.add('palette-btn--flagged');
+      });
     });
     const info = document.querySelector('.exam-progress-info');
     if (info) {
       const p = ExamEngine.getProgress();
-      info.innerHTML = `<span>${p.answered}/${p.total} answered</span>${p.flagged > 0 ? `<span>🚩 ${p.flagged}</span>` : ''}`;
+      info.innerHTML = UI.examProgressInfo(p);
+    }
+    const fill = document.querySelector('.exam-sidebar .progress-bar__fill');
+    if (fill) {
+      const p = ExamEngine.getProgress();
+      fill.style.width = `${p.total ? Math.round((p.answered / p.total) * 100) : 0}%`;
     }
   },
 
@@ -448,6 +504,9 @@ const App = {
     if (this._cleanupExamListeners) this._cleanupExamListeners();
     this.lastResults = ExamEngine.submit();
     this.navigate('results');
+    if (this.lastResults && this.lastResults.score === 100) {
+      UI.launchConfetti();
+    }
   },
 
   // ─── Results events ───────────────────────────────────────────────────────
@@ -626,7 +685,13 @@ const App = {
       container.innerHTML = '<p class="search-hint">Start typing to search across all available questions.</p>';
       return;
     }
-    container.innerHTML = '<div class="loading-screen"><div class="spinner"></div></div>';
+    container.innerHTML = Array(4).fill(`<div class="search-result-item" style="cursor:default">
+      ${UI._skel('34px', '34px', 'var(--radius-sm)')}
+      <div style="flex:1">
+        ${UI._skel('55%', '12px', '4px')}
+        <div style="margin-top:6px">${UI._skel('35%', '9px', '4px')}</div>
+      </div>
+    </div>`).join('');
     const q = query.toLowerCase().trim();
     const found = [];
 

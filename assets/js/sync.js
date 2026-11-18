@@ -639,6 +639,7 @@
   function snapshotLocal(label) {
     var snap = { at: now(), label: label, data: {} };
     Object.keys(STORAGE_KEYS).forEach(function (k) {
+      if (k === 'LAST_RESULTS') return;   // bulky and re-creatable: not part of the safety backup
       var v = lsGet(STORAGE_KEYS[k]);
       if (v != null) snap.data[STORAGE_KEYS[k]] = v;
     });

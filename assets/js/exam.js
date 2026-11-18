@@ -161,6 +161,7 @@ const ExamEngine = {
       const correct  = answered && userAns === q.answer;
 
       results.perQuestion.push({
+        id:               q.id,
         question:         q.question,
         options:          q.options,
         answer:           q.answer,
@@ -206,8 +207,17 @@ const ExamEngine = {
       totalTimeSpentSec: results.timeSec,
     });
 
+    // A practice run (retry of the incorrect questions) is not an attempt at the whole scope: it leaves progress,
+    // the last-attempt record and the previous-attempt comparison alone.
+    const practice = !!this.config.retryOf;
+    const same = h => !h.retry && h.module === this.config.module && h.examType === this.config.examType &&
+      (h.scope || null) === (this.config.scope || null) && (h.subject || null) === (this.config.subject || null) &&
+      (h.subSubject || null) === (this.config.subSubject || null);
+    const prev = practice ? null : Storage.getExamHistory().find(same);
+    results.previous = prev ? { score: prev.score, correct: prev.correct, total: prev.total, completedAt: prev.completedAt || prev.id } : null;
+
     // Only save per-subsubject progress for single sub-subject exams
-    if (!this.config.scope) {
+    if (!this.config.scope && !practice) {
       Storage.setSubjectProgress(
         this.config.module,
         this.config.examType,
@@ -235,7 +245,16 @@ const ExamEngine = {
       total:       results.total,
       attempted:   results.total - results.unanswered,
       timeSec:     results.timeSec,
+      retry:       practice || undefined,
     });
+
+    if (!practice) {
+      Storage.saveLastResults(Storage.resultsKey(this.config), {
+        config: this.config, score: results.score, total: results.total, correct: results.correct, incorrect: results.incorrect,
+        unanswered: results.unanswered, timeSec: results.timeSec, completedAt: results.completedAt,
+        perQuestion: results.perQuestion, previous: results.previous,
+      });
+    }
 
     Storage.clearCurrentExam();
     return results;

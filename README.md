@@ -61,8 +61,11 @@ All question content lives in plain JSON files. Adding or updating questions req
 - Resume card under "Progress" on the dashboard: one tap anywhere on the card continues the exam (the small X abandons it)
 - Interface that scales itself to the screen: the same proportions on a phone, a laptop and a 1920px monitor, with nothing to zoom
 - Admin dashboard (`admin.html`) for owners and admins: overview, question editor, students, retention, system
-- Results page with full question review and explanations
-- Retry incorrect questions only
+- Results page: score ring (correct / incorrect / skipped) and how this attempt compares with the previous one of the same exam; **By topic** (multi-topic exams: accuracy per topic, weakest first; tap a topic to review only it); filter chips (All / Incorrect / Skipped / Saved); a quiet list of every question that opens on tap to show your answer, the right answer and the explanation, with a Save button on each
+- **Retry incorrect**: a practice exam made of exactly the questions you got wrong in that attempt (it does not change your progress or your last attempt)
+- **Analytics** button on a topic page (and on a full-exam page): opens the results page of your last attempt at that topic or exam, kept on this device
+- Incorrect and Saved pages can be ordered: newest first (default), oldest first, or grouped by topic
+- In a multi-topic exam the topic of each question is blurred until you press it (so it cannot hint at the answer, but is one tap away when you want to look it up in a textbook)
 - Search functionality
 - Light and dark themes
 - Mobile-first responsive design
@@ -498,12 +501,15 @@ Rules the interface follows. Keep them when you change anything.
 - **Page height uses `dvh`**, not `vh`, so phones and tablets get no false scroll space under the address bar.
 - **Pressing:** rows, cards and chips do not shrink when pressed. A soft tint fades in over exactly the element and follows its own corner radius (the `Pressing` block at the end of `styles.css`). Only stand-alone buttons keep a small press.
 - **One progress bar.** The exam sidebar, module cards and subject rows all use the same 0.375rem track and the same navy gradient.
-- **Saved is sand gold, not green.** Green means correct and red means wrong, and nothing else uses them. That includes the Saved page (header, icon, stripe) and the phone dashboard badge; the count badges on the two phone dashboard buttons (Incorrect and Saved) are the same blue `--quick-badge` #2a5298 with a white number in both themes.
+- **Saved is sand gold, not green.** Green means correct and red means wrong, and nothing else uses them. That includes the Saved page (header, icon, stripe) and the phone dashboard badge; the count badges on the two phone dashboard buttons (Incorrect and Saved) are the same blue `--quick-badge` #2a5298 with a semibold (600) white number in both themes.
 - **Topic rows:** a topic with a professor reads `14 Qs · Prof. Samaa` (plain text, one grey, no badge; the professor is cut with an ellipsis if the row is narrow). A topic without one keeps the full `14 Questions`. The short form exists only to save space.
 - **No "Done" badge** on subject rows in the module page; the full bar and `N/N topics` already say it.
 - **Header buttons** (Sign in, bin, theme) are all 2.25rem tall with the same border, fill and corner.
 - **Number box** with fewer than 6 questions must stay one normal row of square cells (grid columns are `minmax(0,1fr)`, rows never stretch).
 - **Motion is short and quiet:** moving between questions slides the new question in from the side you are heading to (220ms, never from fully transparent); an explanation grows open inside its own wrapper (360ms); pop-ups fade and rise.
+- **Pages share three pieces** (`styles.css`, last block, "Pages v6"): the **launch card** (`.launch`: what the exam is, how many questions, one Start button, an optional "Last attempt" line; used by the topic page and the full-exam start page), the **review row** (`.rv`: status mark, small meta line, question cut to two lines, tap to open; used by the results page and the Incorrect and Saved pages, drawn by `UI.rvRow` / `UI.reviewItem` so a search result looks exactly like the first draw), and the **scope list** (`.scope-list`: what a full exam covers, with question counts). A page that needs one of these uses it; it does not invent a new look.
+- **Topic badge in an exam** (`UI.topicVeil`, `App._revealTopic`): closed, it is a fixed-width pill with a dashed edge, a small eye and a blurred stand-in ("Topic name"), never the real name, so neither the words nor their length give the topic away. Pressing it swaps the real name in, which sharpens out of the blur while the pill grows to fit. It stays open for that question for the rest of the attempt; the next question starts closed. Single-topic exams have no badge.
+- **Phone vs desktop:** on phones the topic and full-exam pages show Incorrect / Saved as a short "Review" list under the card; from 768px they live in the rail instead (`.scope-review` is hidden). Results: stats in a 2x2 grid on phones, four across from 640px.
 - **Admin page** classes start with `rc-`. Never use `ad-` or words like banner or sponsor in class names: ad blockers hide them.
 - **Dark mode** must keep working after every change: colours come from the variables, never hard-coded.
 

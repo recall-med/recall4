@@ -221,7 +221,7 @@ const App = {
         if (!warm) UI.setContent(UI.skeletonWideExamStart(), 'swap');
         const countMap  = await this._buildCountMap(this.config, mod);
         const totalCount = await this._getWideQuestionCount(mod, params.examType, params.subject, params.scope, countMap);
-        UI.setContent(UI.renderWideExamStart(mod, params, totalCount, this.config), warm ? 'enter' : 'swap');
+        UI.setContent(UI.renderWideExamStart(mod, params, totalCount, this.config, countMap), warm ? 'enter' : 'swap');
         this._bindWideExamStartEvents(mod, params);
         break;
       }
@@ -241,6 +241,7 @@ const App = {
           }
           break;
         }
+        this._topicShown = new Set();
         this._renderExam();
         this._bindExamEvents();
         break;
@@ -251,14 +252,21 @@ const App = {
         const resumed = await ExamEngine.resume();
         clearTimeout(skelTimer);
         if (!resumed) { this.navigate('dashboard'); break; }
+        this._topicShown = new Set();
         this._renderExam();
         this._bindExamEvents();
         break;
       }
 
       case 'results': {
+        // Analytics: the stored last attempt of a topic / subject / exam type, opened from its start page
+        if (params && params.stored) {
+          const saved = Storage.getLastResults(params.key);
+          if (!saved) { UI.toast('No saved attempt on this device yet.', 'info'); this.navigate('dashboard'); break; }
+          this.lastResults = saved;
+        }
         if (!this.lastResults) { this.navigate('dashboard'); break; }
-        UI.setContent(UI.renderResults(this.lastResults, this.config));
+        UI.setContent(UI.renderResults(this.lastResults, this.config, { stored: !!(params && params.stored) }));
         this._bindResultsEvents();
         break;
       }
@@ -266,40 +274,30 @@ const App = {
       case 'review': {
         const incorrect = Storage.getIncorrect();
         UI.setContent(UI.renderReview(incorrect, this.config));
-        this._bindReviewEvents();
+        this._bindReviewList('incorrect');
         break;
       }
 
       case 'scoped-review': {
         const filter    = params;
-        const incorrect = Storage.getIncorrect().filter(q =>
-          q.module === filter.moduleId &&
-          (!filter.examType   || q.examType   === filter.examType)   &&
-          (!filter.subject    || q.subject    === filter.subject)    &&
-          (!filter.subSubject || q.subSubject === filter.subSubject)
-        );
+        const incorrect = Storage.getIncorrect().filter(this._scopeMatch(filter));
         UI.setContent(UI.renderReview(incorrect, this.config, filter));
-        this._bindReviewEvents();
+        this._bindReviewList('incorrect');
         break;
       }
 
       case 'saved-review': {
         const flagged = Storage.getFlagged();
         UI.setContent(UI.renderFlagged(flagged, this.config));
-        this._bindFlaggedReviewEvents();
+        this._bindReviewList('saved');
         break;
       }
 
       case 'scoped-saved': {
         const filter  = params;
-        const flagged = Storage.getFlagged().filter(q =>
-          q.module === filter.moduleId &&
-          (!filter.examType   || q.examType   === filter.examType)   &&
-          (!filter.subject    || q.subject    === filter.subject)    &&
-          (!filter.subSubject || q.subSubject === filter.subSubject)
-        );
+        const flagged = Storage.getFlagged().filter(this._scopeMatch(filter));
         UI.setContent(UI.renderFlagged(flagged, this.config, filter));
-        this._bindFlaggedReviewEvents();
+        this._bindReviewList('saved');
         break;
       }
 
@@ -391,23 +389,10 @@ const App = {
   // ─── Sub-subject page events ──────────────────────────────────────────────
 
   _bindSubSubjectEvents(mod, examType, subject, subSubject) {
+    this._bindAnalytics();
     const startBtn = document.getElementById('start-exam-btn');
     if (startBtn) {
       startBtn.addEventListener('click', () => {
-        this.navigate('exam', {
-          moduleId:           mod.id,
-          examType,
-          subject,
-          subSubject,
-          immediateFeedback:  true,
-          randomize:          false,
-          retryIncorrectOnly: false,
-        });
-      });
-    }
-    const retryBtn = document.getElementById('retry-exam-btn');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', () => {
         this.navigate('exam', {
           moduleId:           mod.id,
           examType,
@@ -423,7 +408,14 @@ const App = {
 
   // ─── Wide exam start page events ─────────────────────────────────────────
 
+  // Analytics button on the topic page and the full-exam page: the results page of the last attempt
+  _bindAnalytics() {
+    const btn = document.getElementById('analytics-btn');
+    if (btn) btn.addEventListener('click', () => this.navigate('results', { stored: true, key: btn.dataset.resultsKey }));
+  },
+
   _bindWideExamStartEvents(mod, params) {
+    this._bindAnalytics();
     const startBtn = document.getElementById('start-wide-exam-btn');
     if (startBtn) {
       startBtn.addEventListener('click', () => {
@@ -446,6 +438,9 @@ const App = {
     }
 
     document.addEventListener('click', this._examClickHandler = e => {
+      const veil = e.target.closest('.topic-veil');
+      if (veil) { this._revealTopic(veil); return; }
+
       const optBtn = e.target.closest('.option:not([disabled])');
       if (optBtn) {
         const idx    = parseInt(optBtn.dataset.option, 10);
@@ -527,6 +522,34 @@ const App = {
     };
   },
 
+  // The topic badge of a multi-topic exam starts blurred. Pressing it swaps the real name in (still blurred), then it
+  // sharpens while the pill grows from its fixed width to fit the name. The choice is remembered for that question for
+  // the rest of this attempt, so coming back to it does not hide it again.
+  _revealTopic(veil) {
+    if (veil.classList.contains('is-open')) return;
+    if (!this._topicShown) this._topicShown = new Set();
+    this._topicShown.add(ExamEngine.state.currentIndex);
+    const text  = veil.querySelector('.topic-veil__text');
+    const name  = veil.dataset.topic || '';
+    const rem   = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const from  = veil.getBoundingClientRect().width;
+    if (text) text.textContent = name;
+    veil.classList.add('is-open');
+    veil.setAttribute('aria-expanded', 'true');
+    veil.setAttribute('aria-label', `Topic: ${name}`);
+    veil.removeAttribute('title');
+    veil.style.width = 'auto';
+    const to = veil.getBoundingClientRect().width;
+    if (from && to && Math.abs(to - from) > 1) {
+      veil.style.width = `${from / rem}rem`;
+      void veil.offsetWidth;
+      veil.style.width = `${to / rem}rem`;
+      setTimeout(() => { veil.style.width = ''; }, 400);
+    } else {
+      veil.style.width = '';
+    }
+  },
+
   // Single entry point for (re)drawing the exam screen. Always lands at the top of the
   // new question and keeps the current palette chip in view (palette scrolls on long exams
   // and is a horizontal strip on mobile).
@@ -536,7 +559,7 @@ const App = {
     const idx = ExamEngine.state.currentIndex;
     const dir = kind === 'change' && this._examIdx != null ? Math.sign(idx - this._examIdx) : 0;   // 1 = forward, -1 = back
     this._examIdx = idx;
-    const html = UI.renderExam(ExamEngine, this.config);
+    const html = UI.renderExam(ExamEngine, this.config, this._topicShown);
 
     // Moving between questions: swap ONLY the question column. The sidebar (with its number box and scroll
     // position), the header and the page background are never re-drawn, so nothing flickers and the number
@@ -622,160 +645,202 @@ const App = {
   // ─── Results events ───────────────────────────────────────────────────────
 
   _bindResultsEvents() {
-    document.addEventListener('click', e => {
-      if (e.target.id === 'retry-incorrect-btn' || e.target.closest('#retry-incorrect-btn')) {
-        const btn = e.target.closest('#retry-incorrect-btn') || e.target;
-        this.navigate('exam', {
-          moduleId:           btn.dataset.module,
-          examType:           btn.dataset.examType,
-          subject:            btn.dataset.subject,
-          subSubject:         btn.dataset.subSubject,
-          immediateFeedback:  true,
-          randomize:          true,
-          retryIncorrectOnly: true,
-        });
-      }
-      if (e.target.id === 'retry-all-btn' || e.target.closest('#retry-all-btn')) {
-        const btn = e.target.closest('#retry-all-btn') || e.target;
-        this.navigate('exam', {
-          moduleId:           btn.dataset.module,
-          examType:           btn.dataset.examType,
-          subject:            btn.dataset.subject || null,
-          subSubject:         btn.dataset.subSubject || null,
-          scope:              btn.dataset.scope || null,
-          immediateFeedback:  true,
-          randomize:          true,
-          retryIncorrectOnly: false,
-        });
-      }
-    }, { once: true });
-  },
+    const list = document.getElementById('results-list');
+    this._bindRowToggle(list);
+    const res = this.lastResults;
+    const rc  = res && res.config;
+    UI.tidyList(list);
 
-  // ─── Review events ────────────────────────────────────────────────────────
-
-  _bindReviewEvents() {
-    const list    = document.getElementById('review-list');
-    const search  = document.getElementById('review-search');
-    const fMod    = document.getElementById('review-filter-module');
-    const fSub    = document.getElementById('review-filter-subject');
-    const clearAll = document.getElementById('clear-all-review');
-
-    const filterAndRender = () => {
-      let items = Storage.getIncorrect();
-      const q = search?.value.toLowerCase() ?? '';
-      const m = fMod?.value ?? '';
-      const s = fSub?.value ?? '';
-      if (q) items = items.filter(i => i.question.toLowerCase().includes(q));
-      if (m) items = items.filter(i => i.module === m);
-      if (s) items = items.filter(i => i.subject === s);
-      if (list) {
-        list.innerHTML = items.length === 0
-          ? UI.emptyState('No Matches', 'Try adjusting your filters.', UI.examIcon('search', 'icon icon--xl'))
-          : items.map(q => {
-              const sub = this.config.subjects.find(s => s.id === q.subject);
-              const et  = this.config.examTypes.find(e => e.id === q.examType);
-              return `<div class="review-item" data-uid="${q.uid}">
-                <div class="review-item__meta">
-                  <span class="badge">${UI.subjectIcon(sub?.id, 'module-icon module-icon--inline')}${sub?.label}</span>
-                  <span class="badge badge--ghost">${q.module}</span>
-                  ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
-                  <span class="badge badge--ghost">${et?.label}</span>
-                </div>
-                <p class="review-item__question">${q.question}</p>
-                <div class="review-item__options">
-                  ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : i === q.userAnswer ? 'review-opt--wrong' : ''}">${['A','B','C','D'][i]}. ${opt}</span>`).join('')}
-                </div>
-                <div class="review-item__explanation">${q.explanation}</div>
-                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">${UI.examIcon('check')} Mark as Mastered</button>
-              </div>`;
-            }).join('');
-      }
+    // Filter chips (All / Incorrect / Skipped / Saved) and the topic rows below "By topic" narrow the same list
+    let stateF = 'all', topicF = '';
+    const chips = [...document.querySelectorAll('.res-chip')];
+    const apply = () => {
+      let shown = 0;
+      list.querySelectorAll('.rv').forEach(row => {
+        const okState = stateF === 'all' || (stateF === 'saved' ? row.dataset.saved === '1' : row.dataset.state === stateF);
+        const okTopic = !topicF || row.dataset.topic === topicF;
+        row.hidden = !(okState && okTopic);
+        if (!row.hidden) shown++;
+      });
+      const none = document.getElementById('res-none');
+      if (none) none.hidden = shown !== 0;
+      const total = list.querySelectorAll('.rv').length;
+      const count = document.getElementById('res-count');
+      if (count) count.textContent = shown === total ? `${total} ${total === 1 ? 'question' : 'questions'}` : `${shown} of ${total}`;
+      chips.forEach(c => c.setAttribute('aria-pressed', String(c.dataset.filter === stateF)));
+      document.querySelectorAll('.res-topic').forEach(t => t.setAttribute('aria-pressed', String(t.dataset.topic === topicF)));
+      UI.tidyList(list);
     };
+    // Chips with nothing behind them are hidden; with only "All" left the whole bar goes
+    const tidyChips = () => {
+      const saved = list.querySelectorAll('.rv[data-saved="1"]').length;
+      const sc = document.querySelector('.res-chip[data-filter="saved"]');
+      if (sc) { sc.hidden = saved === 0; sc.querySelector('.res-chip__n').textContent = saved; }
+      const bar = document.getElementById('res-filter');
+      if (bar) bar.hidden = chips.filter(c => !c.hidden).length < 2;
+      if (stateF === 'saved' && saved === 0) { stateF = 'all'; apply(); }
+    };
+    tidyChips();
+    chips.forEach(c => c.addEventListener('click', () => { stateF = c.dataset.filter; apply(); }));
+    document.querySelectorAll('.res-topic').forEach(t => t.addEventListener('click', () => {
+      topicF = topicF === t.dataset.topic ? '' : t.dataset.topic;
+      apply();
+      if (topicF) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    const more = document.getElementById('res-topics-toggle');
+    if (more) more.addEventListener('click', () => {
+      const box = document.getElementById('res-topics-more');
+      const open = box.hidden;
+      box.hidden = !open;
+      more.textContent = open ? 'Show fewer' : `Show all ${document.querySelectorAll('.res-topic').length} topics`;
+    });
 
-    search?.addEventListener('input', filterAndRender);
-    fMod?.addEventListener('change', filterAndRender);
-    fSub?.addEventListener('change', filterAndRender);
+    // Save / unsave a question from the review (same list as the star during the exam)
+    list.addEventListener('click', e => {
+      const btn = e.target.closest('[data-save-q]');
+      if (!btn || !res) return;
+      const pq = res.perQuestion[Number(btn.dataset.saveQ)];
+      if (!pq || pq.id === undefined) return;
+      const on = Storage.toggleFlag({
+        module: rc.module, examType: rc.examType,
+        subject: rc.subject || pq._subject, subSubject: rc.subSubject || pq._subSubject,
+        id: pq.id, question: pq.question, options: pq.options, answer: pq.answer, explanation: pq.explanation,
+      });
+      const row = btn.closest('.rv');
+      row.dataset.saved = on ? '1' : '0';
+      btn.classList.toggle('is-saved', on);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.querySelector('.res-save__text').textContent = on ? 'Saved' : 'Save';
+      const meta = row.querySelector('.rv__meta');
+      const star = meta.querySelector('.rv__saved');
+      if (on && !star) meta.insertAdjacentHTML('beforeend', '<svg class="icon rv__saved" viewBox="0 0 24 24" aria-label="Saved"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>');
+      if (!on && star) star.remove();
+      UI.toast(on ? 'Saved.' : 'Removed from saved.', 'info');
+      tidyChips();
+      if (stateF !== 'all' || topicF) apply();
+    });
 
-    clearAll?.addEventListener('click', () => {
-      RecallLayers.confirm({ title: 'Remove all questions from review?', message: 'This cannot be undone.', ok: 'Remove all', danger: true }).then(ok => {
-        if (!ok) return;
-        Storage.clearAllIncorrect();
-        this.navigate('review');
+    const retry = document.getElementById('retry-all-btn');
+    if (retry) retry.addEventListener('click', () => {
+      this.navigate('exam', {
+        moduleId:           retry.dataset.module,
+        examType:           retry.dataset.examType,
+        subject:            retry.dataset.subject || null,
+        subSubject:         retry.dataset.subSubject || null,
+        scope:              retry.dataset.scope || null,
+        immediateFeedback:  true,
+        randomize:          true,
+        retryIncorrectOnly: false,
       });
     });
 
-    list?.addEventListener('click', e => {
-      const btn = e.target.closest('[data-remove-uid]');
-      if (btn) {
-        Storage.removeIncorrect(btn.dataset.removeUid);
-        btn.closest('.review-item')?.remove();
-        UI.toast('Marked as mastered.', 'success');
-      }
+    // Retry incorrect: a practice run made of exactly the questions answered wrongly in this attempt
+    const retryBad = document.getElementById('retry-incorrect-btn');
+    if (retryBad && res) retryBad.addEventListener('click', () => {
+      this._retryPool = res.perQuestion.filter(p => p.answered && !p.correct).map(p => ({
+        id: p.id, question: p.question, options: p.options, answer: p.answer, explanation: p.explanation,
+        _subject: p._subject, _subSubject: p._subSubject, _subSubjectLabel: p._subSubjectLabel,
+      }));
+      this._retryConfig = { ...rc };
+      this.navigate('exam', {
+        moduleId: rc.module, examType: rc.examType, subject: rc.subject || null, subSubject: rc.subSubject || null,
+        scope: rc.scope || null, immediateFeedback: true, randomize: true, retryIncorrectOnly: true, retryFromResults: true,
+      });
     });
   },
 
-  // ─── Flagged review events ───────────────────────────────────────────────
+  // Review rows (results, Incorrect, Saved) open and close on tap; only the row's own button toggles it.
+  _bindRowToggle(list) {
+    if (!list) return;
+    list.addEventListener('click', e => {
+      const head = e.target.closest('.rv__head');
+      if (!head || !list.contains(head)) return;
+      const row  = head.closest('.rv');
+      const open = !row.classList.contains('is-open');
+      row.classList.toggle('is-open', open);
+      head.setAttribute('aria-expanded', String(open));
+    });
+  },
 
-  _bindFlaggedReviewEvents() {
-    const list    = document.getElementById('flagged-list');
-    const search  = document.getElementById('flagged-search');
-    const fMod    = document.getElementById('flagged-filter-module');
-    const fSub    = document.getElementById('flagged-filter-subject');
-    const clearAll = document.getElementById('clear-all-flagged');
+  // ─── Incorrect and Saved pages ───────────────────────────────────────────
 
-    const filterAndRender = () => {
-      let items = Storage.getFlagged();
-      const q = search?.value.toLowerCase() ?? '';
-      const m = fMod?.value ?? '';
-      const s = fSub?.value ?? '';
-      if (q) items = items.filter(i => i.question.toLowerCase().includes(q));
+  // Does a stored question belong to a scope (module, optionally exam type, subject, topic)?
+  _scopeMatch(f) {
+    return q => q.module === f.moduleId
+      && (!f.examType   || q.examType   === f.examType)
+      && (!f.subject    || q.subject    === f.subject)
+      && (!f.subSubject || q.subSubject === f.subSubject);
+  },
+
+  // kind: 'incorrect' | 'saved'. One binder for both pages; rows come from UI.reviewItem, so a search result looks
+  // exactly like the first draw. Scoped pages (opened from a topic, subject or module) have no search box and always
+  // stay inside their scope.
+  _bindReviewList(kind) {
+    const saved   = kind === 'saved';
+    const list    = document.getElementById('rv-list');
+    if (!list) return;
+    const sortEl  = document.getElementById('rv-sort');
+    const search  = document.getElementById('rv-search');
+    const fMod    = document.getElementById('rv-module');
+    const fSub    = document.getElementById('rv-subject');
+    const clear   = document.getElementById('rv-clear');
+    const count   = document.getElementById('rv-count');
+    const scoped  = this.currentPage === 'scoped-review' || this.currentPage === 'scoped-saved';
+    const inScope = scoped ? this._scopeMatch(this.currentParams) : () => true;
+    const route   = this.currentPage, params = this.currentParams;
+
+    const all = () => (saved ? Storage.getFlagged() : Storage.getIncorrect()).filter(inScope);
+    const word = n => `${n} ${n === 1 ? 'question' : 'questions'}`;
+
+    const draw = () => {
+      let items = all();
+      const q = (search?.value || '').trim().toLowerCase();
+      const m = fMod?.value || '';
+      const s = fSub?.value || '';
+      if (q) items = items.filter(i => String(i.question).toLowerCase().includes(q));
       if (m) items = items.filter(i => i.module === m);
       if (s) items = items.filter(i => i.subject === s);
-      if (list) {
-        list.innerHTML = items.length === 0
-          ? UI.emptyState('No Matches', 'Try adjusting your filters.', UI.examIcon('search', 'icon icon--xl'))
-          : items.map(q => {
-              const sub = this.config.subjects.find(s => s.id === q.subject);
-              const et  = this.config.examTypes.find(e => e.id === q.examType);
-              return `<div class="review-item" data-uid="${q.uid}">
-                <div class="review-item__meta">
-                  <span class="badge">${UI.subjectIcon(sub?.id, 'module-icon module-icon--inline')}${sub?.label}</span>
-                  <span class="badge badge--ghost">${q.module}</span>
-                  ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
-                  <span class="badge badge--ghost">${et?.label}</span>
-                  <span class="badge badge--saved">${UI.examIcon('flag')}Saved</span>
-                </div>
-                <p class="review-item__question">${q.question}</p>
-                <div class="review-item__options">
-                  ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : ''}">${['A','B','C','D'][i]}. ${opt}</span>`).join('')}
-                </div>
-                <div class="review-item__explanation">${q.explanation}</div>
-                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">Remove from Saved</button>
-              </div>`;
-            }).join('');
-      }
+      list.innerHTML = items.length === 0
+        ? UI.emptyState('No Matches', 'Try a different search or filter.', UI.examIcon('search', 'icon icon--xl'))
+        : UI.reviewListHTML(kind, items, this.config, sortEl ? sortEl.value : 'newest');
+      UI.tidyList(list);
+      if (count) count.textContent = word(items.length);
     };
 
-    search?.addEventListener('input', filterAndRender);
-    fMod?.addEventListener('change', filterAndRender);
-    fSub?.addEventListener('change', filterAndRender);
+    sortEl?.addEventListener('change', draw);
+    search?.addEventListener('input', draw);
+    fMod?.addEventListener('change', draw);
+    fSub?.addEventListener('change', draw);
 
-    clearAll?.addEventListener('click', () => {
-      RecallLayers.confirm({ title: 'Remove all saved questions?', message: 'This cannot be undone.', ok: 'Remove all', danger: true }).then(ok => {
+    clear?.addEventListener('click', () => {
+      RecallLayers.confirm({
+        title:   saved ? 'Remove all saved questions?' : 'Remove all questions from review?',
+        message: 'This cannot be undone.', ok: 'Remove all', danger: true,
+      }).then(ok => {
         if (!ok) return;
-        Storage.getFlagged().forEach(f => Storage.toggleFlag(f));
-        this.navigate('dashboard');
+        if (saved) Storage.getFlagged().forEach(f => Storage.toggleFlag(f));
+        else       Storage.clearAllIncorrect();
+        this._navigateWithoutHistory(route, params);
       });
     });
 
-    list?.addEventListener('click', e => {
+    this._bindRowToggle(list);
+    UI.tidyList(list);
+    list.addEventListener('click', e => {
       const btn = e.target.closest('[data-remove-uid]');
-      if (btn) {
-        const item = Storage.getFlagged().find(f => f.uid === btn.dataset.removeUid);
-        if (item) Storage.toggleFlag(item);
-        btn.closest('.review-item')?.remove();
-        UI.toast('Removed from saved.', 'info');
-      }
+      if (!btn) return;
+      const uid = btn.dataset.removeUid;
+      if (saved) { const item = Storage.getFlagged().find(f => f.uid === uid); if (item) Storage.toggleFlag(item); }
+      else       Storage.removeIncorrect(uid);
+      UI.toast(saved ? 'Removed from saved.' : 'Marked as mastered.', saved ? 'info' : 'success');
+      const row = btn.closest('.rv');
+      const done = () => {
+        row?.remove();
+        if (all().length === 0) { this._navigateWithoutHistory(route, params); return; }   // last one gone: the page's empty state
+        if ((sortEl && sortEl.value === 'topic') || (count && !list.querySelector('.rv'))) draw();   // grouped: headings and their counts change
+        else { if (count) count.textContent = word(list.querySelectorAll('.rv').length); UI.tidyList(list); }
+      };
+      if (row) { row.classList.add('is-leaving'); setTimeout(done, 260); } else done();
     });
   },
 
@@ -840,6 +905,15 @@ const App = {
   // ─── Exam start helper ───────────────────────────────────────────────────
 
   async _startExam(params) {
+    if (params.retryFromResults) {
+      const pool = this._retryPool || [];
+      if (pool.length === 0) { UI.toast('No incorrect questions to retry.', 'info'); return false; }
+      ExamEngine.config    = { ...this._retryConfig, immediateFeedback: true, randomize: true, retryOf: true };
+      ExamEngine.questions = ExamEngine._shuffle([...pool]);
+      ExamEngine.state = { currentIndex: 0, answers: {}, flagged: new Set(), startTime: Date.now(), endTime: null, elapsedMs: 0, paused: false, submitted: false };
+      Storage.clearCurrentExam();
+      return true;
+    }
     if (params.retryIncorrectOnly) {
       const all = Storage.getIncorrect().filter(
         q => q.module === params.moduleId &&

@@ -52,7 +52,9 @@ assets/js/names.js              name rules and blocklist (browser copy, generate
 assets/js/auth.js               Firebase provider (loaded on demand)
 assets/css/account.css          account window, loading cover and toast colours (additive file)
 backend-tests/run.mjs           backend tests (local Worker + local D1)
-backend-tests/run-frontend.mjs  front-end tests (jsdom, fake sign-in provider)
+backend-tests/run-frontend.mjs  front-end test runner (runs the parts below; see section 2)
+backend-tests/fe/harness.mjs    shared setup of the front-end parts (local site + D1, jsdom devices, check/until helpers)
+backend-tests/fe/part-*.mjs     the parts: sync, import, account, admin, pages (each boots its own stack on its own ports)
 ```
 
 `storage.js`, `exam.js` and `app.js` were **not** changed for sync. `sync.js` wraps their methods at load time.
@@ -151,6 +153,24 @@ Algorithm RS256, `kid` present in Google's key list, signature, issuer `https://
 - **Pressing.** Rows, cards and chips (module card, subject card, topic row, exam option, number-box button, rail action, resume card) have no scale-on-press; a `::after` tint with `border-radius: inherit` fades in (`--press-tint`). `-webkit-tap-highlight-color` is transparent everywhere.
 - **Module page.** The Redline Data link has no vertical padding, so its row is exactly as tall as a plain title and the section rule is level with the "Progress" rule on every module.
 
+## 5d. Interface notes (v6, 2026-11-17): rebuilt pages
+
+Pages rebuilt from scratch (old markup and ~300 lines of CSS removed; nothing of them is left in `styles.css`): topic page (`subsubject`), full-exam start (`wide-exam-start`), `results`, Incorrect (`review`, `scoped-review`) and Saved (`saved-review`, `scoped-saved`). Route names, `Storage` shapes and `data-nav` targets are unchanged.
+
+- **Launch card.** `UI.launchCard({eyebrow, count, unit, note, startId, startLabel, last})`. The topic page has ONE button, `#start-exam-btn` (label "Start exam", or "Retry exam" once there is progress); the old separate `#retry-exam-btn` did exactly the same thing (same params) and is gone. The full-exam page uses `#start-wide-exam-btn`. `last` = `{pct, date}` draws the "Last attempt" line with `UI.progressBar`; the score is neutral text, not green or red.
+- **Full-exam page list.** `renderWideExamStart(mod, params, total, config, countMap)` now receives the question `countMap` that `_renderPage` already builds, and lists only topics (subject scope) or subjects (exam-type scope) that have questions, with counts that add up to the exam size. Before, it listed every topic, including empty ones.
+- **Phone review rows.** `UI._reviewActions(f, st)` is the Incorrect/Saved pair shared by the rail (`scopeRail`) and the phone list (`UI.scopeReview`, `.scope-review`, hidden from 768px).
+- **Results.** `UI.resultRing(results)` draws three arcs (correct / incorrect / skipped, CSS animation `ringIn`, off under reduced motion); `scoreRing` is removed. Rows are `UI.rvRow` with `state` `correct | wrong | skipped`; an explanation that only restates the right answer is dropped (`isRedundantExplanation`). `_bindResultsEvents` binds the Retry button on the button itself. The old version used `document.addEventListener('click', ..., {once:true})`, so any earlier click on the page used the listener up and Retry then did nothing (test: "Retry still works after other taps"). Retry still starts the same scope, randomized. There is no "retry incorrect only" button; the `retryIncorrectOnly` plumbing in `_startExam` is still there.
+- **Incorrect and Saved.** One renderer `UI._reviewPage(kind, ...)` (`renderReview` / `renderFlagged` are thin wrappers, names kept) and one binder `App._bindReviewList(kind)`; `UI.reviewItem(kind, q, config)` is the only place a row is written (the old code had the row markup twice, once in the page and once in the search handler). Ids: `#rv-list`, `#rv-search`, `#rv-module`, `#rv-subject`, `#rv-count`, `#rv-clear`. Scoped pages (`scoped-review`, `scoped-saved`) have no search box and always stay inside their scope (`App._scopeMatch`). Removing a row fades it out; removing the last one re-opens the page, which then shows its empty state. Page titles: "Incorrect Questions" and "Saved Questions". The Saved header keeps `--mod-color:var(--saved)` (the icon is gold; no stripe).
+- **Review row markup.** `.rv > button.rv__head[aria-expanded] + .rv__body > .rv__inner > .rv__pad`. The body opens with `grid-template-rows 0fr -> 1fr`; while closed it is `visibility:hidden`, so Tab never lands on its buttons. Padding lives on `.rv__pad` (padding on the clipped element itself would leave a sliver when closed).
+- **Topic badge.** `UI.renderExam(engine, config, shownTopics)` takes the Set `App._topicShown` (question indexes the student has opened; reset when an exam starts or resumes). `App._revealTopic(veil)` swaps the real name in, adds `.is-open`, and animates the width in rem from the measured closed width to the measured open width (inline width is cleared after 400ms so it follows resizes). The closed text is the constant "Topic name" (the real name is only in `data-topic`), so the badge leaks nothing, not even the length. It does not toggle closed again. The topic line inside the explanation box is unchanged (it only appears after answering).
+- **Phone dashboard count badges** (`.quick-icon-btn__badge`): number weight 600 (was 700).
+- **Last attempt record (Analytics).** `ExamEngine.submit` saves the full result of every non-practice attempt with `Storage.saveLastResults(Storage.resultsKey(config), ...)`: one record per topic / subject scope / exam type, newest 12 scopes kept, skipped above 600 kB, stored under `dqb_last_results` (in `STORAGE_KEYS`, so reset, sign-out wipe and delete remove it; left out of `snapshotLocal` on purpose). It lives on this device only (not synced): after signing in on another device the Analytics button appears after the first attempt there. The button (`#analytics-btn`, `launchCard({analyticsKey})`) only renders when a record exists; it opens `navigate('results', {stored:true, key})`, which loads the record into `App.lastResults` (title "Last attempt" plus the date). Records written before this version do not exist, so the button shows after the next attempt.
+- **Previous attempt.** `results.previous` = the newest earlier history entry of the same scope, ignoring practice runs (`history.retry`). The results page shows the difference in points; nothing is coloured red or green for it.
+- **Retry incorrect** (`#retry-incorrect-btn`): `App._retryPool` holds the questions answered wrongly in that attempt (skipped ones are not included), `_startExam({retryFromResults:true})` builds a shuffled exam with `config.retryOf = true`. A practice run records its history entry with `retry: true`, but does NOT write topic progress, the last-attempt record or the previous-attempt baseline. It still counts in the statistics and is uploaded like any attempt. The older `retryIncorrectOnly` path (matches the stored Incorrect list by topic) is unchanged and still has no button.
+- **Results page extras.** Filter chips and topic rows only hide rows (`hidden`) and recount; `UI.tidyList` marks the first visible row so no row loses or doubles its top rule. "By topic" shows for exams with 2 or more topics, 5 rows plus "Show all". Saved state of a row is read from `Storage.getFlagged()` at draw time (so the stored Last attempt view is always current); Save uses the same entry shape and uid as the star in the exam (`Storage.questionUid`). `perQuestion` now carries the question `id`.
+- **Incorrect / Saved order.** `UI.reviewListHTML(kind, items, config, sort)`: `newest` (default; `updatedAt`/`addedAt`, or `flaggedAt`), `oldest`, `topic` (headings `.rv-group`, topics A to Z, newest first inside). The order select `#rv-sort` is on every Incorrect/Saved page; the order is not remembered between visits.
+
 ## 6. Recipes for adding features
 
 **Add a new endpoint.** Create `functions/api/<name>.js` exporting `onRequest({request, env, data})`. The middleware already verifies the token and gives you `data.uid`. Copy the shape of `functions/api/account.js`: check the method, validate the body, run D1 queries with `.bind(...)` (never string-concatenate input), return `json(...)`, and wrap everything in `try/catch` that returns `errorResponse(err)`. Add it to the "must be refused without a token" list and write tests in `backend-tests/run.mjs`.
@@ -197,7 +217,13 @@ Both suites start a **local** Worker and a **local** database with `wrangler pag
 git clone https://github.com/recall-med/recall4.git site && cd site/backend-tests
 npm install
 node run.mjs            # backend: expect 203 passed, 0 failed
-node run-frontend.mjs   # front end in jsdom: expect 217 passed, 0 failed (takes about 5 minutes)
+node run-frontend.mjs   # front end in jsdom, all parts: expect 272 passed, 0 failed (about 4 minutes on one core; side by side on 4+ cores)
+node run-frontend.mjs pages   # only the part about pages and styles: expect 76 passed, about 20 seconds
+```
+
+Front-end parts (`backend-tests/fe/`): `sync` 49, `import` 23, `account` 55, `admin` 69, `pages` 76. Each part boots its own local site and database on its own ports and creates what it needs, so any part can be run alone (`node fe/part-pages.mjs`) and in any order. After a change to pages or styles, `pages` is the one to run (and the others only when sync, account or admin code changed). Each part stays well under the 300 s limit of a single sandbox command. The runner runs the parts side by side when the machine has 4 or more cores (`FE_PARALLEL=1` / `0` forces it), prints a one-line summary per part, and exits non-zero if any failed. A part that stops on an exception now reports it as a failure instead of ending without a summary.
+
+```
 ```
 
 The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand. Look (sizes, spacing, animation) was checked separately with a headless Chromium (Playwright) at 390, 820, 1366, 1536, 1919 and 2560px wide; that script is not part of the repo.
@@ -225,7 +251,7 @@ Test-harness lessons: jsdom does not run `type="module"` scripts (the admin test
 | 5 (rest) | Cross-device exam resume, past-attempt review | Not started (server parts exist) |
 | 6 | Pilot with 20 to 30 students, then announce | Not started |
 
-Test status: backend 203 of 203, front end 217 of 217 (jsdom).
+Test status: backend 203 of 203, front end 272 of 272 in five parts (jsdom).
 
 ### Verified on real devices
 Email sign-up and sign-in, studying uploads data, second-device pull, automatic import for a new account, offered import for an existing account, sign-out and sign-in, Delete account with a password (the real Firebase deletion).

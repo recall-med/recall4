@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   CURRENT_EXAM:   'dqb_current_exam',
   LAST_PAGE:      'dqb_last_page',
   SETTINGS:       'dqb_settings',
+  LAST_RESULTS:   'dqb_last_results',
 };
 
 const Storage = {
@@ -128,6 +129,22 @@ const Storage = {
     history.unshift({ ...result, id: Date.now() });
     if (history.length > 100) history.length = 100;
     this._set(STORAGE_KEYS.EXAM_HISTORY, history);
+  },
+
+  // ─── Last attempt of a scope (kept on this device for the Analytics view) ───
+  // One full result per topic / subject / exam type (the newest 12 scopes). Practice runs ("retry incorrect") never land here.
+
+  questionUid(e) { return `${e.module}|${e.examType}|${e.subject}|${e.subSubject}|${e.id}`; },
+  resultsKey(c)  { return [c.module, c.examType, c.scope || 'topic', c.subject || '', c.subSubject || ''].join('|'); },
+
+  getLastResults(key) { const all = this._get(STORAGE_KEYS.LAST_RESULTS); return (all && all[key]) || null; },
+
+  saveLastResults(key, results) {
+    try { if (JSON.stringify(results).length > 600000) return; } catch (e) { return; }
+    const all  = this._get(STORAGE_KEYS.LAST_RESULTS) || {};
+    all[key]   = results;
+    Object.keys(all).sort((a, b) => (all[b].completedAt || 0) - (all[a].completedAt || 0)).slice(12).forEach(k => delete all[k]);
+    this._set(STORAGE_KEYS.LAST_RESULTS, all);
   },
 
   // ─── Current exam ────────────────────────────────────────────────────────

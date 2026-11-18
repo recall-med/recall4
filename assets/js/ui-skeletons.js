@@ -141,21 +141,25 @@ Object.assign(UI, {
 
   // Sub-subject page — stat pills + action panel
   skeletonSubSubject() {
-    const pill = `<div class="stat-pill">
-        ${this._skel('2.25rem', '1.25rem', '0.3125rem')}
-        <div style="margin-top:0.5rem">${this._skel('80%', '0.5625rem', '0.25rem')}</div>
-      </div>`;
-
     return `<div class="page skeleton-page subsubject-page has-rail">
       ${this.skeletonPageHeader()}
       ${this.skeletonRail()}
       <div class="page__main">
-        <div class="stats-strip" style="margin-bottom:1.125rem">${pill}${pill}${pill}</div>
         <div class="page-label page-label--wide">${this._skel('3.75rem', '0.625rem', '0.25rem')}</div>
-        <div class="topic-panel">
-          ${this._skel('100%', '3.375rem', 'var(--radius-lg)')}
-        </div>
+        ${this.skeletonLaunch()}
       </div>
+    </div>`;
+  },
+
+  // The card shared by the topic page and the full-exam start page
+  skeletonLaunch() {
+    return `<div class="launch">
+      <div class="launch__body">
+        ${this._skel('5rem', '0.625rem', '0.25rem')}
+        <div style="margin-top:0.75rem">${this._skel('8rem', '2.25rem', '0.375rem')}</div>
+        <div style="margin-top:0.75rem">${this._skel('min(18rem, 90%)', '0.6875rem', '0.25rem')}</div>
+      </div>
+      <div class="launch__actions">${this._skel('100%', '2.875rem', 'var(--radius)')}</div>
     </div>`;
   },
 
@@ -194,26 +198,15 @@ Object.assign(UI, {
 
   // Wide exam start page — stat-pill row + topic panel + breakdown card
   skeletonWideExamStart() {
-    const pill = `<div class="stat-pill">
-        ${this._skel('50%', '1.125rem', '0.3125rem')}
-        <div style="margin-top:0.5rem">${this._skel('80%', '0.5625rem', '0.25rem')}</div>
-      </div>`;
-
+    const row = `<li class="scope-row">${this._skel('1rem', '1rem', '50%')}<span class="scope-row__text">${this._skel('45%', '0.75rem', '0.25rem')}</span>${this._skel('2.25rem', '0.75rem', '0.25rem')}</li>`;
     return `<div class="page skeleton-page wide-exam-start-page has-rail">
       ${this.skeletonPageHeader()}
       ${this.skeletonRail()}
       <div class="page__main">
-        <div class="stats-strip" style="margin-bottom:1.125rem">${pill}${pill}${pill}</div>
-        <div class="topic-panel" style="margin-bottom:1.125rem">
-          ${this._skel('85%', '0.6875rem', '0.25rem')}
-          <div style="margin-top:0.875rem">${this._skel('13.75rem', '2.75rem', 'var(--radius)')}</div>
-        </div>
-        <div class="wide-exam-breakdown">
-          <div style="margin-bottom:0.75rem">${this._skel('6.25rem', '0.625rem', '0.25rem')}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:0.375rem">
-            ${this._skel('5.625rem', '1.625rem', 'var(--radius-sm)')}${this._skel('6.875rem', '1.625rem', 'var(--radius-sm)')}${this._skel('5rem', '1.625rem', 'var(--radius-sm)')}${this._skel('6.25rem', '1.625rem', 'var(--radius-sm)')}
-          </div>
-        </div>
+        <div class="page-label page-label--wide">${this._skel('3.75rem', '0.625rem', '0.25rem')}</div>
+        ${this.skeletonLaunch()}
+        <div class="page-label page-label--wide scope-title">${this._skel('6.25rem', '0.625rem', '0.25rem')}</div>
+        <ul class="scope-list">${row}${row}${row}</ul>
       </div>
     </div>`;
   },

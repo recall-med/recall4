@@ -92,24 +92,6 @@ const UI = {
     return `${m}m`;
   },
 
-  scoreRing(percent) {
-    const r = 52, circ = 2 * Math.PI * r;
-    const offset = circ - (percent / 100) * circ;
-    const color  = percent >= 70 ? 'var(--success)' : percent >= 50 ? 'var(--warning)' : 'var(--danger)';
-    return `<div class="score-ring">
-      <svg viewBox="0 0 120 120" width="120" height="120">
-        <circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
-        <circle cx="60" cy="60" r="${r}" fill="none" stroke="${color}" stroke-width="10"
-          stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
-          stroke-linecap="round" transform="rotate(-90 60 60)"
-          style="transition:stroke-dashoffset 1s ease"/>
-      </svg>
-      <div class="score-ring__label">
-        <span class="score-ring__value" style="color:${color}">${percent}%</span>
-      </div>
-    </div>`;
-  },
-
   // ─── Confetti (lightweight canvas celebration) ─────────────────────────────
 
   launchConfetti() {
@@ -345,6 +327,20 @@ const UI = {
     };
   },
 
+  // The Incorrect and Saved rows of a scope (rail on tablet and up, a short list on phones)
+  _reviewActions(f, st) {
+    st = st || this.scopeStats(f);
+    const params = { moduleId: f.moduleId, examType: f.examType, subject: f.subject, subSubject: f.subSubject, label: f.label };
+    const chevron  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+    const incIcon  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
+    const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    const action = (nav, icon, label, n) => `<button class="rail-action" data-nav="${nav}" data-params='${JSON.stringify(params)}' aria-label="Review ${label.toLowerCase()} questions (${n})">
+        <span class="rail-action__label">${icon}${label}</span>
+        <span class="rail-action__end"><span class="rail-action__count${n ? '' : ' rail-action__count--zero'}">${n}</span>${chevron}</span>
+      </button>`;
+    return action('scoped-review', incIcon, 'Incorrect', st.incorrect) + action('scoped-saved', flagIcon, 'Saved', st.flagged);
+  },
+
   scopeRail(f, opts = {}) {
     const st   = this.scopeStats(f);
     const pill = (label, value) => `<div class="stat-pill"><div class="stat-pill__value">${value}</div><div class="stat-pill__label">${label}</div></div>`;
@@ -355,17 +351,9 @@ const UI = {
       time:      pill('Study Time', this.formatStudyTime(st.timeSec)),
     };
     const stats = (opts.stats || ['attempted', 'accuracy', 'time']).map(k => rows[k]).join('');
-    const params = { moduleId: f.moduleId, examType: f.examType, subject: f.subject, subSubject: f.subSubject, label: f.label };
-    const chevron  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
-    const incIcon  = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
-    const flagIcon = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-    const action = (nav, icon, label, n) => `<button class="rail-action" data-nav="${nav}" data-params='${JSON.stringify(params)}' aria-label="Review ${label.toLowerCase()} questions (${n})">
-        <span class="rail-action__label">${icon}${label}</span>
-        <span class="rail-action__end"><span class="rail-action__count${n ? '' : ' rail-action__count--zero'}">${n}</span>${chevron}</span>
-      </button>`;
     return `<aside class="dashboard__rail">
       <h2 class="section__title">Progress</h2>
-      <div class="stats-strip">${lead}${stats}${action('scoped-review', incIcon, 'Incorrect', st.incorrect)}${action('scoped-saved', flagIcon, 'Saved', st.flagged)}</div>
+      <div class="stats-strip">${lead}${stats}${this._reviewActions(f, st)}</div>
     </aside>`;
   },
 
@@ -550,7 +538,33 @@ const UI = {
     </div>`;
   },
 
-  // ─── Sub-subject page — exam start screen ────────────────────────────────
+  // ─── Topic page (one topic's exam) ────────────────────────────────────────
+  // Shared by the topic page and the full-exam start page: one calm card that says what the exam is, how many
+  // questions it has, and starts it. `last` ({ pct, date }) adds a quiet "last attempt" line with the usual bar.
+  launchCard({ eyebrow, count, unit, note, startId, startLabel, last = null, analyticsKey = '' }) {
+    return `<section class="launch">
+      <div class="launch__body">
+        <p class="launch__eyebrow">${eyebrow}</p>
+        <p class="launch__count"><span class="launch__num">${count}</span><span class="launch__unit">${unit}</span></p>
+        <p class="launch__note">${note}</p>
+      </div>
+      <div class="launch__actions">
+        <button class="btn btn--primary btn--lg launch__start" id="${startId}">${startLabel}${this.examIcon('arrow', 'icon icon--sm launch__arrow')}</button>
+        ${analyticsKey ? `<button class="btn btn--ghost btn--lg launch__analytics" id="analytics-btn" data-results-key="${analyticsKey}">${this.examIcon('chart', 'icon icon--sm')}Analytics</button>` : ''}
+      </div>
+      ${last ? `<div class="launch__last">
+        <span class="launch__last-label">Last attempt · ${last.date}</span>
+        ${this.progressBar(last.pct)}
+        <span class="launch__last-value">${last.pct}%</span>
+      </div>` : ''}
+    </section>`;
+  },
+
+  // Incorrect / Saved shortcuts for one scope, as rows. Tablet and up show them in the rail instead (see scopeRail),
+  // so this block is phone-only (the stylesheet hides it from 768px).
+  scopeReview(f) {
+    return `<div class="scope-review"><div class="page-label page-label--wide">Review</div><div class="scope-review__rows">${this._reviewActions(f, this.scopeStats(f))}</div></div>`;
+  },
 
   renderSubSubject(mod, examType, subjectId, subSubjectId, questionCount, progress, config) {
     const sub    = config.subjects.find(s => s.id === subjectId);
@@ -558,27 +572,21 @@ const UI = {
     const subSubs = (mod.subSubjects && mod.subSubjects[examType] && mod.subSubjects[examType][subjectId]) || [];
     const ss     = subSubs.find(s => s.id === subSubjectId) || { label: subSubjectId };
     const pct    = progress && progress.total ? Math.round((progress.correct / progress.total) * 100) : 0;
-    const pctColor = pct >= 70 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)';
     const noQ    = questionCount === 0;
-    const arrow  = '<svg class="icon icon--sm wide-exam-btn__arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+    const f      = { moduleId: mod.id, examType, subject: subjectId, subSubject: subSubjectId, label: ss.label };
 
-    const statPills = [
-      { label: 'Questions Available', value: questionCount },
-      ...(progress ? [
-        { label: 'Last Score',   value: `${pct}%`, color: pctColor },
-        { label: 'Last Attempt', value: new Date(progress.lastAttempt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) },
-      ] : []),
-    ].map(s => `<div class="stat-pill"><div class="stat-pill__value"${s.color ? ` style="color:${s.color}"` : ''}>${s.value}</div><div class="stat-pill__label">${s.label}</div></div>`).join('');
+    const launch = this.launchCard({
+      eyebrow:    'Topic exam',
+      count:      questionCount,
+      unit:       questionCount === 1 ? 'question' : 'questions',
+      note:       'Taken in order. The answer and explanation appear after each question.',
+      startId:    'start-exam-btn',
+      startLabel: progress ? 'Retry exam' : 'Start exam',
+      last:       progress ? { pct, date: new Date(progress.lastAttempt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) } : null,
+      analyticsKey: (() => { const k = Storage.resultsKey({ module: mod.id, examType, subject: subjectId, subSubject: subSubjectId }); return Storage.getLastResults(k) ? k : ''; })(),
+    });
 
-    const retryBtn = progress
-      ? `<button class="btn btn--ghost btn--lg" id="retry-exam-btn">
-          <svg class="icon icon--sm" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg> Retry
-        </button>` : '';
-
-    const rail = this.scopeRail(
-      { moduleId: mod.id, examType, subject: subjectId, subSubject: subSubjectId, label: ss.label },
-      { lead: [['Questions', questionCount], ['Last Score', progress ? `${pct}%` : '—']], stats: ['accuracy', 'time'] }
-    );
+    const rail = this.scopeRail(f, { lead: [['Questions', questionCount], ['Last Score', progress ? `${pct}%` : '—']], stats: ['accuracy', 'time'] });
 
     return `
     <div class="page subsubject-page has-rail">
@@ -606,42 +614,15 @@ const UI = {
             `Add questions to <code>data/${mod.dataPath}/${examType}/${subjectId}/${subSubjectId}.json</code> in your repo.`,
             this.subjectIcon(subjectId, 'module-icon module-icon--lg')
           )
-        : `<div class="page-label page-label--wide">Exam</div>
-          <div class="stats-strip" style="margin-bottom:1.125rem">${statPills}</div>
-          <div class="topic-panel">
-            <div class="topic-panel__primary">
-              <button class="btn btn--primary btn--lg" id="start-exam-btn">
-                Start Exam <span class="badge badge--count">${questionCount} Q</span>${arrow}
-              </button>
-              ${retryBtn}
-            </div>
-            <div class="topic-panel__divider"></div>
-            <div class="topic-panel__secondary">
-              <span class="topic-panel__secondary-label">Review This Topic</span>
-              <div class="topic-panel__secondary-actions">
-                <button class="topic-action-btn topic-action-btn--danger" data-nav="scoped-review"
-                  data-params='${JSON.stringify({ moduleId: mod.id, examType, subject: subjectId, subSubject: subSubjectId, label: ss.label })}'
-                  title="Incorrect answers in this topic">
-                  <svg class="icon icon--sm" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-                  <span>Incorrect</span>
-                </button>
-                <button class="topic-action-btn topic-action-btn--saved" data-nav="scoped-saved"
-                  data-params='${JSON.stringify({ moduleId: mod.id, examType, subject: subjectId, subSubject: subSubjectId, label: ss.label })}'
-                  title="Saved questions in this topic">
-                  <svg class="icon icon--sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                  <span>Saved</span>
-                </button>
-              </div>
-            </div>
-          </div>`
+        : `<div class="page-label page-label--wide">Exam</div>${launch}${this.scopeReview(f)}`
       }
       </div>
     </div>`;
   },
 
-  // ─── NEW: Wide exam start page (subject-level or examtype-level) ──────────
+  // ─── Full-exam start page (every topic of a subject, or every subject of an exam type) ──
 
-  renderWideExamStart(mod, params, totalCount, config) {
+  renderWideExamStart(mod, params, totalCount, config, countMap = null) {
     const et  = config.examTypes.find(e => e.id === params.examType);
     const isSubjectScope = params.scope === 'subject';
     const sub = isSubjectScope ? config.subjects.find(s => s.id === params.subject) : null;
@@ -659,34 +640,39 @@ const UI = {
 
     const noQ = totalCount === 0;
 
-    const statPills = [
-      { label: 'Total Questions', value: totalCount },
-      { label: 'Question Order',  value: 'Randomized' },
-      { label: 'Feedback',        value: 'Immediate' },
-    ].map(s => `<div class="stat-pill"><div class="stat-pill__value">${s.value}</div><div class="stat-pill__label">${s.label}</div></div>`).join('');
-
-    // Build topic breakdown
-    let breakdownHTML = '';
+    // What the exam covers. A topic with no questions is left out (the exam skips it too); without counts nothing is hidden.
+    const qOf = (sid, ssId) => countMap ? (countMap[`${mod.id}|${params.examType}|${sid}|${ssId}`] || 0) : null;
+    const row = (iconHTML, name, meta, n) => `<li class="scope-row">
+        <span class="scope-row__icon">${iconHTML}</span>
+        <span class="scope-row__text"><span class="scope-row__name">${name}</span>${meta ? `<span class="scope-row__meta">${meta}</span>` : ''}</span>
+        ${n === null ? '' : `<span class="scope-row__count">${n}<span class="scope-row__unit">${n === 1 ? ' Q' : ' Qs'}</span></span>`}
+      </li>`;
+    let rowsHTML;
     if (isSubjectScope) {
-      const ssList = (mod.subSubjects?.[params.examType]?.[params.subject]) || [];
-      breakdownHTML = ssList.map(ss => `
-        <div class="wide-breakdown-item">
-          <span class="wide-breakdown-item__label">${this.topicIcon()}${ss.label}</span>
-        </div>`).join('');
+      const list = ((mod.subSubjects?.[params.examType]?.[params.subject]) || []).filter(ss => qOf(sub.id, ss.id) !== 0);
+      rowsHTML = list.map(ss => row(this.topicIcon(), ss.label, '', qOf(sub.id, ss.id))).join('');
     } else {
-      breakdownHTML = config.subjects.map(sub => {
-        const ssList = (mod.subSubjects?.[params.examType]?.[sub.id]) || [];
-        if (ssList.length === 0) return '';
-        return `<div class="wide-breakdown-item">
-          <span class="wide-breakdown-item__label">${this.subjectIcon(sub.id, 'module-icon module-icon--inline')}${sub.label}</span>
-          <span class="wide-breakdown-count">${ssList.length} topics</span>
-        </div>`;
+      rowsHTML = config.subjects.map(s => {
+        const list = ((mod.subSubjects?.[params.examType]?.[s.id]) || []).filter(ss => qOf(s.id, ss.id) !== 0);
+        if (list.length === 0) return '';
+        const total = countMap ? list.reduce((a, ss) => a + qOf(s.id, ss.id), 0) : null;
+        return row(this.subjectIcon(s.id, 'module-icon'), s.label, `${list.length} ${list.length === 1 ? 'topic' : 'topics'}`, total);
       }).join('');
     }
 
     const railFilter = isSubjectScope
       ? { moduleId: mod.id, examType: params.examType, subject: params.subject, label: sub.label }
       : { moduleId: mod.id, examType: params.examType, label: et.label };
+
+    const launch = this.launchCard({
+      eyebrow:    isSubjectScope ? 'Subject exam' : 'Module exam',
+      count:      totalCount,
+      unit:       totalCount === 1 ? 'question' : 'questions',
+      note:       `${isSubjectScope ? 'Every topic' : 'Every subject'} is shuffled into one exam. The answer appears after each question; the topic of a question stays hidden until you tap it.`,
+      startId:    'start-wide-exam-btn',
+      startLabel: 'Start exam',
+      analyticsKey: (() => { const k = Storage.resultsKey({ module: mod.id, examType: params.examType, scope: params.scope, subject: isSubjectScope ? params.subject : '' }); return Storage.getLastResults(k) ? k : ''; })(),
+    });
 
     return `
     <div class="page wide-exam-start-page has-rail">
@@ -713,22 +699,9 @@ const UI = {
       <div class="page__main">
       ${noQ
         ? this.emptyState('No Questions Available', 'No questions have been added to this section yet.', icon.replace('module-icon', 'module-icon module-icon--lg'))
-        : `<div class="page-label page-label--wide">Exam</div>
-          <div class="stats-strip" style="margin-bottom:1.125rem">${statPills}</div>
-
-          <div class="topic-panel" style="margin-bottom:1.125rem">
-            <p class="wide-exam-note">Questions from all topics are shuffled together into one randomized exam.</p>
-            <div class="topic-panel__primary">
-              <button class="btn btn--primary btn--lg" id="start-wide-exam-btn">
-                Start Exam (${totalCount} Q) <svg class="icon icon--sm" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="wide-exam-breakdown">
-            <h3 class="wide-exam-breakdown__title">Covered Topics</h3>
-            <div class="wide-breakdown-grid">${breakdownHTML}</div>
-          </div>`
+        : `<div class="page-label page-label--wide">Exam</div>${launch}
+          ${rowsHTML ? `<div class="page-label page-label--wide scope-title">${isSubjectScope ? 'Topics covered' : 'Subjects covered'}</div><ul class="scope-list">${rowsHTML}</ul>` : ''}
+          ${this.scopeReview(railFilter)}`
       }
       </div>
     </div>`;
@@ -749,6 +722,10 @@ const UI = {
       x:     '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
       prev:  '<polyline points="15 18 9 12 15 6"/>',
       next:  '<polyline points="9 18 15 12 9 6"/>',
+      arrow: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+      retry: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>',
+      chart: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+      eye:   '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>',
     };
     return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || ''}</svg>`;
   },
@@ -797,7 +774,15 @@ const UI = {
     </div>`;
   },
 
-  renderExam(engine, config) {
+  // The topic of a question in a multi-topic exam. Closed, it shows a blurred stand-in of a fixed width (so neither the
+  // words nor their length give the topic away) with an eye glyph and a dashed edge: quiet, but clearly pressable. Pressing
+  // it (App._revealTopic) swaps in the real name, which sharpens out of the blur while the pill grows to fit.
+  topicVeil(label, open = false) {
+    const safe = String(label).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return `<button type="button" class="topic-veil${open ? ' is-open' : ''}" data-topic="${safe}" aria-expanded="${open}" aria-label="${open ? `Topic: ${safe}` : 'Show topic'}"${open ? '' : ' title="Tap to show the topic"'}>${this.examIcon('eye', 'icon topic-veil__eye')}<span class="topic-veil__text">${open ? safe : 'Topic name'}</span></button>`;
+  },
+
+  renderExam(engine, config, shownTopics = null) {
     const q         = engine.getCurrent();
     const idx       = engine.state.currentIndex;
     const total     = engine.questions.length;
@@ -902,7 +887,7 @@ const UI = {
         <div class="question-card">
           <div class="question-card__meta">
             <span class="question-card__number">Question ${idx + 1} <span class="question-card__of">/ ${total}</span></span>
-            ${topicLabel ? `<span class="exam-question-topic">${topicLabel}</span>` : ''}
+            ${topicLabel ? this.topicVeil(topicLabel, !!(shownTopics && shownTopics.has(idx))) : ''}
           </div>
           <p class="question-card__text">${q.question}</p>
         </div>
@@ -923,251 +908,330 @@ const UI = {
 
   // ─── Results page ─────────────────────────────────────────────────────────
 
-  renderResults(results, config) {
+  // Donut of the exam: correct (green), incorrect (red), skipped (grey) as arcs of one ring, the score in the middle.
+  resultRing(results) {
+    const r = 52, circ = 2 * Math.PI * r;
+    const total = results.total || 1;
+    const parts = [
+      { n: results.correct,    cls: 'res-ring__arc--ok'   },
+      { n: results.incorrect,  cls: 'res-ring__arc--bad'  },
+      { n: results.unanswered, cls: 'res-ring__arc--skip' },
+    ].filter(p => p.n > 0);
+    const gap = parts.length > 1 ? 2 : 0;
+    let used = 0;
+    const arcs = parts.map(p => {
+      const len  = Math.max(0, (p.n / total) * circ - gap);
+      const rest = circ - len;
+      const off  = -used;
+      used += (p.n / total) * circ;
+      return `<circle class="res-ring__arc ${p.cls}" cx="60" cy="60" r="${r}" fill="none" stroke-width="9"
+        style="--len:${len.toFixed(2)};--rest:${rest.toFixed(2)};--circ:${circ.toFixed(2)}" stroke-dasharray="${len.toFixed(2)} ${rest.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"/>`;
+    }).join('');
+    return `<div class="res-ring" role="img" aria-label="Score ${results.score}%: ${results.correct} correct, ${results.incorrect} incorrect, ${results.unanswered} skipped">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--border)" stroke-width="9"/>
+        <g transform="rotate(-90 60 60)">${arcs}</g>
+      </svg>
+      <div class="res-ring__label"><span class="res-ring__value">${results.score}<span class="res-ring__pct">%</span></span><span class="res-ring__caption">Score</span></div>
+    </div>`;
+  },
+
+  // One row of a review list (results page, Incorrect page, Saved page): a status mark, a small meta line and the
+  // question cut to two lines; tapping the row opens the rest (`body`). Same markup everywhere so it behaves alike.
+  rvRow({ state, meta, saved = false, question, body, uid = '', attrs = '' }) {
+    const marks = {
+      correct: '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+      wrong:   '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+      skipped: '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+      saved:   '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    };
+    const star = '<svg class="icon rv__saved" viewBox="0 0 24 24" aria-label="Saved"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    return `<div class="rv rv--${state}"${uid ? ` data-uid="${uid}"` : ''}${attrs ? ` ${attrs}` : ''}>
+      <button type="button" class="rv__head" aria-expanded="false">
+        <span class="rv__mark">${marks[state]}</span>
+        <span class="rv__main">
+          <span class="rv__meta"><span class="rv__meta-text">${meta}</span>${saved ? star : ''}</span>
+          <span class="rv__q">${question}</span>
+        </span>
+        <svg class="icon icon--sm rv__chev" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="rv__body"><div class="rv__inner"><div class="rv__pad">${body}</div></div></div>
+    </div>`;
+  },
+
+  _explanationBlock(text, correctText) {
+    return this.isRedundantExplanation(text, correctText) ? '' : `<p class="rv__expl">${text}</p>`;
+  },
+
+  renderResults(results, config, opts = {}) {
     const et    = config.examTypes.find(e => e.id === results.config.examType);
     const mod   = config.modules.find(m => m.id === results.config.module);
     const isWide = !!results.config.scope;
+    const rc    = results.config;
 
     let titleLabel, subtitleLabel, backNav, backParams, crumbs;
     if (isWide) {
-      if (results.config.scope === 'subject') {
-        const sub = config.subjects.find(s => s.id === results.config.subject);
+      if (rc.scope === 'subject') {
+        const sub = config.subjects.find(s => s.id === rc.subject);
         titleLabel    = `${sub?.label} — Full Exam`;
         subtitleLabel = `${mod?.title} · ${et?.label}`;
         backNav       = 'subject';
-        backParams    = { moduleId: results.config.module, examType: results.config.examType, subject: results.config.subject };
+        backParams    = { moduleId: rc.module, examType: rc.examType, subject: rc.subject };
         crumbs        = [
           { label: 'Dashboard', nav: 'dashboard' },
-          { label: mod?.title, nav: 'module', params: { moduleId: results.config.module } },
-          { label: et?.label, nav: 'module', params: { moduleId: results.config.module } },
+          { label: mod?.title, nav: 'module', params: { moduleId: rc.module } },
+          { label: et?.label, nav: 'module', params: { moduleId: rc.module } },
           { label: sub?.label, nav: 'subject', params: backParams },
-          { label: 'Results' },
+          { label: opts.stored ? 'Last attempt' : 'Results' },
         ];
       } else {
         titleLabel    = `${et?.label} — Full Exam`;
         subtitleLabel = mod?.title;
         backNav       = 'module';
-        backParams    = { moduleId: results.config.module };
+        backParams    = { moduleId: rc.module };
         crumbs        = [
           { label: 'Dashboard', nav: 'dashboard' },
-          { label: mod?.title, nav: 'module', params: { moduleId: results.config.module } },
-          { label: et?.label, nav: 'module', params: { moduleId: results.config.module } },
-          { label: 'Results' },
+          { label: mod?.title, nav: 'module', params: { moduleId: rc.module } },
+          { label: et?.label, nav: 'module', params: { moduleId: rc.module } },
+          { label: opts.stored ? 'Last attempt' : 'Results' },
         ];
       }
     } else {
-      const sub     = config.subjects.find(s => s.id === results.config.subject);
-      const subSubs = (mod?.subSubjects?.[results.config.examType]?.[results.config.subject]) || [];
-      const ss      = subSubs.find(s => s.id === results.config.subSubject) || { label: results.config.subSubject };
+      const sub     = config.subjects.find(s => s.id === rc.subject);
+      const subSubs = (mod?.subSubjects?.[rc.examType]?.[rc.subject]) || [];
+      const ss      = subSubs.find(s => s.id === rc.subSubject) || { label: rc.subSubject };
       titleLabel    = ss.label;
       subtitleLabel = `${sub?.label} · ${et?.label}`;
       backNav       = 'subsubject';
-      backParams    = { moduleId: results.config.module, examType: results.config.examType, subject: results.config.subject, subSubject: results.config.subSubject };
+      backParams    = { moduleId: rc.module, examType: rc.examType, subject: rc.subject, subSubject: rc.subSubject };
       crumbs        = [
         { label: 'Dashboard', nav: 'dashboard' },
-        { label: results.config.module, nav: 'module', params: { moduleId: results.config.module } },
-        { label: et?.label, nav: 'module', params: { moduleId: results.config.module } },
-        { label: sub?.label, nav: 'subject', params: { moduleId: results.config.module, examType: results.config.examType, subject: results.config.subject } },
+        { label: mod?.title, nav: 'module', params: { moduleId: rc.module } },
+        { label: et?.label, nav: 'module', params: { moduleId: rc.module } },
+        { label: sub?.label, nav: 'subject', params: { moduleId: rc.module, examType: rc.examType, subject: rc.subject } },
         { label: ss.label, nav: 'subsubject', params: backParams },
-        { label: 'Results' },
+        { label: opts.stored ? 'Last attempt' : 'Results' },
       ];
     }
 
-    const reviewHTML = results.perQuestion.map((pq, i) => {
-      const cls = pq.correct ? 'result-item--correct' : pq.answered ? 'result-item--wrong' : 'result-item--skipped';
-      const statusIcon = pq.correct
-        ? `<svg class="icon icon--sm" viewBox="0 0 24 24" style="color:var(--success)"><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></svg>`
-        : pq.answered
-          ? `<svg class="icon icon--sm" viewBox="0 0 24 24" style="color:var(--danger)"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>`
-          : `<svg class="icon icon--sm" viewBox="0 0 24 24" style="color:var(--text-4)"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
-      const flagIcon = pq.flagged
-        ? `<svg class="icon icon--sm" viewBox="0 0 24 24" style="color:var(--warning)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>` : '';
-      // For wide exams show topic badge
-      const topicTag = (isWide && pq._subSubjectLabel)
-        ? `<span class="result-item__topic">${pq._subSubjectLabel}</span>` : '';
-      return `<div class="result-item ${cls}">
-        <div class="result-item__header">
-          ${statusIcon}
-          <span class="result-item__num">Q${i + 1}</span>
-          ${topicTag}
-          ${flagIcon}
-        </div>
-        <p class="result-item__question">${pq.question}</p>
-        <div class="result-item__answers">
-          ${pq.answered ? `<span class="result-item__user ${pq.correct ? 'result-item__user--correct' : 'result-item__user--wrong'}">Your answer: ${['A','B','C','D','E','F','G','H'][pq.userAnswer]}. ${pq.options[pq.userAnswer]}</span>` : '<span class="result-item__skipped">Not answered</span>'}
-          ${!pq.correct ? `<span class="result-item__correct">Correct: ${['A','B','C','D','E','F','G','H'][pq.answer]}. ${pq.options[pq.answer]}</span>` : ''}
-        </div>
-        <div class="result-item__explanation">${pq.explanation}</div>
-      </div>`;
+    const L = i => this.examLetter(i);
+    const savedUids = new Set(Storage.getFlagged().map(f => f.uid));
+    const entryOf = (pq) => ({ module: rc.module, examType: rc.examType, subject: rc.subject || pq._subject, subSubject: rc.subSubject || pq._subSubject, id: pq.id });
+    const topicKey = pq => `${pq._subject || rc.subject || ''}|${pq._subSubject || rc.subSubject || ''}`;
+    const star = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    let savedCount = 0;
+
+    const rows = results.perQuestion.map((pq, i) => {
+      const state = pq.correct ? 'correct' : pq.answered ? 'wrong' : 'skipped';
+      const isSaved = pq.id !== undefined && savedUids.has(Storage.questionUid(entryOf(pq)));
+      if (isSaved) savedCount++;
+      const answers = [];
+      if (!pq.answered)      answers.push(`<div class="rv-ans rv-ans--skip"><span class="rv-ans__label">Not answered</span></div>`);
+      else if (pq.correct)   answers.push(`<div class="rv-ans rv-ans--ok"><span class="rv-ans__label">Your answer</span><span class="rv-ans__text">${L(pq.userAnswer)}. ${pq.options[pq.userAnswer]}</span></div>`);
+      else                   answers.push(`<div class="rv-ans rv-ans--bad"><span class="rv-ans__label">Your answer</span><span class="rv-ans__text">${L(pq.userAnswer)}. ${pq.options[pq.userAnswer]}</span></div>`);
+      if (!pq.correct)       answers.push(`<div class="rv-ans rv-ans--ok"><span class="rv-ans__label">Correct answer</span><span class="rv-ans__text">${L(pq.answer)}. ${pq.options[pq.answer]}</span></div>`);
+      const saveBtn = pq.id === undefined ? '' : `<button type="button" class="btn btn--ghost btn--sm res-save${isSaved ? ' is-saved' : ''}" data-save-q="${i}" aria-pressed="${isSaved}">${star}<span class="res-save__text">${isSaved ? 'Saved' : 'Save'}</span></button>`;
+      return this.rvRow({
+        state,
+        attrs:    `data-state="${state}" data-saved="${isSaved ? 1 : 0}" data-topic="${topicKey(pq)}"`,
+        meta:     `Q${i + 1}${(isWide && pq._subSubjectLabel) ? ` · ${pq._subSubjectLabel}` : ''}`,
+        saved:    isSaved,
+        question: pq.question,
+        body:     `<div class="rv-answers">${answers.join('')}</div>${this._explanationBlock(pq.explanation, pq.options[pq.answer])}${saveBtn ? `<div class="rv__foot"><span class="rv__foot-text"></span>${saveBtn}</div>` : ''}`,
+      });
     }).join('');
 
-    const summaryPills = [
-      { label: 'Correct',   value: results.correct,   color: 'var(--success)' },
-      { label: 'Incorrect', value: results.incorrect, color: 'var(--danger)' },
-      { label: 'Skipped',   value: results.unanswered, color: 'var(--text-4)' },
-      { label: 'Time',      value: ExamEngine.formatTime(results.timeSec) },
-    ].map(s => `<div class="stat-pill"><div class="stat-pill__value"${s.color ? ` style="color:${s.color}"` : ''}>${s.value}</div><div class="stat-pill__label">${s.label}</div></div>`).join('');
+    // By topic (multi-topic exams only): weakest first; a topic row also filters the list below
+    let topicsHTML = '';
+    if (isWide) {
+      const map = new Map();
+      results.perQuestion.forEach(pq => {
+        const k = topicKey(pq);
+        const t = map.get(k) || { key: k, label: pq._subSubjectLabel || '', n: 0, ok: 0 };
+        t.n++; if (pq.correct) t.ok++; map.set(k, t);
+      });
+      const list = [...map.values()].sort((a, b) => (a.ok / a.n) - (b.ok / b.n) || b.n - a.n);
+      if (list.length >= 2) {
+        const trow = t => { const pct = Math.round((t.ok / t.n) * 100); return `<button type="button" class="res-topic" data-topic="${t.key}" aria-pressed="false">
+            <span class="res-topic__name">${t.label}</span><span class="res-topic__score">${t.ok}/${t.n}</span><span class="res-topic__pct">${pct}%</span>${this.progressBar(pct)}
+          </button>`; };
+        const first = list.slice(0, 5), rest = list.slice(5);
+        topicsHTML = `<div class="page-label page-label--wide">By topic</div>
+          <div class="res-topics" id="res-topics">${first.map(trow).join('')}${rest.length ? `<div class="res-topics__more" id="res-topics-more" hidden>${rest.map(trow).join('')}</div>` : ''}</div>
+          ${rest.length ? `<button type="button" class="res-more" id="res-topics-toggle" data-more="${rest.length}">Show all ${list.length} topics</button>` : ''}`;
+      }
+    }
+
+    const stat = (cls, value, label) => `<div class="res-stat"><span class="res-stat__v${cls ? ` res-stat__v--${cls}` : ''}">${value}</span><span class="res-stat__l">${label}</span></div>`;
+    const total = results.perQuestion.length;
+    const chip = (f, label, n, pressed = false) => `<button type="button" class="res-chip" data-filter="${f}" aria-pressed="${pressed}"${n === 0 && f !== 'all' ? ' hidden' : ''}>${label}<span class="res-chip__n">${n}</span></button>`;
+
+    // Compared with the previous attempt of the same scope
+    let delta = '';
+    if (results.previous && typeof results.previous.score === 'number') {
+      const d = results.score - results.previous.score;
+      const when = results.previous.completedAt ? new Date(results.previous.completedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+      const icon = d > 0 ? '<polyline points="18 15 12 9 6 15"/>' : d < 0 ? '<polyline points="6 9 12 15 18 9"/>' : '<line x1="5" y1="12" x2="19" y2="12"/>';
+      delta = `<p class="res-delta"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span><strong>${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)} pts</strong> vs previous attempt (${results.previous.score}%${when ? `, ${when}` : ''})</span></p>`;
+    }
+    const when = opts.stored && results.completedAt ? new Date(results.completedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+    const practiceNote = rc.retryOf ? ' · Incorrect retry' : '';
 
     return `
     <div class="page results-page">
       ${this.backBtn(backNav, backParams)}
       ${this.breadcrumb(crumbs)}
-      <div class="results-summary">
-        <div class="results-summary__ring">${this.scoreRing(results.score)}</div>
-        <div class="results-summary__stats">
-          <h2 class="results-summary__title">Exam Complete</h2>
-          <p class="results-summary__subtitle">${titleLabel} · ${subtitleLabel}</p>
-          <div class="stats-strip results-summary__pills">${summaryPills}</div>
+      <section class="res-hero">
+        ${this.resultRing(results)}
+        <div class="res-hero__text">
+          <h1 class="res-hero__title">${opts.stored ? 'Last attempt' : 'Exam complete'}</h1>
+          <p class="res-hero__sub">${titleLabel} · ${subtitleLabel}${practiceNote}${when ? ` · ${when}` : ''}</p>
+          ${delta}
         </div>
-      </div>
-      <div class="results-actions">
-        <button class="btn btn--primary" id="retry-all-btn"
-          data-module="${results.config.module}"
-          data-exam-type="${results.config.examType}"
-          data-subject="${results.config.subject || ''}"
-          data-sub-subject="${results.config.subSubject || ''}"
-          data-scope="${results.config.scope || ''}"><svg class="icon icon--sm" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg> Retry Exam</button>
-        <button class="btn btn--ghost" data-nav="dashboard"><svg class="icon icon--sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Dashboard</button>
-      </div>
-      <section class="section">
-        <h2 class="section__title">Question Review</h2>
-        <div class="results-list">${reviewHTML}</div>
+        <div class="res-stats">
+          ${stat('ok', results.correct, 'Correct')}
+          ${stat('bad', results.incorrect, 'Incorrect')}
+          ${stat('', results.unanswered, 'Skipped')}
+          ${stat('', ExamEngine.formatTime(results.timeSec), 'Time')}
+        </div>
       </section>
+      <div class="res-actions">
+        <button class="btn btn--primary btn--lg" id="retry-all-btn"
+          data-module="${rc.module}"
+          data-exam-type="${rc.examType}"
+          data-subject="${rc.subject || ''}"
+          data-sub-subject="${rc.subSubject || ''}"
+          data-scope="${rc.scope || ''}">${this.examIcon('retry')} Retry exam</button>
+        ${results.incorrect > 0 ? `<button class="btn btn--ghost btn--lg" id="retry-incorrect-btn">Retry incorrect<span class="res-actions__n">${results.incorrect}</span></button>` : ''}
+        <button class="btn btn--ghost btn--lg" data-nav="dashboard">Dashboard</button>
+      </div>
+      ${topicsHTML}
+      <div class="page-label page-label--wide res-review-title"><span>Question review</span><span class="res-review-title__n" id="res-count">${total} ${total === 1 ? 'question' : 'questions'}</span></div>
+      <div class="res-filter" id="res-filter" role="group" aria-label="Filter questions">
+        ${chip('all', 'All', total, true)}${chip('wrong', 'Incorrect', results.incorrect)}${chip('skipped', 'Skipped', results.unanswered)}${chip('saved', 'Saved', savedCount)}
+      </div>
+      <div class="rv-list" id="results-list">${rows}<div class="empty-state res-none" id="res-none" hidden><h3 class="empty-state__title">Nothing here</h3><p class="empty-state__body">No question matches this filter.</p></div></div>
     </div>`;
   },
 
-  // ─── Review page ──────────────────────────────────────────────────────────
+  // ─── Incorrect and Saved pages ────────────────────────────────────────────
+  // One layout for both (kind: 'incorrect' | 'saved'); the lists are drawn by reviewItem so the page and its search
+  // box (app.js) can never disagree about how a row looks.
 
-  renderReview(incorrectList, config, filter = null) {
+  _reviewMeta(q, config) {
+    const m   = config.modules.find(x => x.id === q.module);
+    const sub = config.subjects.find(s => s.id === q.subject);
+    return [m?.shortTitle || q.module, sub?.label, q.subSubjectLabel].filter(Boolean).join(' · ');
+  },
+
+  reviewItem(kind, q, config) {
+    const saved = kind === 'saved';
+    const et    = config.examTypes.find(e => e.id === q.examType);
+    const opts  = q.options.map((opt, i) => {
+      const cls = i === q.answer ? ' rv-opt--ok' : (!saved && i === q.userAnswer) ? ' rv-opt--bad' : '';
+      return `<li class="rv-opt${cls}"><span class="rv-opt__letter">${this.examLetter(i)}</span><span class="rv-opt__text">${opt}</span></li>`;
+    }).join('');
+    const body = `<ul class="rv-opts">${opts}</ul>${this._explanationBlock(q.explanation, q.options[q.answer])}
+      <div class="rv__foot">
+        <span class="rv__foot-text">${et ? et.label : ''}</span>
+        <button class="btn btn--ghost btn--sm" data-remove-uid="${q.uid}">${saved ? 'Remove from saved' : `${this.examIcon('check')} Mark as mastered`}</button>
+      </div>`;
+    return this.rvRow({ state: saved ? 'saved' : 'wrong', meta: this._reviewMeta(q, config), question: q.question, body, uid: q.uid });
+  },
+
+  // The list of an Incorrect / Saved page in the chosen order: 'newest' (default), 'oldest', or 'topic' (grouped under
+  // a heading per topic, topics A to Z, newest first inside each). Used by the page and by its search box.
+  reviewListHTML(kind, items, config, sort = 'newest') {
+    const when = q => kind === 'saved' ? (q.flaggedAt || 0) : (q.updatedAt || q.addedAt || 0);
+    const byNew = (a, b) => when(b) - when(a);
+    if (sort === 'topic') {
+      const groups = new Map();
+      items.forEach(q => {
+        const k = `${q.subject}|${q.subSubject}`;
+        const g = groups.get(k) || { label: q.subSubjectLabel || q.subSubject || '', list: [] };
+        g.list.push(q); groups.set(k, g);
+      });
+      return [...groups.values()].sort((a, b) => String(a.label).localeCompare(String(b.label)))
+        .map(g => `<div class="rv-group"><span class="rv-group__name">${g.label}</span><span class="rv-group__n">${g.list.length}</span></div>${g.list.sort(byNew).map(q => this.reviewItem(kind, q, config)).join('')}`).join('');
+    }
+    const sorted = [...items].sort(sort === 'oldest' ? (a, b) => -byNew(a, b) : byNew);
+    return sorted.map(q => this.reviewItem(kind, q, config)).join('');
+  },
+
+  // First visible row or heading of a list has no top rule (rows can be hidden by a filter)
+  tidyList(list) {
+    if (!list) return;
+    let first = true;
+    [...list.children].forEach(el => { const show = !el.hidden; el.classList.toggle('is-first', show && first); if (show) first = false; });
+  },
+
+  _reviewPage(kind, list, config, filter) {
+    const saved = kind === 'saved';
     const { page: backPage, params: backParams } = this._reviewScope(filter);
-    const title     = filter ? `Incorrect — ${filter.label}` : 'Review Incorrect Questions';
-    const crumbs    = filter
-      ? [{ label: 'Dashboard', nav: 'dashboard' }, { label: filter.label, nav: backPage, params: backParams }, { label: 'Incorrect Questions' }]
-      : [{ label: 'Dashboard', nav: 'dashboard' }, { label: 'Review' }];
+    const noun   = saved ? 'Saved Questions' : 'Incorrect Questions';
+    const title  = filter ? `${saved ? 'Saved' : 'Incorrect'} — ${filter.label}` : (saved ? 'Saved Questions' : 'Incorrect Questions');
+    const crumbs = filter
+      ? [{ label: 'Dashboard', nav: 'dashboard' }, { label: filter.label, nav: backPage, params: backParams }, { label: noun }]
+      : [{ label: 'Dashboard', nav: 'dashboard' }, { label: saved ? 'Saved Questions' : 'Incorrect Questions' }];
+    const icon = saved
+      ? '<svg class="icon icon--lg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+      : '<svg class="icon icon--lg" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
 
-    if (incorrectList.length === 0) {
+    if (list.length === 0) {
       return `<div class="page">
         ${this.backBtn(backPage, backParams)}
         ${this.breadcrumb(crumbs)}
-        ${this.emptyState('Nothing to Review', 'Complete some exams and incorrect answers will appear here.', this.examIcon('checkcircle', 'icon icon--xl'))}
+        ${saved
+          ? this.emptyState('No Saved Questions', 'Save questions during an exam to review them later.', this.examIcon('flag', 'icon icon--xl'))
+          : this.emptyState('Nothing to Review', 'Complete some exams and incorrect answers will appear here.', this.examIcon('checkcircle', 'icon icon--xl'))}
       </div>`;
     }
 
-    const listHTML = incorrectList.map(q => {
-      const sub = config.subjects.find(s => s.id === q.subject);
-      const et  = config.examTypes.find(e => e.id === q.examType);
-      return `<div class="review-item" data-uid="${q.uid}">
-        <div class="review-item__meta">
-          <span class="badge">${this.subjectIcon(sub?.id, 'module-icon module-icon--inline')}${sub?.label}</span>
-          <span class="badge badge--ghost">${q.module}</span>
-          ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
-          <span class="badge badge--ghost">${et?.label}</span>
-        </div>
-        <p class="review-item__question">${q.question}</p>
-        <div class="review-item__options">
-          ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : i === q.userAnswer ? 'review-opt--wrong' : ''}">${['A','B','C','D','E','F','G','H'][i]}. ${opt}</span>`).join('')}
-        </div>
-        <div class="review-item__explanation">${q.explanation}</div>
-        <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">Mark as Mastered</button>
-      </div>`;
-    }).join('');
-
-    const filtersHTML = filter ? '' : `
-      <div class="review-filters">
-        <input type="text" id="review-search" class="input" placeholder="Search questions…">
-        <select id="review-filter-module" class="select">
-          <option value="">All Modules</option>
+    const tools = filter ? '' : `
+      <div class="rv-tools">
+        <label class="rv-search">
+          ${this.examIcon('search', 'icon icon--sm')}
+          <input type="text" id="rv-search" class="input" placeholder="Search questions" autocomplete="off">
+        </label>
+        <select id="rv-module" class="select" aria-label="Module">
+          <option value="">All modules</option>
           ${config.modules.map(m => `<option value="${m.id}">${m.title}</option>`).join('')}
         </select>
-        <select id="review-filter-subject" class="select">
-          <option value="">All Subjects</option>
+        <select id="rv-subject" class="select" aria-label="Subject">
+          <option value="">All subjects</option>
           ${config.subjects.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
         </select>
-        <button class="btn btn--danger btn--sm" id="clear-all-review">Clear</button>
       </div>`;
 
     return `
-    <div class="page review-page">
+    <div class="page review-page" data-kind="${kind}">
       ${this.backBtn(backPage, backParams)}
       ${this.breadcrumb(crumbs)}
-      <header class="page__header" style="--mod-color:var(--danger)">
-        <span class="page__icon"><svg class="icon icon--lg" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span>
+      <header class="page__header" style="--mod-color:var(${saved ? '--saved' : '--danger'})">
+        <span class="page__icon">${icon}</span>
         <div>
           <h1 class="page__title">${title}</h1>
-          <p class="page__subtitle">${incorrectList.length} questions pending review</p>
+          <p class="page__subtitle">${saved ? 'Questions you saved to come back to' : 'Questions you got wrong, until you mark them mastered'}</p>
         </div>
       </header>
-      ${filtersHTML}
-      <div class="review-list" id="review-list">${listHTML}</div>
+      ${tools}
+      <div class="rv-head">
+        <span class="rv-head__count" id="rv-count">${list.length} ${list.length === 1 ? 'question' : 'questions'}</span>
+        <span class="rv-head__tools">
+          <select id="rv-sort" class="rv-sort" aria-label="Order">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="topic">By topic</option>
+          </select>
+          ${filter ? '' : `<button class="rv-head__clear" id="rv-clear" type="button">${saved ? 'Clear all saved' : 'Clear all'}</button>`}
+        </span>
+      </div>
+      <div class="rv-list" id="rv-list">${this.reviewListHTML(kind, list, config, 'newest')}</div>
     </div>`;
   },
 
-  // ─── Flagged review page ─────────────────────────────────────────────────
-
-  renderFlagged(flaggedList, config, filter = null) {
-    const { page: backPage, params: backParams } = this._reviewScope(filter);
-    const title      = filter ? `Saved — ${filter.label}` : 'Saved Questions';
-    const crumbs     = filter
-      ? [{ label: 'Dashboard', nav: 'dashboard' }, { label: filter.label, nav: backPage, params: backParams }, { label: 'Saved Questions' }]
-      : [{ label: 'Dashboard', nav: 'dashboard' }, { label: 'Saved Questions' }];
-
-    if (flaggedList.length === 0) {
-      return `<div class="page">
-        ${this.backBtn(backPage, backParams)}
-        ${this.breadcrumb(crumbs)}
-        ${this.emptyState('No Saved Questions', 'Save questions during an exam to review them later.', this.examIcon('flag', 'icon icon--xl'))}
-      </div>`;
-    }
-
-    const listHTML = flaggedList.map(q => {
-      const sub = config.subjects.find(s => s.id === q.subject);
-      const et  = config.examTypes.find(e => e.id === q.examType);
-      return `<div class="review-item" data-uid="${q.uid}">
-        <div class="review-item__meta">
-          <span class="badge">${this.subjectIcon(sub?.id, 'module-icon module-icon--inline')}${sub?.label}</span>
-          <span class="badge badge--ghost">${q.module}</span>
-          ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
-          <span class="badge badge--ghost">${et?.label}</span>
-          <span class="badge badge--saved">${this.examIcon('flag')}Saved</span>
-        </div>
-        <p class="review-item__question">${q.question}</p>
-        <div class="review-item__options">
-          ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : ''}">${['A','B','C','D','E','F','G','H'][i]}. ${opt}</span>`).join('')}
-        </div>
-        <div class="review-item__explanation">${q.explanation}</div>
-        <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">Remove from Saved</button>
-      </div>`;
-    }).join('');
-
-    const flagFiltersHTML = filter ? '' : `
-      <div class="review-filters">
-        <input type="text" id="flagged-search" class="input" placeholder="Search questions…">
-        <select id="flagged-filter-module" class="select">
-          <option value="">All Modules</option>
-          ${config.modules.map(m => `<option value="${m.id}">${m.title}</option>`).join('')}
-        </select>
-        <select id="flagged-filter-subject" class="select">
-          <option value="">All Subjects</option>
-          ${config.subjects.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
-        </select>
-        <button class="btn btn--danger btn--sm" id="clear-all-flagged">Clear All Saved</button>
-      </div>`;
-
-    return `
-    <div class="page review-page">
-      ${this.backBtn(backPage, backParams)}
-      ${this.breadcrumb(crumbs)}
-      <header class="page__header" style="--mod-color:var(--saved)">
-        <span class="page__icon"><svg class="icon icon--lg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-        <div>
-          <h1 class="page__title">${title}</h1>
-          <p class="page__subtitle">${flaggedList.length} saved for review</p>
-        </div>
-      </header>
-      ${flagFiltersHTML}
-      <div class="review-list" id="flagged-list">${listHTML}</div>
-    </div>`;
-  },
+  renderReview(incorrectList, config, filter = null)  { return this._reviewPage('incorrect', incorrectList, config, filter); },
+  renderFlagged(flaggedList, config, filter = null)   { return this._reviewPage('saved', flaggedList, config, filter); },
 
   // ─── Search page ──────────────────────────────────────────────────────────
 

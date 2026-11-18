@@ -69,8 +69,7 @@
             {
               "id": "pharynx",
               "label": "Pharynx",
-              "professor": "Prof. Samaa",
-              "hidden": true
+              "professor": "Prof. Samaa"
             },
             {
               "id": "larynx",

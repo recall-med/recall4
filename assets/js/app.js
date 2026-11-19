@@ -274,6 +274,14 @@ const App = {
         break;
       }
 
+      case 'attempts': {
+        const list = Storage.listAttempts(params.key);
+        if (list.length === 0) { UI.toast('No saved attempt on this device yet.', 'info'); this.navigate(params.back ? params.back.nav : 'dashboard', params.back ? params.back.params : {}); break; }
+        UI.setContent(UI.renderAttempts(list, { back: params.back, self: params }));
+        this._bindAnalytics();
+        break;
+      }
+
       case 'results': {
         // Analytics: the stored last attempt of a topic / subject / exam type, opened from its start page
         if (params && params.stored) {
@@ -282,7 +290,7 @@ const App = {
           this.lastResults = saved;
         }
         if (!this.lastResults) { this.navigate('dashboard'); break; }
-        UI.setContent(UI.renderResults(this.lastResults, this.config, { stored: !!(params && params.stored) }));
+        UI.setContent(UI.renderResults(this.lastResults, this.config, { stored: !!(params && params.stored), backTo: params && params.backTo }));
         this._bindResultsEvents();
         break;
       }
@@ -434,20 +442,9 @@ const App = {
     const bad = document.getElementById('retry-topic-incorrect-btn');
     if (bad) bad.addEventListener('click', () => this.navigate('exam', { mode: 'incorrect', filter }));
 
-    // Continue card: its own unfinished exam of this topic (not the dashboard's), with its own abandon button
-    const cont = document.getElementById('topic-resume-btn');
-    if (cont) cont.addEventListener('click', () => this.navigate('resume-exam', { key }));
-    const drop = document.getElementById('topic-resume-drop');
-    if (drop) drop.addEventListener('click', () => {
-      RecallLayers.confirm({ title: 'Abandon this exam?', message: 'Your progress on this attempt will be lost.', ok: 'Abandon exam', danger: true }).then(ok => {
-        if (!ok) return;
-        Storage.clearTopicExam(key);
-        const cur = Storage.loadCurrentExam();
-        if (cur && cur.config && !cur.config.scope && !cur.config.retryOf && Storage.resultsKey(cur.config) === key) Storage.clearCurrentExam();
-        UI.toast('Exam abandoned.', 'success');
-        this._navigateWithoutHistory('subsubject', this.currentParams);
-      });
-    });
+    // Continue card: its own unfinished exam of this topic (drawn twice, rail and phone; only one is visible).
+    // There is no separate abandon button: "Start a new attempt" asks, then discards it.
+    document.querySelectorAll('.js-topic-resume').forEach(btn => btn.addEventListener('click', () => this.navigate('resume-exam', { key })));
   },
 
   // ─── Wide exam start page events ─────────────────────────────────────────
@@ -455,22 +452,30 @@ const App = {
   // Analytics button on the topic page and the full-exam page: the results page of the last attempt
   _bindAnalytics() {
     document.querySelectorAll('[data-results-key]').forEach(btn =>
-      btn.addEventListener('click', () => this.navigate('results', { stored: true, key: btn.dataset.resultsKey })));
+      btn.addEventListener('click', () => this.navigate('results', { stored: true, key: btn.dataset.resultsKey, backTo: btn.dataset.backTo ? JSON.parse(btn.dataset.backTo) : null })));
+    // Full exams and custom exams: the list of every stored attempt first
+    document.querySelectorAll('[data-attempts-key]').forEach(btn =>
+      btn.addEventListener('click', () => this.navigate('attempts', { key: btn.dataset.attemptsKey, back: JSON.parse(btn.dataset.back) })));
   },
 
   _bindWideExamStartEvents(mod, params) {
     this._bindAnalytics();
     const startBtn = document.getElementById('start-wide-exam-btn');
+    const pick = document.querySelector('.wide-pick');
+    const picker = pick ? this._bindPicker(document.querySelector('.page__main'), {
+      countEl: document.getElementById('wide-count'), unitEl: document.getElementById('wide-unit'), allEl: document.getElementById('wide-all'),
+      onCount: n => { if (startBtn) startBtn.disabled = n === 0; },
+    }) : null;
     if (startBtn) {
       startBtn.addEventListener('click', () => {
-        this.navigate('exam', {
-          ...params,
-          immediateFeedback:  true,
-          randomize:          true,
-          retryIncorrectOnly: false,
-        });
+        // Only topics that were ticked off go into the exam; with everything ticked it is the plain full exam
+        const picks = picker && !picker.allTicked() ? picker.keys() : null;
+        this.navigate('exam', { ...params, picks, immediateFeedback: true, randomize: true, retryIncorrectOnly: false });
       });
     }
+    // Retry incorrect: a practice run of this exam's stored incorrect questions
+    const bad = document.getElementById('retry-wide-incorrect-btn');
+    if (bad) bad.addEventListener('click', () => this.navigate('exam', { mode: 'incorrect', filter: { moduleId: params.moduleId, examType: params.examType, ...(params.scope === 'subject' ? { subject: params.subject } : {}) } }));
   },
 
   // ─── Exam events ──────────────────────────────────────────────────────────
@@ -899,55 +904,61 @@ const App = {
     });
   },
 
-  // ─── Custom exam page: pick the topics (with incorrect questions) to practise ─────────────────────────────────────────
-  // Modules open to their subjects, subjects to their topics; each topic has a check mark. Everything starts ticked.
-  _bindCustomExam() {
-    const page  = document.querySelector('.custom-page');
-    if (!page) return;
-    const num   = document.getElementById('custom-count');
-    const unit  = document.getElementById('custom-unit');
-    const start = document.getElementById('start-custom-btn');
-    const all   = document.getElementById('custom-all');
-    const picks = () => [...page.querySelectorAll('.cx-topic[aria-checked="true"]')];
+  // ─── Topic picker (custom exam page, full-exam start pages) ───────────────────────────────────────────────────────────
+  // Check-mark rows (`.cx-topic`, data-key + data-n) inside groups (`.cx-group`) that open and close. Keeps the question
+  // count, the "Select all / Clear all" text and the header counts up to date; `onCount(n)` lets the page react.
+  _bindPicker(root, { countEl, unitEl, allEl, onCount }) {
+    const rows   = () => [...root.querySelectorAll('.cx-topic')];
+    const ticked = () => rows().filter(t => t.getAttribute('aria-checked') === 'true');
     const update = () => {
-      const on = picks();
-      const n = on.reduce((a, t) => a + Number(t.dataset.n), 0);
-      num.textContent = n;
-      unit.textContent = n === 1 ? 'question' : 'questions';
-      start.disabled = n === 0;
-      // each module / subject header shows how many of its questions are ticked
-      page.querySelectorAll('[data-cx-group]').forEach(g => {
+      const n = ticked().reduce((a, t) => a + Number(t.dataset.n), 0);
+      if (countEl) countEl.textContent = n;
+      if (unitEl)  unitEl.textContent = n === 1 ? 'question' : 'questions';
+      root.querySelectorAll('[data-cx-group]').forEach(g => {
         const tops = [...g.querySelectorAll('.cx-topic')];
         const sel  = tops.filter(t => t.getAttribute('aria-checked') === 'true').reduce((a, t) => a + Number(t.dataset.n), 0);
         const tot  = tops.reduce((a, t) => a + Number(t.dataset.n), 0);
         const out  = g.querySelector(':scope > .cx-head .cx-head__n');
         if (out) out.textContent = sel === tot ? tot : `${sel}/${tot}`;
-        g.classList.toggle('is-partial', sel > 0 && sel < tot);
         g.classList.toggle('is-none', sel === 0);
       });
-      if (all) all.textContent = on.length === page.querySelectorAll('.cx-topic').length ? 'Clear all' : 'Select all';
+      if (allEl) allEl.textContent = ticked().length === rows().length ? 'Clear all' : 'Select all';
+      if (onCount) onCount(n);
     };
-    page.addEventListener('click', e => {
+    root.addEventListener('click', e => {
       const head = e.target.closest('.cx-head');
-      if (head) {
+      if (head && root.contains(head)) {
         const g = head.parentElement, open = !g.classList.contains('is-open');
         g.classList.toggle('is-open', open);
         head.setAttribute('aria-expanded', String(open));
         return;
       }
       const t = e.target.closest('.cx-topic');
-      if (t) { t.setAttribute('aria-checked', String(t.getAttribute('aria-checked') !== 'true')); update(); }
+      if (t && root.contains(t)) { t.setAttribute('aria-checked', String(t.getAttribute('aria-checked') !== 'true')); update(); }
     });
-    if (all) all.addEventListener('click', () => {
-      const every = picks().length === page.querySelectorAll('.cx-topic').length;
-      page.querySelectorAll('.cx-topic').forEach(t => t.setAttribute('aria-checked', String(!every)));
+    if (allEl) allEl.addEventListener('click', () => {
+      const every = ticked().length === rows().length;
+      rows().forEach(t => t.setAttribute('aria-checked', String(!every)));
       update();
     });
+    update();
+    return { keys: () => ticked().map(t => t.dataset.key), allTicked: () => ticked().length === rows().length };
+  },
+
+  // Custom exam page: modules open to subjects, subjects to topics; nothing is ticked until the student ticks it
+  _bindCustomExam() {
+    const page = document.querySelector('.custom-page');
+    if (!page) return;
+    this._bindAnalytics();
+    const start = document.getElementById('start-custom-btn');
+    const picker = this._bindPicker(page, {
+      countEl: document.getElementById('custom-count'), unitEl: document.getElementById('custom-unit'), allEl: document.getElementById('custom-all'),
+      onCount: n => { start.disabled = n === 0; },
+    });
     start.addEventListener('click', () => {
-      const keys = picks().map(t => t.dataset.key);
+      const keys = picker.keys();
       if (keys.length) this.navigate('exam', { mode: 'custom', picks: keys });
     });
-    update();
   },
 
   // ─── Search events ────────────────────────────────────────────────────────
@@ -1091,14 +1102,17 @@ const App = {
       const mod = this._getModule(params.moduleId);
       if (!mod) return false;
 
+      // picks: "subject|topic" keys the student left ticked on the start page (none = every topic)
+      const only = Array.isArray(params.picks) ? new Set(params.picks) : null;
       let examConfig;
       if (params.scope === 'subject') {
-        const subSubjectList = (mod.subSubjects?.[params.examType]?.[params.subject]) || [];
+        const subSubjectList = ((mod.subSubjects?.[params.examType]?.[params.subject]) || []).filter(ss => !only || only.has(`${params.subject}|${ss.id}`));
         examConfig = {
           module:            params.moduleId,
           examType:          params.examType,
           subject:           params.subject,
           scope:             'subject',
+          partial:           !!only,
           subSubjectList,
           immediateFeedback: true,
           randomize:         true,
@@ -1107,13 +1121,14 @@ const App = {
         // examtype scope — collect all subjects and their sub-subjects
         const subjectMap = {};
         (this.config.subjects || []).forEach(sub => {
-          const ssList = (mod.subSubjects?.[params.examType]?.[sub.id]) || [];
+          const ssList = ((mod.subSubjects?.[params.examType]?.[sub.id]) || []).filter(ss => !only || only.has(`${sub.id}|${ss.id}`));
           if (ssList.length > 0) subjectMap[sub.id] = ssList;
         });
         examConfig = {
           module:            params.moduleId,
           examType:          params.examType,
           scope:             'examtype',
+          partial:           !!only,
           subjectMap,
           immediateFeedback: true,
           randomize:         true,

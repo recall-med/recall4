@@ -425,7 +425,6 @@ const UI = {
 
     const subjectExamPanel = totalSubjectQ > 0
       ? `<div class="topic-panel">
-          <p class="wide-exam-note">Practice every topic in ${sub.label} as one shuffled exam.</p>
           <div class="topic-panel__primary">
             <button class="btn btn--primary btn--lg" id="start-subject-exam-btn">
               Start Full ${sub.label} Exam <span class="badge badge--count">${totalSubjectQ} Q</span>${arrow}
@@ -484,28 +483,6 @@ const UI = {
     </div>`;
   },
 
-  // ─── Topic page (one topic's exam) ────────────────────────────────────────
-  // Shared by the topic page and the full-exam start page: one calm card that says what the exam is, how many
-  // questions it has, and starts it. `last` ({ pct, date }) adds a quiet "last attempt" line with the usual bar.
-  launchCard({ eyebrow, count, unit, note, startId, startLabel, last = null, analyticsKey = '' }) {
-    return `<section class="launch">
-      <div class="launch__body">
-        <p class="launch__eyebrow">${eyebrow}</p>
-        <p class="launch__count"><span class="launch__num">${count}</span><span class="launch__unit">${unit}</span></p>
-        <p class="launch__note">${note}</p>
-      </div>
-      <div class="launch__actions">
-        <button class="btn btn--primary btn--lg launch__start" id="${startId}">${startLabel}${this.examIcon('arrow', 'icon icon--sm launch__arrow')}</button>
-        ${analyticsKey ? `<button class="btn btn--ghost btn--lg launch__analytics" id="analytics-btn" data-results-key="${analyticsKey}">${this.examIcon('chart', 'icon icon--sm')}Analytics</button>` : ''}
-      </div>
-      ${last ? `<div class="launch__last">
-        <span class="launch__last-label">Last attempt · ${last.date}</span>
-        ${this.progressBar(last.pct)}
-        <span class="launch__last-value">${last.pct}%</span>
-      </div>` : ''}
-    </section>`;
-  },
-
   // Incorrect / Saved shortcuts for one scope, as rows. Tablet and up show them in the rail instead (see scopeRail),
   // so this block is phone-only (the stylesheet hides it from 768px).
   scopeReview(f) {
@@ -513,24 +490,39 @@ const UI = {
   },
 
   // The unfinished exam of this topic (its own record, separate from the dashboard's "Continue Exam" card)
-  topicResume(saved) {
+topicResume(saved, where = 'main') {
     const total = (saved.questions || []).length;
     const answered = Object.keys(saved.state.answers || {}).length;
     const cur = (saved.state.currentIndex || 0) + 1;
     const pct = total ? Math.round((answered / total) * 100) : 0;
-    return `<div class="topic-resume">
-      <button type="button" class="topic-resume__main" id="topic-resume-btn" aria-label="Continue exam, question ${cur} of ${total}">
-        <span class="topic-resume__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="10,8.3 16,12 10,15.7" fill="currentColor" stroke="none"/></svg></span>
-        <span class="topic-resume__text"><span class="topic-resume__title">Continue exam</span><span class="topic-resume__sub"><span>Q${cur}/${total}</span><span>· ${answered} answered</span></span></span>
+    // The dashboard's resume card, with an arrow in place of the X (the whole card is the button). Drawn twice: under the
+    // exam card on phones ('main') and above the Stats list in the rail from 768 px ('rail'); the stylesheet shows one.
+    return `<div class="resume-banner resume-banner--topic resume-banner--${where}">
+      <button class="resume-banner__main js-topic-resume" type="button" aria-label="Continue exam, question ${cur} of ${total}">
+        <span class="resume-banner__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="10,8.3 16,12 10,15.7" fill="currentColor" stroke="none"/></svg></span>
+        <span class="resume-banner__text">
+          <span class="resume-banner__title">Continue Exam</span>
+          <span class="resume-banner__subtitle"><span class="resume-banner__name">Q${cur}/${total}</span><span class="resume-banner__q"> · ${answered} answered</span></span>
+        </span>
+        <svg class="icon icon--sm resume-banner__go" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button type="button" class="topic-resume__drop" id="topic-resume-drop" aria-label="Abandon exam"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      <div class="topic-resume__bar">${this.progressBar(pct)}</div>
+      <div class="resume-banner__bar">${this.progressBar(pct)}</div>
     </div>`;
   },
 
   // Stats of one topic, in this order: View last attempt (only when a stored attempt exists), Incorrect, Saved, Last score.
   // Used twice: in the rail (tablet and up) and under the exam card (phones); the stylesheet shows one of them.
-  topicStats(f, st, key, hasLast, scoreText) {
+  _viewLastRow(key, attempts) {
+    const attrs = attempts ? `data-attempts-key="${key}" data-back='${JSON.stringify(attempts)}'` : `data-results-key="${key}"`;
+    return `<button type="button" class="tstat tstat--link" ${attrs} aria-label="View last attempt">
+        <span class="tstat__label">${this.examIcon('chart', 'icon icon--sm')}View last attempt</span>
+        <span class="tstat__end"><svg class="icon icon--sm tstat__go" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>`;
+  },
+
+  // `attempts` ({ nav, params } of the page itself) turns "View last attempt" into a link to the LIST of attempts, for full
+  // exams and custom exams, whose attempts can cover different topics.
+  topicStats(f, st, key, hasLast, scoreText, attempts = null) {
     const params  = JSON.stringify({ moduleId: f.moduleId, examType: f.examType, subject: f.subject, subSubject: f.subSubject, label: f.label });
     const chevron = '<svg class="icon icon--sm tstat__go" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
     const star    = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
@@ -540,7 +532,7 @@ const UI = {
         <span class="tstat__end">${n === null ? '' : `<span class="tstat__n${n ? '' : ' tstat__n--zero'}">${n}</span>`}${chevron}</span>
       </button>`;
     return `<div class="tstats">
-      ${hasLast ? link(`data-results-key="${key}" aria-label="View last attempt"`, this.examIcon('chart', 'icon icon--sm'), 'View last attempt', null) : ''}
+      ${hasLast ? this._viewLastRow(key, attempts) : ''}
       ${link(`data-nav="scoped-review" data-params='${params}' aria-label="Review incorrect questions (${st.incorrect})"`, redo, 'Incorrect', st.incorrect)}
       ${link(`data-nav="scoped-saved" data-params='${params}' aria-label="Review saved questions (${st.flagged})"`, star, 'Saved', st.flagged)}
       <div class="tstat tstat--plain"><span class="tstat__label">Last score</span><span class="tstat__value">${scoreText}</span></div>
@@ -565,7 +557,7 @@ const UI = {
     let actions;
     if (progress) {
       actions = st.incorrect > 0
-        ? `<div class="exam-card__pair"><button class="btn btn--primary btn--lg" id="start-exam-btn">Retry exam</button><button class="btn btn--ghost btn--lg" id="retry-topic-incorrect-btn">Retry incorrect (${st.incorrect}Q)</button></div>`
+        ? `<div class="exam-card__pair"><button class="btn btn--primary btn--lg" id="start-exam-btn">Retry exam</button><button class="btn btn--ghost btn--lg res-retry" id="retry-topic-incorrect-btn">Retry incorrect<span class="res-retry__n">${st.incorrect}</span></button></div>`
         : `<button class="btn btn--primary btn--lg exam-card__start" id="start-exam-btn">Retry exam</button>`;
     } else {
       actions = `<button class="btn btn--primary btn--lg exam-card__start" id="start-exam-btn">${resume ? 'Start a new attempt' : 'Start exam'}${this.examIcon('arrow', 'icon icon--sm launch__arrow')}</button>`;
@@ -600,7 +592,7 @@ const UI = {
           ${ss.hidden ? `<div class="page__badges"><span class="badge badge--hidden" title="Only admins see this">Hidden</span></div>` : ''}
         </div>
       </header>
-      <aside class="dashboard__rail"><h2 class="section__title">Stats</h2>${stats}</aside>
+      <aside class="dashboard__rail"><h2 class="section__title">Stats</h2>${resume ? this.topicResume(resume, 'rail') : ''}${stats}</aside>
       <div class="page__main">
       ${noQ
         ? this.emptyState(
@@ -608,7 +600,7 @@ const UI = {
             `Add questions to <code>data/${mod.dataPath}/${examType}/${subjectId}/${subSubjectId}.json</code> in your repo.`,
             this.subjectIcon(subjectId, 'module-icon module-icon--lg')
           )
-        : `<div class="page-label page-label--wide topic-exam-label">Exam</div>${resume ? this.topicResume(resume) : ''}${examCard}
+        : `<div class="page-label page-label--wide topic-exam-label">Exam</div>${resume ? this.topicResume(resume, 'main') : ''}${examCard}
            <div class="tstats-phone"><div class="page-label page-label--wide">Stats</div>${stats}</div>`
       }
       </div>
@@ -635,23 +627,27 @@ const UI = {
 
     const noQ = totalCount === 0;
 
-    // What the exam covers. A topic with no questions is left out (the exam skips it too); without counts nothing is hidden.
-    const qOf = (sid, ssId) => countMap ? (countMap[`${mod.id}|${params.examType}|${sid}|${ssId}`] || 0) : null;
-    const row = (iconHTML, name, meta, n) => `<li class="scope-row">
-        <span class="scope-row__icon">${iconHTML}</span>
-        <span class="scope-row__text"><span class="scope-row__name">${name}</span>${meta ? `<span class="scope-row__meta">${meta}</span>` : ''}</span>
-        ${n === null ? '' : `<span class="scope-row__count">${n}<span class="scope-row__unit">${n === 1 ? ' Q' : ' Qs'}</span></span>`}
-      </li>`;
-    let rowsHTML;
+    // What the exam covers, as check marks (all on at first; the student can leave topics out). A topic with no questions
+    // is not listed (the exam skips it too). A full-module exam lists subjects that open to their topics.
+    const qOf = (sid, ssId) => countMap ? (countMap[`${mod.id}|${params.examType}|${sid}|${ssId}`] || 0) : 0;
+    const tick = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+    const chev = '<svg class="icon icon--sm cx-head__chev" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+    const topicRow = (sid, ss) => `<button type="button" class="cx-topic" role="checkbox" aria-checked="true" data-key="${sid}|${ss.id}" data-n="${qOf(sid, ss.id)}">
+        <span class="cx-topic__box">${tick}</span><span class="cx-topic__name">${ss.label}</span><span class="cx-topic__n">${qOf(sid, ss.id)}</span>
+      </button>`;
+    let pickHTML;
     if (isSubjectScope) {
-      const list = ((mod.subSubjects?.[params.examType]?.[params.subject]) || []).filter(ss => qOf(sub.id, ss.id) !== 0);
-      rowsHTML = list.map(ss => row(this.topicIcon(), ss.label, '', qOf(sub.id, ss.id))).join('');
+      const list = ((mod.subSubjects?.[params.examType]?.[params.subject]) || []).filter(ss => qOf(sub.id, ss.id) > 0);
+      pickHTML = `<div class="cx-group" data-cx-group><div class="cx-flat">${list.map(ss => topicRow(sub.id, ss)).join('')}</div></div>`;
     } else {
-      rowsHTML = config.subjects.map(s => {
-        const list = ((mod.subSubjects?.[params.examType]?.[s.id]) || []).filter(ss => qOf(s.id, ss.id) !== 0);
+      pickHTML = config.subjects.map(sj => {
+        const list = ((mod.subSubjects?.[params.examType]?.[sj.id]) || []).filter(ss => qOf(sj.id, ss.id) > 0);
         if (list.length === 0) return '';
-        const total = countMap ? list.reduce((a, ss) => a + qOf(s.id, ss.id), 0) : null;
-        return row(this.subjectIcon(s.id, 'module-icon'), s.label, `${list.length} ${list.length === 1 ? 'topic' : 'topics'}`, total);
+        const total = list.reduce((a, ss) => a + qOf(sj.id, ss.id), 0);
+        return `<div class="cx-group" data-cx-group>
+          <button type="button" class="cx-head" aria-expanded="false"><span class="cx-head__icon">${this.subjectIcon(sj.id, 'module-icon')}</span><span class="cx-head__text"><span class="cx-head__name">${sj.label}</span><span class="cx-head__meta">${list.length} ${list.length === 1 ? 'topic' : 'topics'}</span></span><span class="cx-head__n">${total}</span>${chev}</button>
+          <div class="cx-body"><div class="cx-inner">${list.map(ss => topicRow(sj.id, ss)).join('')}</div></div>
+        </div>`;
       }).join('');
     }
 
@@ -659,15 +655,25 @@ const UI = {
       ? { moduleId: mod.id, examType: params.examType, subject: params.subject, label: sub.label }
       : { moduleId: mod.id, examType: params.examType, label: et.label };
 
-    const launch = this.launchCard({
-      eyebrow:    isSubjectScope ? 'Subject exam' : 'Module exam',
-      count:      totalCount,
-      unit:       totalCount === 1 ? 'question' : 'questions',
-      note:       `${isSubjectScope ? 'Every topic' : 'Every subject'} is shuffled into one exam. The answer appears after each question; the topic of a question stays hidden until you tap it.`,
-      startId:    'start-wide-exam-btn',
-      startLabel: 'Start exam',
-      analyticsKey: (() => { const k = Storage.resultsKey({ module: mod.id, examType: params.examType, scope: params.scope, subject: isSubjectScope ? params.subject : '' }); return Storage.getLastResults(k) ? k : ''; })(),
-    });
+    // Same pieces as the topic page: Stats list and exam card (the card is tighter here, and has no description)
+    const key = Storage.resultsKey({ module: mod.id, examType: params.examType, scope: params.scope, subject: isSubjectScope ? params.subject : '' });
+    const rec = Storage.getLastResults(key);
+    const st  = this.scopeStats(railFilter);
+    const stats = this.topicStats(railFilter, st, key, !!rec, rec ? `${rec.score}%` : '—', { nav: 'wide-exam-start', params });
+    const actions = rec
+      ? (st.incorrect > 0
+          ? `<div class="exam-card__pair"><button class="btn btn--primary btn--lg" id="start-wide-exam-btn">Retry exam</button><button class="btn btn--ghost btn--lg res-retry" id="retry-wide-incorrect-btn">Retry incorrect<span class="res-retry__n">${st.incorrect}</span></button></div>`
+          : `<button class="btn btn--primary btn--lg exam-card__start" id="start-wide-exam-btn">Retry exam</button>`)
+      : `<button class="btn btn--primary btn--lg exam-card__start" id="start-wide-exam-btn">Start exam${this.examIcon('arrow', 'icon icon--sm launch__arrow')}</button>`;
+    const examCard = `<section class="exam-card exam-card--compact">
+        <div class="exam-card__top">
+          <div class="exam-card__body">
+            <p class="launch__eyebrow">${isSubjectScope ? 'Subject exam' : 'Module exam'}</p>
+            <p class="launch__count"><span class="launch__num" id="wide-count">${totalCount}</span><span class="launch__unit" id="wide-unit">${totalCount === 1 ? 'question' : 'questions'}</span></p>
+          </div>
+        </div>
+        <div class="exam-card__actions">${actions}</div>
+      </section>`;
 
     return `
     <div class="page wide-exam-start-page has-rail">
@@ -690,13 +696,13 @@ const UI = {
           <p class="page__subtitle">${subtitle}</p>
         </div>
       </header>
-      ${this.scopeRail(railFilter)}
+      <aside class="dashboard__rail"><h2 class="section__title">Stats</h2>${stats}</aside>
       <div class="page__main">
       ${noQ
         ? this.emptyState('No Questions Available', 'No questions have been added to this section yet.', icon.replace('module-icon', 'module-icon module-icon--lg'))
-        : `<div class="page-label page-label--wide">Exam</div>${launch}
-          ${rowsHTML ? `<div class="page-label page-label--wide scope-title">${isSubjectScope ? 'Topics covered' : 'Subjects covered'}</div><ul class="scope-list">${rowsHTML}</ul>` : ''}
-          ${this.scopeReview(railFilter)}`
+        : `<div class="page-label page-label--wide topic-exam-label">Exam</div>${examCard}
+           <div class="tstats-phone"><div class="page-label page-label--wide">Stats</div>${stats}</div>
+           ${pickHTML ? `<div class="page-label page-label--wide res-review-title"><span>${isSubjectScope ? 'Topics covered' : 'Subjects covered'}</span><button type="button" class="cx-all" id="wide-all">Clear all</button></div><div class="cx-list wide-pick">${pickHTML}</div>` : ''}`
       }
       </div>
     </div>`;
@@ -774,7 +780,7 @@ const UI = {
   // it (App._revealTopic) swaps in the real name, which sharpens out of the blur while the pill grows to fit.
   topicVeil(label, open = false) {
     const safe = String(label).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    return `<button type="button" class="topic-veil${open ? ' is-open' : ''}" data-topic="${safe}" aria-expanded="${open}" aria-label="${open ? `Topic: ${safe}` : 'Show topic'}"${open ? '' : ' title="Tap to show the topic"'}>${this.examIcon('eye', 'icon topic-veil__eye')}<span class="topic-veil__text">${open ? safe : 'Topic name'}</span></button>`;
+    return `<button type="button" class="topic-veil${open ? ' is-open' : ''}" data-topic="${safe}" aria-expanded="${open}" aria-label="${open ? `Topic: ${safe}` : 'Show topic'}"${open ? '' : ' title="Tap to show the topic"'}>${this.examIcon('eye', 'icon topic-veil__eye')}<span class="topic-veil__text">${open ? safe : 'Reveal topic'}</span></button>`;
   },
 
   renderExam(engine, config, shownTopics = null) {
@@ -1081,7 +1087,7 @@ const UI = {
     }
     const when = opts.stored && results.completedAt ? new Date(results.completedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
     const practiceNote = (rc.retryOf && rc.scope !== 'custom') ? ' · Incorrect retry' : (results.updated ? ' · Updated after retry' : '');
-    const title = opts.stored ? 'Last attempt' : (results.score === 100 ? 'Excellent' : 'Exam complete');
+    const title = opts.stored ? (opts.backTo ? 'Attempt' : 'Last attempt') : (results.score === 100 ? 'Excellent' : 'Exam complete');
     const retryAll = `<button class="btn ${results.incorrect > 0 ? 'btn--ghost' : 'btn--primary'} btn--lg res-retry res-retry--all" id="retry-all-btn"
           data-module="${rc.module}"
           data-exam-type="${rc.examType}"
@@ -1093,7 +1099,7 @@ const UI = {
 
     return `
     <div class="page results-page">
-      ${this.backBtn(backNav, backParams)}
+      ${opts.backTo ? this.backBtn(opts.backTo.nav, opts.backTo.params) : this.backBtn(backNav, backParams)}
       ${this.breadcrumb(crumbs)}
       <section class="res-hero">
         ${this.resultRing(results)}
@@ -1250,6 +1256,42 @@ const UI = {
 
   // ─── Search page ──────────────────────────────────────────────────────────
 
+  // ─── Attempts list (full exams and custom exams) ──────────────────────────
+  // Every stored attempt of one full exam / of the custom exams, newest first, each with a short overview of the topics
+  // it covered; tapping one opens its results page.
+  renderAttempts(list, opts) {
+    const back = opts.back || { nav: 'dashboard', params: {} };
+    const when = t => new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const chev = '<svg class="icon icon--sm att__go" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+    const rows = list.map(r => {
+      const names = [];
+      (r.perQuestion || []).forEach(p => { const n = p._subSubjectLabel || r.config.subSubjectLabel; if (n && !names.includes(n)) names.push(n); });
+      const shown = names.slice(0, 3).map(n => `<span class="att__chip">${n}</span>`).join('');
+      const more  = names.length > 3 ? `<span class="att__more">+${names.length - 3} more</span>` : '';
+      const tone  = r.score >= 70 ? 'ok' : r.score >= 50 ? 'mid' : 'bad';
+      const tag   = r.config.scope === 'custom' ? (r.config.title || 'Custom exam') : (r.config.partial ? 'Some topics' : 'All topics');
+      return `<button type="button" class="att" data-results-key="${r._key}" data-back-to='${JSON.stringify({ nav: 'attempts', params: opts.self })}'>
+        <span class="att__top"><span class="att__date">${when(r.completedAt)}</span><span class="att__tag">${tag}</span><span class="att__score att__score--${tone}">${r.score}%</span></span>
+        <span class="att__meta">${r.correct} correct · ${r.incorrect} incorrect · ${r.unanswered} skipped · ${r.total} Q</span>
+        <span class="att__topics">${shown}${more}</span>
+        ${chev}
+      </button>`;
+    }).join('');
+    return `
+    <div class="page attempts-page review-page">
+      ${this.backBtn(back.nav, back.params)}
+      ${this.breadcrumb([{ label: 'Dashboard', nav: 'dashboard' }, { label: 'Attempts' }])}
+      <header class="page__header" style="--mod-color:var(--accent-text)">
+        <span class="page__icon">${this.examIcon('chart', 'icon icon--lg')}</span>
+        <div>
+          <h1 class="page__title">Attempts</h1>
+          <p class="page__subtitle">${list.length} ${list.length === 1 ? 'attempt' : 'attempts'} on this device, newest first</p>
+        </div>
+      </header>
+      <div class="att-list">${rows}</div>
+    </div>`;
+  },
+
   // ─── Custom exam page ─────────────────────────────────────────────────────
   // Modules that have incorrect questions; each opens to its subjects, each subject to its topics, each topic with a
   // check mark (everything starts ticked). Built from the Incorrect list, so it only ever lists what can be practised.
@@ -1273,7 +1315,7 @@ const UI = {
         const sub = config.subjects.find(x => x.id === sj.subject);
         const et  = config.examTypes.find(x => x.id === sj.examType);
         const n   = sum(sj.topics); mTotal += n;
-        const rows = [...sj.topics.entries()].map(([key, t]) => `<button type="button" class="cx-topic" role="checkbox" aria-checked="true" data-key="${key}" data-n="${t.n}">
+        const rows = [...sj.topics.entries()].map(([key, t]) => `<button type="button" class="cx-topic" role="checkbox" aria-checked="false" data-key="${key}" data-n="${t.n}">
             <span class="cx-topic__box">${tick}</span><span class="cx-topic__name">${t.label}</span><span class="cx-topic__n">${t.n}</span>
           </button>`).join('');
         return `<div class="cx-group cx-group--sub" data-cx-group>
@@ -1302,13 +1344,14 @@ const UI = {
       <section class="launch">
         <div class="launch__body">
           <p class="launch__eyebrow">Selected</p>
-          <p class="launch__count"><span class="launch__num" id="custom-count">${total}</span><span class="launch__unit" id="custom-unit">${total === 1 ? 'question' : 'questions'}</span></p>
+          <p class="launch__count"><span class="launch__num" id="custom-count">0</span><span class="launch__unit" id="custom-unit">questions</span></p>
         </div>
         <div class="launch__actions">
-          <button class="btn btn--primary btn--lg launch__start" id="start-custom-btn">Start exam${this.examIcon('arrow', 'icon icon--sm launch__arrow')}</button>
+          <button class="btn btn--primary btn--lg launch__start" id="start-custom-btn" disabled>Start exam${this.examIcon('arrow', 'icon icon--sm launch__arrow')}</button>
         </div>
       </section>
-      <div class="page-label page-label--wide res-review-title"><span>Topics with incorrect questions</span><button type="button" class="cx-all" id="custom-all">Clear all</button></div>
+      ${Storage.listAttempts('custom').length ? `<div class="tstats custom-last">${this._viewLastRow('custom', { nav: 'custom-exam', params: {} })}</div>` : ''}
+      <div class="page-label page-label--wide res-review-title"><span>Topics with incorrect questions</span><button type="button" class="cx-all" id="custom-all">Select all</button></div>
       <div class="cx-list">${html}</div>
     </div>`;
   },

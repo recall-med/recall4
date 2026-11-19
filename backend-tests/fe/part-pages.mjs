@@ -111,16 +111,34 @@ try {
     check('v7 topic page: one exam card (the topic\'s question count, one Start button, no description); no View last attempt before an attempt; Stats list has Incorrect, Saved, Last score',
       doc.querySelector('.exam-card .launch__num').textContent === String(phQ) && !!doc.getElementById('start-exam-btn') && /^Start exam/.test(doc.getElementById('start-exam-btn').textContent.trim()) && !doc.querySelector('.exam-card__note') && !doc.querySelector('[data-results-key]') && doc.querySelectorAll('.tstats-phone .tstat').length === 3 && /Stats/.test(doc.querySelector('.dashboard__rail .section__title').textContent));
     await App.navigate('wide-exam-start', { ...ctxP, scope: 'subject' });
-    await until(() => doc.querySelector('.wide-exam-start-page .launch'));
-    const scopeRows = [...doc.querySelectorAll('.scope-list .scope-row')];
-    const rowSum = scopeRows.reduce((a, r) => a + parseInt(r.querySelector('.scope-row__count').textContent, 10), 0);
-    check('v6 full-exam start: only topics with questions are listed (hidden and empty ones are not); the listed counts add up to the exam size', scopeRows.length === visTopics.length && rowSum === allQ && doc.querySelector('.launch__num').textContent === String(allQ), `${scopeRows.length} rows, sum ${rowSum}, expected ${visTopics.length} rows / ${allQ}`);
-    check('v6 full-exam start tells the student the topic of each question stays hidden until tapped', /topic of a question stays hidden until you tap it/.test(doc.querySelector('.launch__note').textContent));
+    await until(() => doc.querySelector('.wide-exam-start-page .exam-card'));
+    const scopeRows = [...doc.querySelectorAll('.wide-pick .cx-topic')];
+    const rowSum = scopeRows.reduce((a, r) => a + Number(r.dataset.n), 0);
+    check('v8 full-exam start: only topics with questions are listed (hidden and empty ones are not), all ticked; the listed counts add up to the exam size', scopeRows.length === visTopics.length && rowSum === allQ && scopeRows.every((r) => r.getAttribute('aria-checked') === 'true') && doc.getElementById('wide-count').textContent === String(allQ), `${scopeRows.length} rows, sum ${rowSum}, expected ${visTopics.length} rows / ${allQ}`);
+    check('v8 full-exam start: same exam card as the topic page, tighter, and no description line; Stats list in the rail', !!doc.querySelector('.exam-card--compact') && !doc.querySelector('.launch__note') && !/Every topic is shuffled/.test(doc.body.textContent) && /Stats/.test(doc.querySelector('.dashboard__rail .section__title').textContent));
+    // leave a topic out: the count follows and the exam only holds the ticked topics
+    scopeRows[0].click();
+    check('v8 full-exam start: unticking a topic lowers the count; Select all appears', doc.getElementById('wide-count').textContent === String(allQ - Number(scopeRows[0].dataset.n)) && doc.getElementById('wide-all').textContent === 'Select all');
+    doc.getElementById('start-wide-exam-btn').click();
+    await until(() => doc.querySelector('.exam-layout .option'));
+    check('v8 full-exam start: the exam is made of the ticked topics only', V.w.eval('ExamEngine.questions.length') === allQ - Number(scopeRows[0].dataset.n) && V.w.eval('ExamEngine.config.scope') === 'subject');
+    V.w.eval("(() => { const E = ExamEngine; for (let i = 0; i < E.questions.length; i++) { E.goTo(i); E.answer(i % 2 ? E.questions[i].answer : (E.questions[i].answer + 1) % E.questions[i].options.length); } E.goTo(0); App._submitExam(); })()");
+    await until(() => doc.querySelector('.results-page .res-hero'));
+    await App.navigate('wide-exam-start', { ...ctxP, scope: 'subject' });
+    await until(() => doc.querySelector('.wide-exam-start-page .exam-card'));
+    doc.querySelector('[data-attempts-key]').click();
+    await until(() => doc.querySelector('.attempts-page .att'));
+    check('v8 View last attempt (full exam) opens the list of attempts, each with its topics', doc.querySelectorAll('.attempts-page .att').length === 1 && !!doc.querySelector('.att .att__chip') && /Some topics/.test(doc.querySelector('.att__tag').textContent), doc.querySelectorAll('.attempts-page .att').length + ' / ' + (doc.querySelector('.att__tag') || {}).textContent);
+    doc.querySelector('.att').click();
+    await until(() => doc.querySelector('.results-page .res-hero'));
+    check('v8 an attempt from the list opens its own results page (title "Attempt"), Back returns to the list', doc.querySelector('.res-hero__title').textContent === 'Attempt');
 
+    await App.navigate('wide-exam-start', { ...ctxP, scope: 'subject' });
+    await until(() => doc.querySelector('.wide-exam-start-page .exam-card'));
     doc.getElementById('start-wide-exam-btn').click();
     await until(() => doc.querySelector('.exam-layout .topic-veil'));
     const veil0 = doc.querySelector('.topic-veil');
-    check('v6 topic badge: closed, it shows a stand-in, not the topic (the name and its length are not in the visible text)', !/larynx|pharynx/i.test(veil0.textContent) && veil0.textContent.trim() === 'Topic name' && veil0.getAttribute('aria-expanded') === 'false' && /Show topic/.test(veil0.getAttribute('aria-label')) && !/larynx|pharynx/i.test(veil0.getAttribute('aria-label') + (veil0.getAttribute('title') || '')));
+    check('v6 topic badge: closed, it shows a stand-in, not the topic (the name and its length are not in the visible text)', !/larynx|pharynx/i.test(veil0.textContent) && veil0.textContent.trim() === 'Reveal topic' && veil0.getAttribute('aria-expanded') === 'false' && /Show topic/.test(veil0.getAttribute('aria-label')) && !/larynx|pharynx/i.test(veil0.getAttribute('aria-label') + (veil0.getAttribute('title') || '')));
     veil0.click(); await sleep(60);
     const veil1 = doc.querySelector('.topic-veil');
     check('v6 topic badge: pressing it shows the real topic and marks it open', veil1.classList.contains('is-open') && /larynx|pharynx/i.test(veil1.textContent) && veil1.getAttribute('aria-expanded') === 'true');
@@ -317,9 +335,9 @@ try {
     V.w.eval('Storage.clearCurrentExam()');   // the dashboard slot is gone (another exam took it) ...
     await App.navigate('subsubject', T);
     await until(() => doc.querySelector('.subsubject-page .exam-card'));
-    const rc = doc.getElementById('topic-resume-btn');
-    check('topic page: the Continue card (own record, progress bar) shows for the topic\'s unfinished exam even when the dashboard slot is empty; Start says "Start a new attempt"',
-      !!rc && !!doc.querySelector('.topic-resume .progress-bar, .topic-resume [class*=progress]') && /Q2\/\d+/.test(doc.querySelector('.topic-resume__sub').textContent) && /Start a new attempt/.test(doc.getElementById('start-exam-btn').textContent) && doc.querySelector('.exam-card__prof') === null || !!doc.querySelector('.exam-card__prof'));
+    const rc = doc.querySelector('.js-topic-resume');
+    check('topic page: the Continue card (the dashboard\'s card with an arrow, progress bar; rail copy and phone copy) shows for the topic\'s unfinished exam even when the dashboard slot is empty; Start says "Start a new attempt"',
+      !!rc && doc.querySelectorAll('.resume-banner--topic').length === 2 && !!doc.querySelector('.resume-banner--topic .progress-bar, .resume-banner--topic [class*=progress]') && !doc.querySelector('.resume-banner--topic .resume-banner__dismiss') && !!doc.querySelector('.resume-banner--topic .resume-banner__go') && /Q2\/\d+/.test(doc.querySelector('.resume-banner--topic .resume-banner__subtitle').textContent) && /Start a new attempt/.test(doc.getElementById('start-exam-btn').textContent) && doc.querySelector('.exam-card__prof') === null || !!doc.querySelector('.exam-card__prof'));
     rc.click();
     await until(() => doc.querySelector('.exam-layout .option'));
     check('Continue card: resumes that exam at its position', V.w.eval('ExamEngine.state.currentIndex') === 1 && V.w.eval('Object.keys(ExamEngine.state.answers).length') === 1);
@@ -341,7 +359,7 @@ try {
     await until(() => doc.querySelector('.subsubject-page .exam-card'));
     const wrong1 = V.w.eval(`Storage.getIncorrect().filter(q => q.subSubject === 'pharynx').length`);
     const pair = [...doc.querySelectorAll('.exam-card__pair .btn')];
-    check('topic page after an attempt: Retry exam (primary) and Retry incorrect (nQ) (secondary) in two equal columns', pair.length === 2 && /Retry exam/.test(pair[0].textContent) && pair[0].classList.contains('btn--primary') && pair[1].id === 'retry-topic-incorrect-btn' && pair[1].textContent.replace(/\s+/g, ' ').trim() === `Retry incorrect (${wrong1}Q)` && wrong1 > 0);
+    check('topic page after an attempt: Retry exam (primary) and Retry incorrect (nQ) (secondary) in two equal columns', pair.length === 2 && /Retry exam/.test(pair[0].textContent) && pair[0].classList.contains('btn--primary') && pair[1].id === 'retry-topic-incorrect-btn' && pair[1].textContent.replace(/\s+/g, ' ').trim() === `Retry incorrect${wrong1}` && wrong1 > 0);
     const rows = [...doc.querySelectorAll('.dashboard__rail .tstat')].map((r) => r.textContent.replace(/\s+/g, ' ').trim());
     check('topic page: the Stats list is View last attempt, Incorrect, Saved, Last score in that order', rows.length === 4 && /^View last attempt/.test(rows[0]) && /^Incorrect \d+/.test(rows[1]) && /^Saved \d+/.test(rows[2]) && /^Last score\s*\d+%/.test(rows[3]), J(rows));
 
@@ -359,7 +377,7 @@ try {
     check('results at 100% say "Excellent" and have no Retry incorrect button, Retry exam is the primary one', !doc.getElementById('retry-incorrect-btn') && doc.getElementById('retry-all-btn').classList.contains('btn--primary'));
 
     // --- resume card dismiss + start-new confirmation helpers exist ---
-    check('Continue card has its own abandon button and the new-attempt confirmation', /topic-resume-drop/.test(rd('assets/js/app.js')) && /Start a new attempt\?/.test(rd('assets/js/app.js')));
+    check('Starting a new attempt over an unfinished one asks first', /Start a new attempt\?/.test(rd('assets/js/app.js')));
 
     // --- Incorrect page: custom exam, master exam, custom menus ---
     const mkq = (id, sub, label, mod = 'CPM') => ({ module: mod, examType: 'final_exam', subject: 'anatomy', subSubject: sub, subSubjectLabel: label, id, question: 'Q ' + id, options: ['a', 'b', 'c'], answer: 0, userAnswer: 1, explanation: 'x', addedAt: 1000 + id, updatedAt: 1000 + id });
@@ -380,19 +398,24 @@ try {
     doc.getElementById('start-custom-exam-btn').click();
     await until(() => doc.querySelector('.custom-page'));
     const groups = [...doc.querySelectorAll('.cx-list > .cx-group')];
-    check('custom exam page: one card per module that has incorrect questions, closed at first; opens to subjects then topics with check marks, all ticked', groups.length === 1 && !groups[0].classList.contains('is-open') && doc.querySelectorAll('.cx-topic[aria-checked="true"]').length === 2 && doc.getElementById('custom-count').textContent === '3');
+    check('custom exam page: one card per module that has incorrect questions, closed at first; opens to subjects then topics with check marks, nothing ticked until the student ticks it, Start disabled', groups.length === 1 && !groups[0].classList.contains('is-open') && doc.querySelectorAll('.cx-topic[aria-checked="true"]').length === 0 && doc.getElementById('custom-count').textContent === '0' && doc.getElementById('start-custom-btn').disabled === true);
     groups[0].querySelector('.cx-head').click();
     check('custom exam page: tapping a module opens it (drop-down) to its subjects', groups[0].classList.contains('is-open') && groups[0].querySelector('.cx-head').getAttribute('aria-expanded') === 'true');
-    const larynxRow = doc.querySelector('.cx-topic[data-key$="|larynx"]');
-    larynxRow.click();
-    check('custom exam page: unticking a topic updates the question count; Select all / Clear all toggles', doc.getElementById('custom-count').textContent === '1' && larynxRow.getAttribute('aria-checked') === 'false' && doc.getElementById('custom-all').textContent === 'Select all');
-    larynxRow.click();   // tick it again: two topics -> a custom (mixed) exam
+    const larynxRow = doc.querySelector('.cx-topic[data-key$="|larynx"]'), pharRow = doc.querySelector('.cx-topic[data-key$="|pharynx"]');
+    pharRow.click();
+    check('custom exam page: ticking a topic updates the question count and enables Start; Select all / Clear all toggles', doc.getElementById('custom-count').textContent === '1' && pharRow.getAttribute('aria-checked') === 'true' && doc.getElementById('start-custom-btn').disabled === false && doc.getElementById('custom-all').textContent === 'Select all');
+    larynxRow.click();   // two topics ticked -> a custom (mixed) exam
+    check('custom exam page: Clear all once everything is ticked', doc.getElementById('custom-count').textContent === '3' && doc.getElementById('custom-all').textContent === 'Clear all');
     doc.getElementById('start-custom-btn').click();
     await until(() => doc.querySelector('.exam-layout .option'));
     check('custom exam: a practice run of exactly the ticked topics, in the custom scope', V.w.eval('ExamEngine.questions.length') === 3 && V.w.eval('ExamEngine.config.scope') === 'custom' && V.w.eval('ExamEngine.config.retryOf') === true);
     V.w.eval(ANSWER_RIGHT);
     await until(() => doc.querySelector('.results-page .res-hero'));
     check('custom exam: its own results page (title, no Incorrect-retry wording)', /Custom exam/.test(doc.querySelector('.res-hero__sub').textContent) && !/Incorrect retry/.test(doc.querySelector('.res-hero__sub').textContent));
+    await App.navigate('custom-exam'); await until(() => doc.querySelector('.custom-page'));
+    doc.querySelector('.custom-last [data-attempts-key]').click();
+    await until(() => doc.querySelector('.attempts-page .att'));
+    check('v8 custom exam page: View last attempt lists the custom attempts (tag, score, topics involved); one opens its results', doc.querySelectorAll('.att').length === 1 && /Custom exam/.test(doc.querySelector('.att__tag').textContent) && doc.querySelectorAll('.att__chip').length === 2);
     check('custom exam: a correct answer does NOT remove the question from the Incorrect list', V.w.eval(`Storage.getIncorrect().length`) === 3);
 
     await App.navigate('exam', { mode: 'custom', picks: [V.w.eval(`'CPM|final_exam|anatomy|larynx'`)] });

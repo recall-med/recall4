@@ -136,15 +136,29 @@ const Storage = {
   // One full result per topic / subject / exam type (the newest 12 scopes). Practice runs ("retry incorrect") never land here.
 
   questionUid(e) { return `${e.module}|${e.examType}|${e.subject}|${e.subSubject}|${e.id}`; },
-  resultsKey(c)  { return [c.module, c.examType, c.scope || 'topic', c.subject || '', c.subSubject || ''].join('|'); },
+  resultsKey(c)  { return c.scope === 'custom' ? 'custom' : [c.module, c.examType, c.scope || 'topic', c.subject || '', c.subSubject || ''].join('|'); },
 
-  getLastResults(key) { const all = this._get(STORAGE_KEYS.LAST_RESULTS); return (all && all[key]) || null; },
+  // A topic keeps ONE record under its key (a retry merges into it). A full exam (subject / exam type) and the custom exams
+  // keep every attempt, because the topics in them can differ: stored under `key#<completedAt>`, listed newest first.
+  getLastResults(key) { const all = this._get(STORAGE_KEYS.LAST_RESULTS); return (all && all[key]) || (this.listAttempts(key)[0] || null); },
 
+  listAttempts(key) {
+    const all = this._get(STORAGE_KEYS.LAST_RESULTS) || {};
+    return Object.keys(all).filter(k => k === key || k.startsWith(key + '#')).map(k => ({ ...all[k], _key: k }))
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+  },
+
+  saveAttempt(key, results) { this.saveLastResults(`${key}#${results.completedAt || Date.now()}`, results); },
+
+  // Newest 40 records, and never more than about 1.5 MB of text in total (oldest go first)
   saveLastResults(key, results) {
     try { if (JSON.stringify(results).length > 600000) return; } catch (e) { return; }
     const all  = this._get(STORAGE_KEYS.LAST_RESULTS) || {};
     all[key]   = results;
-    Object.keys(all).sort((a, b) => (all[b].completedAt || 0) - (all[a].completedAt || 0)).slice(12).forEach(k => delete all[k]);
+    const order = Object.keys(all).sort((a, b) => (all[b].completedAt || 0) - (all[a].completedAt || 0));
+    order.slice(40).forEach(k => delete all[k]);
+    let size = JSON.stringify(all).length;
+    for (let i = order.length - 1; i > 0 && size > 1500000; i--) { if (all[order[i]] && order[i] !== key) { size -= JSON.stringify(all[order[i]]).length; delete all[order[i]]; } }
     this._set(STORAGE_KEYS.LAST_RESULTS, all);
   },
 

@@ -258,12 +258,15 @@ const ExamEngine = {
       retry:       practice || undefined,
     });
 
-    if (!practice) {
-      Storage.saveLastResults(Storage.resultsKey(this.config), {
+    const kind = this.config.scope;
+    if (!practice || kind === 'custom') {
+      const rec = {
         config: this.config, score: results.score, total: results.total, correct: results.correct, incorrect: results.incorrect,
         unanswered: results.unanswered, timeSec: results.timeSec, completedAt: results.completedAt,
         perQuestion: results.perQuestion, previous: results.previous,
-      });
+      };
+      // topic: one record (retries merge into it); full exams and custom exams: every attempt is kept
+      if (kind) Storage.saveAttempt(Storage.resultsKey(this.config), rec); else Storage.saveLastResults(Storage.resultsKey(this.config), rec);
     }
 
     Storage.clearCurrentExam();

@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   LAST_PAGE:      'dqb_last_page',
   SETTINGS:       'dqb_settings',
   LAST_RESULTS:   'dqb_last_results',
+  TOPIC_EXAMS:    'dqb_topic_exams',
 };
 
 const Storage = {
@@ -152,6 +153,23 @@ const Storage = {
   saveCurrentExam(state)  { this._set(STORAGE_KEYS.CURRENT_EXAM, state); },
   loadCurrentExam()       { return this._get(STORAGE_KEYS.CURRENT_EXAM); },
   clearCurrentExam()      { this._delete(STORAGE_KEYS.CURRENT_EXAM); },
+
+  // ─── Unfinished exam of a topic (one per topic, so the topic page can offer "Continue" on its own) ───
+  // Separate from the single current-exam slot above, which the dashboard card uses: starting another exam replaces
+  // that slot but leaves each topic's own unfinished exam alone. Device-local, not synced.
+  getTopicExam(key) { const all = this._get(STORAGE_KEYS.TOPIC_EXAMS); const e = all && all[key]; return e && e.state && !e.state.submitted ? e : null; },
+  saveTopicExam(key, exam) {
+    try { if (JSON.stringify(exam).length > 600000) return; } catch (e) { return; }
+    const all = this._get(STORAGE_KEYS.TOPIC_EXAMS) || {};
+    all[key] = exam;
+    this._set(STORAGE_KEYS.TOPIC_EXAMS, all);
+  },
+  clearTopicExam(key) {
+    const all = this._get(STORAGE_KEYS.TOPIC_EXAMS);
+    if (!all || !(key in all)) return;
+    delete all[key];
+    if (Object.keys(all).length) this._set(STORAGE_KEYS.TOPIC_EXAMS, all); else this._delete(STORAGE_KEYS.TOPIC_EXAMS);
+  },
 
   // ─── Settings ─────────────────────────────────────────────────────────────
 

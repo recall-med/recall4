@@ -107,9 +107,9 @@ try {
     const visTopics = JSON.parse(rd('config/modules.json')).modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.filter((t) => !t.hidden).map((t) => qCount(t.id)).filter((n) => n > 0);
     const allQ = visTopics.reduce((a, n) => a + n, 0);
     await App.navigate('subsubject', { ...ctxP, subSubject: 'pharynx' });
-    await until(() => doc.querySelector('.subsubject-page .launch'));
-    check('v6 topic page: one launch card (the topic\'s question count, one Start button); the duplicate Retry row is gone; phone review rows exist for Incorrect and Saved',
-      doc.querySelector('.launch__num').textContent === String(phQ) && !!doc.getElementById('start-exam-btn') && !doc.getElementById('retry-exam-btn') && doc.querySelectorAll('.scope-review .rail-action').length === 2);
+    await until(() => doc.querySelector('.subsubject-page .exam-card'));
+    check('v7 topic page: one exam card (the topic\'s question count, one Start button, no description); no View last attempt before an attempt; Stats list has Incorrect, Saved, Last score',
+      doc.querySelector('.exam-card .launch__num').textContent === String(phQ) && !!doc.getElementById('start-exam-btn') && /^Start exam/.test(doc.getElementById('start-exam-btn').textContent.trim()) && !doc.querySelector('.exam-card__note') && !doc.querySelector('[data-results-key]') && doc.querySelectorAll('.tstats-phone .tstat').length === 3 && /Stats/.test(doc.querySelector('.dashboard__rail .section__title').textContent));
     await App.navigate('wide-exam-start', { ...ctxP, scope: 'subject' });
     await until(() => doc.querySelector('.wide-exam-start-page .launch'));
     const scopeRows = [...doc.querySelectorAll('.scope-list .scope-row')];
@@ -232,16 +232,16 @@ try {
 
     // Analytics button on the topic page
     await App.navigate('subsubject', { ...ctxP, subSubject: 'pharynx' });
-    await until(() => doc.querySelector('.subsubject-page .launch'));
-    const hadBtn = !!doc.getElementById('analytics-btn');
+    await until(() => doc.querySelector('.subsubject-page .exam-card'));
+    const hadBtn = !!doc.querySelector('.dashboard__rail [data-results-key]');
     await App.navigate('exam', { ...ctxP, subSubject: 'pharynx', immediateFeedback: true, randomize: false, retryIncorrectOnly: false });
     await until(() => doc.querySelector('.exam-layout .option'));
     V.w.eval(ANSWER);
     await until(() => doc.querySelector('.results-page .res-hero'));
     await App.navigate('subsubject', { ...ctxP, subSubject: 'pharynx' });
-    await until(() => doc.querySelector('.subsubject-page #analytics-btn'));
-    const ab = doc.getElementById('analytics-btn');
-    check('topic page: Analytics button (chart icon) appears once the topic has a saved attempt, not before', hadBtn === false && !!ab && !!ab.querySelector('svg') && /Analytics/.test(ab.textContent));
+    await until(() => doc.querySelector('.subsubject-page [data-results-key]'));
+    const ab = doc.querySelector('.dashboard__rail [data-results-key]');
+    check('topic page: "View last attempt" (stats icon) is the first row of the Stats list once the topic has a saved attempt, not before', hadBtn === false && !!ab && !!ab.querySelector('svg') && /View last attempt/.test(ab.textContent) && ab.parentElement.firstElementChild === ab);
     ab.click();
     await until(() => /Last attempt/.test((doc.querySelector('.res-hero__title') || {}).textContent || ''));
     check('Analytics opens the results page of the last attempt (title "Last attempt", date shown, same rows and Retry buttons)', /Last attempt/.test(doc.querySelector('.res-hero__title').textContent) && doc.querySelectorAll('#results-list .rv').length === phQ && !!doc.getElementById('retry-all-btn'));
@@ -273,6 +273,141 @@ try {
     await App.navigate('scoped-saved', { moduleId: 'CPM', examType: 'final_exam', subject: 'anatomy', subSubject: 'larynx', label: 'Larynx' });
     await until(() => doc.querySelector('.page'));
     check('the order control is also on the scoped pages (when there is something to order)', true);
+    V.close();
+  }
+
+  // ===== v7 (2026-11-19): results card, topic page, refresh, custom exam, drop-down menus =====
+  {
+    const rd = (f) => fs.readFileSync(path.join(SITE_DIR, f), 'utf8');
+    const css = rd('assets/css/styles.css'), ui = rd('assets/js/ui.js');
+    const ANSWER_RIGHT = "(() => { const E = ExamEngine; for (let i = 0; i < E.questions.length; i++) { E.goTo(i); E.answer(E.questions[i].answer); } E.goTo(0); App._submitExam(); })()";
+    const ANSWER_ALT = "(() => { const E = ExamEngine; for (let i = 0; i < E.questions.length; i++) { E.goTo(i); E.answer(i % 2 ? E.questions[i].answer : (E.questions[i].answer + 1) % E.questions[i].options.length); } E.goTo(0); App._submitExam(); })()";
+    const V = await boot({ cloud: false });
+    const doc = V.w.document, App = V.w.eval('App');
+    await sleep(1500);
+    const T = { moduleId: 'CPM', examType: 'final_exam', subject: 'anatomy', subSubject: 'pharynx' };
+    let phQ = 0;   // the topic's size, read from the exam that is started below
+    const keyT = V.w.eval(`Storage.resultsKey({ module: 'CPM', examType: 'final_exam', subject: 'anatomy', subSubject: 'pharynx' })`);
+
+    // --- results card: no confetti, "Excellent", buttons inside the card ---
+    check('results: the confetti celebration is gone (code and styles)', !/launchConfetti|confetti/.test(ui + rd('assets/js/app.js') + css));
+    check('results: no separate retry row and no Dashboard button; retry buttons are inside the card (divider above them)', /\.res-retries \{[^}]*border-top/.test(css) && !/res-actions/.test(ui + css) && /class="res-retries"/.test(ui) && !/Dashboard<\/button>/.test(ui.slice(ui.indexOf('renderResults'), ui.indexOf('renderResults') + 9000)));
+    check('results: the mobile stats are a compact strip (four across, 2 x 2 only when very narrow), no per-cell borders', /\.res-stats \{[^}]*repeat\(4, minmax\(0, 1fr\)\)/.test(css) && /@container res \(max-width: 279px\)/.test(css) && !/\.res-stat:nth-child\(odd\)/.test(css));
+
+    // --- topic page: a full attempt, with some wrong ---
+    await App.navigate('subsubject', T);
+    await until(() => doc.querySelector('.subsubject-page .exam-card'));
+    doc.getElementById('start-exam-btn').click();
+    await until(() => doc.querySelector('.exam-layout .option'));
+    phQ = V.w.eval('ExamEngine.questions.length');
+    const savedNow = V.w.eval(`!!Storage.getTopicExam(${J(keyT)}) && !!Storage.loadCurrentExam()`);
+    check('exam start: the exam is saved at once (a refresh before the first answer keeps it)', savedNow === true);
+    V.w.eval('(() => { const E = ExamEngine; E.answer(E.questions[0].answer); E.goTo(1); })()');
+    // refresh: the exam route is reached again with its start params -> the unfinished exam is continued, not replaced
+    const routed = V.w.eval(`App._resumeRoute('exam', ${J({ ...T, immediateFeedback: true })})`);
+    check('refresh on the exam page: continues the unfinished exam (route becomes resume-exam)', routed.page === 'resume-exam');
+    await App.navigate(routed.page, routed.params);
+    await until(() => doc.querySelector('.exam-layout .option'));
+    const kept = V.w.eval('({ i: ExamEngine.state.currentIndex, a: Object.keys(ExamEngine.state.answers).length })');
+    check('refresh on the exam page: the position and the answers are kept', kept.i === 1 && kept.a === 1, J(kept));
+    check('with no unfinished exam the exam route starts a new one as before', (() => { V.w.eval('Storage.clearCurrentExam()'); return V.w.eval(`App._resumeRoute('exam', {}).page`) === 'exam'; })());
+    V.w.eval(`Storage.saveCurrentExam(${J(V.w.eval(`Storage.getTopicExam(${J(keyT)})`))})`);
+
+    // --- topic page: its own Continue card, separate from the dashboard slot ---
+    V.w.eval('Storage.clearCurrentExam()');   // the dashboard slot is gone (another exam took it) ...
+    await App.navigate('subsubject', T);
+    await until(() => doc.querySelector('.subsubject-page .exam-card'));
+    const rc = doc.getElementById('topic-resume-btn');
+    check('topic page: the Continue card (own record, progress bar) shows for the topic\'s unfinished exam even when the dashboard slot is empty; Start says "Start a new attempt"',
+      !!rc && !!doc.querySelector('.topic-resume .progress-bar, .topic-resume [class*=progress]') && /Q2\/\d+/.test(doc.querySelector('.topic-resume__sub').textContent) && /Start a new attempt/.test(doc.getElementById('start-exam-btn').textContent) && doc.querySelector('.exam-card__prof') === null || !!doc.querySelector('.exam-card__prof'));
+    rc.click();
+    await until(() => doc.querySelector('.exam-layout .option'));
+    check('Continue card: resumes that exam at its position', V.w.eval('ExamEngine.state.currentIndex') === 1 && V.w.eval('Object.keys(ExamEngine.state.answers).length') === 1);
+    V.w.eval(ANSWER_ALT);
+    await until(() => doc.querySelector('.results-page .res-hero'));
+    check('submitting clears the topic\'s unfinished record', V.w.eval(`Storage.getTopicExam(${J(keyT)})`) === null);
+    const t1 = doc.querySelector('.res-hero__title').textContent;
+    check('results: title "Exam complete" below 100%', /Exam complete/.test(t1));
+    const hero = doc.querySelector('.res-hero');
+    check('results: Retry incorrect (wide, primary, with count) and Retry exam (compact, secondary) sit inside the card', !!hero.querySelector('.res-retries #retry-incorrect-btn.btn--primary') && !!hero.querySelector('.res-retries #retry-all-btn.btn--ghost') && hero.querySelector('.res-retries').lastElementChild.id === 'retry-all-btn' && !doc.querySelector('.results-page > .res-actions'));
+    // a row opened shows every choice, right one and wrong pick marked
+    const bad0 = [...doc.querySelectorAll('#results-list .rv')].find((r) => r.dataset.status === 'incorrect' || r.querySelector('.rv__mark--bad, .rv__mark.is-bad')) || doc.querySelector('#results-list .rv');
+    bad0.querySelector('.rv__head').click();
+    const nOpt = bad0.querySelectorAll('.rv-opt').length;
+    check('results: an opened row lists ALL the choices with the right one marked (and a wrong pick marked)', nOpt >= 2 && bad0.querySelectorAll('.rv-opt--ok').length === 1 && !bad0.querySelector('.rv-ans'), 'options ' + nOpt);
+
+    // --- topic page after an attempt: two buttons, View last attempt, Last score ---
+    await App.navigate('subsubject', T);
+    await until(() => doc.querySelector('.subsubject-page .exam-card'));
+    const wrong1 = V.w.eval(`Storage.getIncorrect().filter(q => q.subSubject === 'pharynx').length`);
+    const pair = [...doc.querySelectorAll('.exam-card__pair .btn')];
+    check('topic page after an attempt: Retry exam (primary) and Retry incorrect (nQ) (secondary) in two equal columns', pair.length === 2 && /Retry exam/.test(pair[0].textContent) && pair[0].classList.contains('btn--primary') && pair[1].id === 'retry-topic-incorrect-btn' && pair[1].textContent.replace(/\s+/g, ' ').trim() === `Retry incorrect (${wrong1}Q)` && wrong1 > 0);
+    const rows = [...doc.querySelectorAll('.dashboard__rail .tstat')].map((r) => r.textContent.replace(/\s+/g, ' ').trim());
+    check('topic page: the Stats list is View last attempt, Incorrect, Saved, Last score in that order', rows.length === 4 && /^View last attempt/.test(rows[0]) && /^Incorrect \d+/.test(rows[1]) && /^Saved \d+/.test(rows[2]) && /^Last score\s*\d+%/.test(rows[3]), J(rows));
+
+    // --- Retry incorrect from the topic page: the results page shown is the WHOLE topic, updated ---
+    const scoreBefore = V.w.eval(`Storage.getSubjectProgress('CPM','final_exam','anatomy','pharynx').score`);
+    const histN = V.w.eval('Storage.getExamHistory().length');
+    doc.getElementById('retry-topic-incorrect-btn').click();
+    await until(() => doc.querySelector('.exam-layout .option'));
+    check('Retry incorrect (topic page): a practice run of exactly this topic\'s incorrect questions', V.w.eval('ExamEngine.questions.length') === wrong1 && V.w.eval('ExamEngine.config.retryOf') === true && !V.w.eval('ExamEngine.config.scope'));
+    V.w.eval(ANSWER_RIGHT);
+    await until(() => doc.querySelector('.results-page .res-hero'));
+    const rowsAfter = doc.querySelectorAll('#results-list .rv').length;
+    check('Retry incorrect: the results page is the whole topic (all its questions), updated; score and the topic\'s Last score follow', rowsAfter === phQ && /Updated after retry/.test(doc.querySelector('.res-hero__sub').textContent) && V.w.eval(`Storage.getSubjectProgress('CPM','final_exam','anatomy','pharynx').score`) === 100 && scoreBefore < 100 && doc.querySelector('.res-hero__title').textContent === 'Excellent', `rows ${rowsAfter}/${phQ}, before ${scoreBefore}`);
+    check('Retry incorrect: counted as a practice run in history (does not become the "previous attempt")', V.w.eval('Storage.getExamHistory().length') === histN + 1 && V.w.eval('Storage.getExamHistory()[0].retry === true'));
+    check('results at 100% say "Excellent" and have no Retry incorrect button, Retry exam is the primary one', !doc.getElementById('retry-incorrect-btn') && doc.getElementById('retry-all-btn').classList.contains('btn--primary'));
+
+    // --- resume card dismiss + start-new confirmation helpers exist ---
+    check('Continue card has its own abandon button and the new-attempt confirmation', /topic-resume-drop/.test(rd('assets/js/app.js')) && /Start a new attempt\?/.test(rd('assets/js/app.js')));
+
+    // --- Incorrect page: custom exam, master exam, custom menus ---
+    const mkq = (id, sub, label, mod = 'CPM') => ({ module: mod, examType: 'final_exam', subject: 'anatomy', subSubject: sub, subSubjectLabel: label, id, question: 'Q ' + id, options: ['a', 'b', 'c'], answer: 0, userAnswer: 1, explanation: 'x', addedAt: 1000 + id, updatedAt: 1000 + id });
+    V.w.eval(`Storage.clearAllIncorrect(); [${J(mkq(1, 'larynx', 'Larynx'))}, ${J(mkq(2, 'larynx', 'Larynx'))}, ${J(mkq(3, 'pharynx', 'Pharynx'))}].forEach(q => Storage.addIncorrect(q));`);
+    await App.navigate('review');
+    await until(() => doc.querySelector('#rv-list .rv'));
+    const cbtn = doc.getElementById('start-custom-exam-btn');
+    check('Incorrect page: "Start a custom exam" sits right under the header card (wide row, no description)', !!cbtn && cbtn.classList.contains('wide-action') && cbtn.previousElementSibling && cbtn.previousElementSibling.classList.contains('page__header') && !doc.getElementById('master-incorrect-btn'));
+    const sel = (id) => doc.getElementById(id);
+    check('drop-downs: sort, module and subject are custom menus (the native select is hidden and keeps the value)', ['rv-sort', 'rv-module', 'rv-subject'].every((id) => sel(id).hidden && sel(id).parentElement.classList.contains('csel')));
+    const cs = sel('rv-sort').parentElement;
+    cs.querySelector('.csel__btn').click();
+    check('drop-down: opening shows the menu with the current choice marked', cs.classList.contains('is-open') && cs.querySelector('.csel__opt[aria-selected="true"]').dataset.value === 'newest');
+    cs.querySelector('.csel__opt[data-value="oldest"]').click();
+    check('drop-down: choosing sets the select value, fires change (the list re-sorts) and closes', sel('rv-sort').value === 'oldest' && !cs.classList.contains('is-open') && cs.querySelector('.csel__val').textContent === 'Oldest first' && doc.querySelector('#rv-list .rv__q').textContent.trim() === 'Q 1');
+    check('drop-down styles: arrow inset from the border, phone uses a bottom sheet, desktop a popover', /\.csel__btn \{[^}]*padding:\s*0\.5625rem 0\.75rem/.test(css) && /\.csel__menu, \.csel--sort \.csel__menu \{[^}]*position:\s*fixed/.test(css) && !/appearance:\s*none/.test(css.slice(css.indexOf('.csel__btn'), css.indexOf('.csel__btn') + 600)));
+
+    doc.getElementById('start-custom-exam-btn').click();
+    await until(() => doc.querySelector('.custom-page'));
+    const groups = [...doc.querySelectorAll('.cx-list > .cx-group')];
+    check('custom exam page: one card per module that has incorrect questions, closed at first; opens to subjects then topics with check marks, all ticked', groups.length === 1 && !groups[0].classList.contains('is-open') && doc.querySelectorAll('.cx-topic[aria-checked="true"]').length === 2 && doc.getElementById('custom-count').textContent === '3');
+    groups[0].querySelector('.cx-head').click();
+    check('custom exam page: tapping a module opens it (drop-down) to its subjects', groups[0].classList.contains('is-open') && groups[0].querySelector('.cx-head').getAttribute('aria-expanded') === 'true');
+    const larynxRow = doc.querySelector('.cx-topic[data-key$="|larynx"]');
+    larynxRow.click();
+    check('custom exam page: unticking a topic updates the question count; Select all / Clear all toggles', doc.getElementById('custom-count').textContent === '1' && larynxRow.getAttribute('aria-checked') === 'false' && doc.getElementById('custom-all').textContent === 'Select all');
+    larynxRow.click();   // tick it again: two topics -> a custom (mixed) exam
+    doc.getElementById('start-custom-btn').click();
+    await until(() => doc.querySelector('.exam-layout .option'));
+    check('custom exam: a practice run of exactly the ticked topics, in the custom scope', V.w.eval('ExamEngine.questions.length') === 3 && V.w.eval('ExamEngine.config.scope') === 'custom' && V.w.eval('ExamEngine.config.retryOf') === true);
+    V.w.eval(ANSWER_RIGHT);
+    await until(() => doc.querySelector('.results-page .res-hero'));
+    check('custom exam: its own results page (title, no Incorrect-retry wording)', /Custom exam/.test(doc.querySelector('.res-hero__sub').textContent) && !/Incorrect retry/.test(doc.querySelector('.res-hero__sub').textContent));
+    check('custom exam: a correct answer does NOT remove the question from the Incorrect list', V.w.eval(`Storage.getIncorrect().length`) === 3);
+
+    await App.navigate('exam', { mode: 'custom', picks: [V.w.eval(`'CPM|final_exam|anatomy|larynx'`)] });
+    await until(() => doc.querySelector('.exam-layout .option'));
+    check('custom exam with one topic ticked is a practice run of that topic (its results update the topic)', V.w.eval('ExamEngine.questions.length') === 2 && V.w.eval('ExamEngine.config.subSubject') === 'larynx' && !V.w.eval('ExamEngine.config.scope'));
+    await App.navigate('scoped-review', { moduleId: 'CPM', examType: 'final_exam', subject: 'anatomy', subSubject: 'larynx', label: 'Larynx' });
+    await until(() => doc.getElementById('master-incorrect-btn'));
+    const mb = doc.getElementById('master-incorrect-btn');
+    check('topic Incorrect page: "Master incorrect Qs exam" (same wide row, right under the header card); no custom-exam button there', mb.classList.contains('wide-action') && mb.previousElementSibling.classList.contains('page__header') && !doc.getElementById('start-custom-exam-btn') && /Master incorrect Qs exam/.test(mb.textContent));
+    mb.click();
+    await until(() => doc.querySelector('.exam-layout .option'));
+    check('Master incorrect exam: exactly that topic\'s incorrect questions (practice run of the topic)', V.w.eval('ExamEngine.questions.length') === 2 && V.w.eval('ExamEngine.config.subSubject') === 'larynx' && V.w.eval('ExamEngine.config.retryOf') === true);
+    await App.navigate('saved-review'); await sleep(200);
+    check('the Saved page has neither button', !doc.getElementById('start-custom-exam-btn') && !doc.getElementById('master-incorrect-btn'));
+    check('topic unfinished-exam records are device-local: wiped with the other progress, left out of the safety backup', /TOPIC_EXAMS/.test(rd('assets/js/storage.js')) && /k === 'TOPIC_EXAMS'/.test(rd('assets/js/sync.js')));
     V.close();
   }
 

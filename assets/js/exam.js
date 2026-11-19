@@ -43,12 +43,18 @@ const ExamEngine = {
       submitted: false,
     };
     Storage.clearCurrentExam();
+    if (this._isTopic(config)) Storage.clearTopicExam(Storage.resultsKey(config));   // a new attempt replaces the unfinished one
+    // Saved straight away, so a refresh before the first answer keeps this exam instead of starting another one
+    if (this.questions.length) this.save();
     return this.questions.length;
   },
 
-  async resume() {
-    const saved = Storage.loadCurrentExam();
-    if (!saved) return false;
+  // A normal exam on one topic (not a full exam, not a practice run): the only kind that gets its own "Continue" card
+  _isTopic(c) { return !!c && !c.scope && !c.retryOf; },
+
+  async resume(topicKey) {
+    const saved = topicKey ? Storage.getTopicExam(topicKey) : Storage.loadCurrentExam();
+    if (!saved || !saved.state || saved.state.submitted) return false;
     this.config    = saved.config;
     this.questions = saved.questions;
     this.state     = { ...saved.state, flagged: new Set(saved.state.flagged) };
@@ -82,11 +88,13 @@ const ExamEngine = {
 
   save() {
     if (!this.config || this.state.submitted) return;
-    Storage.saveCurrentExam({
+    const snap = {
       config:    this.config,
       questions: this.questions,
       state:     { ...this.state, flagged: [...this.state.flagged] },
-    });
+    };
+    Storage.saveCurrentExam(snap);
+    if (this._isTopic(this.config)) Storage.saveTopicExam(Storage.resultsKey(this.config), snap);
   },
 
   goTo(index) {
@@ -119,8 +127,8 @@ const ExamEngine = {
     }
     const q = this.questions[index];
     Storage.toggleFlag({
-      module:      this.config.module,
-      examType:    this.config.examType,
+      module:      q._module || this.config.module,
+      examType:    q._examType || this.config.examType,
       subject:     this.config.subject || q._subject,
       subSubject:  this.config.subSubject || q._subSubject,
       id:          q.id,
@@ -170,6 +178,8 @@ const ExamEngine = {
         correct,
         answered,
         flagged:          this.state.flagged.has(i),
+        _module:          q._module,
+        _examType:        q._examType,
         _subject:         q._subject,
         _subSubject:      q._subSubject,
         _subSubjectLabel: q._subSubjectLabel,
@@ -181,8 +191,8 @@ const ExamEngine = {
 
       if (!correct && answered) {
         Storage.addIncorrect({
-          module:           this.config.module,
-          examType:         this.config.examType,
+          module:           q._module   || this.config.module,
+          examType:         q._examType || this.config.examType,
           subject:          q._subject         || this.config.subject,
           subSubject:       q._subSubject      || this.config.subSubject,
           subSubjectLabel:  q._subSubjectLabel || this.config.subSubjectLabel,
@@ -257,7 +267,47 @@ const ExamEngine = {
     }
 
     Storage.clearCurrentExam();
+    if (this._isTopic(this.config)) Storage.clearTopicExam(Storage.resultsKey(this.config));
+
+    // Retry of a topic's incorrect questions: the page shown afterwards is the whole topic's results, updated
+    if (practice) { const merged = this._mergeIntoLast(results); if (merged) return merged; }
     return results;
+  },
+
+  // Folds the answers of a practice run into the stored last attempt of the same topic: each retried question takes its new
+  // outcome, the counts and score are recalculated for the whole topic, and the topic's last score follows. Skipped questions
+  // of the run change nothing. Returns null when there is nothing to merge into (then the run's own results are shown).
+  _mergeIntoLast(run) {
+    const cfg = this.config;
+    if (cfg.scope || cfg.mixed) return null;
+    const key = Storage.resultsKey(cfg);
+    const rec = Storage.getLastResults(key);
+    if (!rec || !Array.isArray(rec.perQuestion)) return null;
+    const idOf = p => `${p._subject || ''}|${p._subSubject || ''}|${p.id}`;
+    const at   = new Map(rec.perQuestion.map((p, i) => [idOf(p), i]));
+    const per  = rec.perQuestion.map(p => ({ ...p }));
+    let retried = 0, fixed = 0;
+    run.perQuestion.forEach(p => {
+      const i = at.get(idOf(p));
+      if (i === undefined || !p.answered) return;
+      const old = per[i];
+      per[i] = { ...old, question: p.question, options: p.options, answer: p.answer, explanation: p.explanation, userAnswer: p.userAnswer, correct: p.correct, answered: true };
+      retried++; if (!old.correct && p.correct) fixed++;
+    });
+    if (!retried) return null;
+    const correct    = per.filter(p => p.correct).length;
+    const unanswered = per.filter(p => !p.answered).length;
+    const merged = {
+      ...rec, perQuestion: per, correct, unanswered, incorrect: per.length - correct - unanswered,
+      score: per.length ? Math.round((correct / per.length) * 100) : 0,
+      timeSec: (rec.timeSec || 0) + (run.timeSec || 0), completedAt: run.completedAt,
+      updated: { retried, fixed },
+    };
+    Storage.saveLastResults(key, merged);
+    Storage.setSubjectProgress(cfg.module, cfg.examType, cfg.subject, cfg.subSubject, {
+      attempted: per.length - unanswered, correct, total: per.length, score: merged.score, lastAttempt: run.completedAt,
+    });
+    return merged;
   },
 
   getCurrent()      { return this.questions[this.state.currentIndex] || null; },

@@ -47,7 +47,8 @@ const App = {
 
     window.addEventListener('popstate', e => {
       if (e.state && e.state.page) {
-        this._navigateWithoutHistory(this._routeName(e.state.page), e.state.params || {});
+        const r = this._resumeRoute(this._routeName(e.state.page), e.state.params || {});
+        this._navigateWithoutHistory(r.page, r.params);
       } else {
         this._navigateWithoutHistory('dashboard', {});
       }
@@ -68,7 +69,9 @@ const App = {
     // A remembered page inside a module that is hidden for this person (or no longer exists) falls back to the dashboard.
     if (last && last.params && last.params.moduleId && !this._getModule(last.params.moduleId)) last = null;
     if (last && last.page) {
-      this.navigate(this._routeName(last.page), last.params);
+      // A refresh (or reopening the tab) on an exam page must continue that exam, not start a new one
+      const r = this._resumeRoute(this._routeName(last.page), last.params);
+      this.navigate(r.page, r.params);
     } else {
       this.navigate('dashboard');
     }
@@ -78,6 +81,16 @@ const App = {
   // history entry on a device that has not reloaded yet may still carry the old name, so it is mapped here.
   _routeName(page) {
     return ({ 'flagged-review': 'saved-review', 'scoped-flagged': 'scoped-saved' })[page] || page;
+  },
+
+  // The exam route starts a NEW exam from its params. When it is reached by a refresh or the Back button while an exam is
+  // unfinished, the unfinished one is continued instead (all answers, flags and the position are kept in storage).
+  _resumeRoute(page, params) {
+    if (page === 'exam') {
+      const saved = Storage.loadCurrentExam();
+      if (saved && saved.state && !saved.state.submitted) return { page: 'resume-exam', params: {} };
+    }
+    return { page, params };
   },
 
   // ─── Theme toggle ────────────────────────────────────────────────────────
@@ -208,7 +221,8 @@ const App = {
           count = await this._getQuestionCount(mod, et, subject, subSubject);
         }
         const progress = Storage.getSubjectProgress(mod.id, et, subject, subSubject);
-        UI.setContent(UI.renderSubSubject(mod, et, subject, subSubject, count, progress, this.config), known !== undefined ? 'enter' : 'swap');
+        const resume   = Storage.getTopicExam(Storage.resultsKey({ module: mod.id, examType: et, subject, subSubject }));
+        UI.setContent(UI.renderSubSubject(mod, et, subject, subSubject, count, progress, this.config, resume), known !== undefined ? 'enter' : 'swap');
         this._bindSubSubjectEvents(mod, et, subject, subSubject);
         break;
       }
@@ -232,7 +246,9 @@ const App = {
         clearTimeout(skelTimer);
         if (!started) {
           // Go back to appropriate page
-          if (params.scope === 'examtype') {
+          if (params.mode) {
+            this.navigate('review');
+          } else if (params.scope === 'examtype') {
             this.navigate('module', { moduleId: params.moduleId });
           } else if (params.scope === 'subject') {
             this.navigate('subject', { moduleId: params.moduleId, examType: params.examType, subject: params.subject });
@@ -249,7 +265,7 @@ const App = {
 
       case 'resume-exam': {
         const skelTimer = setTimeout(() => UI.setContent(UI.skeletonExam(), 'swap'), 150);
-        const resumed = await ExamEngine.resume();
+        const resumed = await ExamEngine.resume(params && params.key);
         clearTimeout(skelTimer);
         if (!resumed) { this.navigate('dashboard'); break; }
         this._topicShown = new Set();
@@ -301,6 +317,13 @@ const App = {
         break;
       }
 
+      case 'custom-exam': {
+        if (Storage.getIncorrect().length === 0) { this.navigate('review'); break; }
+        UI.setContent(UI.renderCustomExam(this.config));
+        this._bindCustomExam();
+        break;
+      }
+
       case 'search': {
         UI.setContent(UI.renderSearch(this.config));
         this._bindSearchEvents();
@@ -347,6 +370,8 @@ const App = {
     if (e.target.closest('#resume-dismiss-btn')) {
       RecallLayers.confirm({ title: 'Abandon this exam?', message: 'Your progress on this attempt will be lost.', ok: 'Abandon exam', danger: true }).then(ok => {
         if (!ok) return;
+        const cur = Storage.loadCurrentExam();
+        if (cur && cur.config && !cur.config.scope && !cur.config.retryOf) Storage.clearTopicExam(Storage.resultsKey(cur.config));
         Storage.clearCurrentExam();
         UI.toast('Exam abandoned.', 'success');
         this.navigate('dashboard');
@@ -390,28 +415,47 @@ const App = {
 
   _bindSubSubjectEvents(mod, examType, subject, subSubject) {
     this._bindAnalytics();
+    const key = Storage.resultsKey({ module: mod.id, examType, subject, subSubject });
+    const filter = { moduleId: mod.id, examType, subject, subSubject };
+    const begin = () => this.navigate('exam', {
+      moduleId: mod.id, examType, subject, subSubject,
+      immediateFeedback: true, randomize: false, retryIncorrectOnly: false,
+    });
+    // Starting over while an unfinished exam of this topic exists throws that one away: ask first
+    const startFresh = () => {
+      if (!Storage.getTopicExam(key)) { begin(); return; }
+      RecallLayers.confirm({ title: 'Start a new attempt?', message: 'Your unfinished exam on this topic will be discarded.', ok: 'Start new attempt' })
+        .then(ok => { if (ok) { Storage.clearTopicExam(key); begin(); } });
+    };
     const startBtn = document.getElementById('start-exam-btn');
-    if (startBtn) {
-      startBtn.addEventListener('click', () => {
-        this.navigate('exam', {
-          moduleId:           mod.id,
-          examType,
-          subject,
-          subSubject,
-          immediateFeedback:  true,
-          randomize:          false,
-          retryIncorrectOnly: false,
-        });
+    if (startBtn) startBtn.addEventListener('click', startFresh);
+
+    // Retry incorrect: a practice run made of this topic's stored incorrect questions
+    const bad = document.getElementById('retry-topic-incorrect-btn');
+    if (bad) bad.addEventListener('click', () => this.navigate('exam', { mode: 'incorrect', filter }));
+
+    // Continue card: its own unfinished exam of this topic (not the dashboard's), with its own abandon button
+    const cont = document.getElementById('topic-resume-btn');
+    if (cont) cont.addEventListener('click', () => this.navigate('resume-exam', { key }));
+    const drop = document.getElementById('topic-resume-drop');
+    if (drop) drop.addEventListener('click', () => {
+      RecallLayers.confirm({ title: 'Abandon this exam?', message: 'Your progress on this attempt will be lost.', ok: 'Abandon exam', danger: true }).then(ok => {
+        if (!ok) return;
+        Storage.clearTopicExam(key);
+        const cur = Storage.loadCurrentExam();
+        if (cur && cur.config && !cur.config.scope && !cur.config.retryOf && Storage.resultsKey(cur.config) === key) Storage.clearCurrentExam();
+        UI.toast('Exam abandoned.', 'success');
+        this._navigateWithoutHistory('subsubject', this.currentParams);
       });
-    }
+    });
   },
 
   // ─── Wide exam start page events ─────────────────────────────────────────
 
   // Analytics button on the topic page and the full-exam page: the results page of the last attempt
   _bindAnalytics() {
-    const btn = document.getElementById('analytics-btn');
-    if (btn) btn.addEventListener('click', () => this.navigate('results', { stored: true, key: btn.dataset.resultsKey }));
+    document.querySelectorAll('[data-results-key]').forEach(btn =>
+      btn.addEventListener('click', () => this.navigate('results', { stored: true, key: btn.dataset.resultsKey })));
   },
 
   _bindWideExamStartEvents(mod, params) {
@@ -637,9 +681,6 @@ const App = {
     if (this._cleanupExamListeners) this._cleanupExamListeners();
     this.lastResults = ExamEngine.submit();
     this.navigate('results');
-    if (this.lastResults && this.lastResults.score === 100) {
-      UI.launchConfetti();
-    }
   },
 
   // ─── Results events ───────────────────────────────────────────────────────
@@ -702,7 +743,7 @@ const App = {
       const pq = res.perQuestion[Number(btn.dataset.saveQ)];
       if (!pq || pq.id === undefined) return;
       const on = Storage.toggleFlag({
-        module: rc.module, examType: rc.examType,
+        module: pq._module || rc.module, examType: pq._examType || rc.examType,
         subject: rc.subject || pq._subject, subSubject: rc.subSubject || pq._subSubject,
         id: pq.id, question: pq.question, options: pq.options, answer: pq.answer, explanation: pq.explanation,
       });
@@ -720,8 +761,23 @@ const App = {
       if (stateF !== 'all' || topicF) apply();
     });
 
+    const poolOf = list => list.map(p => ({
+      id: p.id, question: p.question, options: p.options, answer: p.answer, explanation: p.explanation,
+      _subject: p._subject, _subSubject: p._subSubject, _subSubjectLabel: p._subSubjectLabel, _module: p._module, _examType: p._examType,
+    }));
+    const practice = (list) => {
+      this._retryPool = poolOf(list);
+      this._retryConfig = { ...rc };
+      this.navigate('exam', {
+        moduleId: rc.module, examType: rc.examType, subject: rc.subject || null, subSubject: rc.subSubject || null,
+        scope: rc.scope || null, immediateFeedback: true, randomize: true, retryIncorrectOnly: true, retryFromResults: true,
+      });
+    };
+
+    // Retry exam: the same exam again. A custom / mixed exam has no start page of its own, so it reruns its own questions.
     const retry = document.getElementById('retry-all-btn');
     if (retry) retry.addEventListener('click', () => {
+      if (rc && rc.scope === 'custom' && res) { practice(res.perQuestion); return; }
       this.navigate('exam', {
         moduleId:           retry.dataset.module,
         examType:           retry.dataset.examType,
@@ -736,17 +792,7 @@ const App = {
 
     // Retry incorrect: a practice run made of exactly the questions answered wrongly in this attempt
     const retryBad = document.getElementById('retry-incorrect-btn');
-    if (retryBad && res) retryBad.addEventListener('click', () => {
-      this._retryPool = res.perQuestion.filter(p => p.answered && !p.correct).map(p => ({
-        id: p.id, question: p.question, options: p.options, answer: p.answer, explanation: p.explanation,
-        _subject: p._subject, _subSubject: p._subSubject, _subSubjectLabel: p._subSubjectLabel,
-      }));
-      this._retryConfig = { ...rc };
-      this.navigate('exam', {
-        moduleId: rc.module, examType: rc.examType, subject: rc.subject || null, subSubject: rc.subSubject || null,
-        scope: rc.scope || null, immediateFeedback: true, randomize: true, retryIncorrectOnly: true, retryFromResults: true,
-      });
-    });
+    if (retryBad && res) retryBad.addEventListener('click', () => practice(res.perQuestion.filter(p => p.answered && !p.correct)));
   },
 
   // Review rows (results, Incorrect, Saved) open and close on tap; only the row's own button toggles it.
@@ -788,6 +834,15 @@ const App = {
     const scoped  = this.currentPage === 'scoped-review' || this.currentPage === 'scoped-saved';
     const inScope = scoped ? this._scopeMatch(this.currentParams) : () => true;
     const route   = this.currentPage, params = this.currentParams;
+
+    // The native drop-downs are replaced by the app's own menu (the select stays underneath as the value holder)
+    [sortEl, fMod, fSub].forEach(el => UI.enhanceSelect(el));
+
+    // Incorrect page: custom exam (all pages) / master exam (inside a topic, subject or module)
+    const customBtn = document.getElementById('start-custom-exam-btn');
+    if (customBtn) customBtn.addEventListener('click', () => this.navigate('custom-exam'));
+    const masterBtn = document.getElementById('master-incorrect-btn');
+    if (masterBtn) masterBtn.addEventListener('click', () => this.navigate('exam', { mode: 'incorrect', filter: { ...params } }));
 
     const all = () => (saved ? Storage.getFlagged() : Storage.getIncorrect()).filter(inScope);
     const word = n => `${n} ${n === 1 ? 'question' : 'questions'}`;
@@ -842,6 +897,57 @@ const App = {
       };
       if (row) { row.classList.add('is-leaving'); setTimeout(done, 260); } else done();
     });
+  },
+
+  // ─── Custom exam page: pick the topics (with incorrect questions) to practise ─────────────────────────────────────────
+  // Modules open to their subjects, subjects to their topics; each topic has a check mark. Everything starts ticked.
+  _bindCustomExam() {
+    const page  = document.querySelector('.custom-page');
+    if (!page) return;
+    const num   = document.getElementById('custom-count');
+    const unit  = document.getElementById('custom-unit');
+    const start = document.getElementById('start-custom-btn');
+    const all   = document.getElementById('custom-all');
+    const picks = () => [...page.querySelectorAll('.cx-topic[aria-checked="true"]')];
+    const update = () => {
+      const on = picks();
+      const n = on.reduce((a, t) => a + Number(t.dataset.n), 0);
+      num.textContent = n;
+      unit.textContent = n === 1 ? 'question' : 'questions';
+      start.disabled = n === 0;
+      // each module / subject header shows how many of its questions are ticked
+      page.querySelectorAll('[data-cx-group]').forEach(g => {
+        const tops = [...g.querySelectorAll('.cx-topic')];
+        const sel  = tops.filter(t => t.getAttribute('aria-checked') === 'true').reduce((a, t) => a + Number(t.dataset.n), 0);
+        const tot  = tops.reduce((a, t) => a + Number(t.dataset.n), 0);
+        const out  = g.querySelector(':scope > .cx-head .cx-head__n');
+        if (out) out.textContent = sel === tot ? tot : `${sel}/${tot}`;
+        g.classList.toggle('is-partial', sel > 0 && sel < tot);
+        g.classList.toggle('is-none', sel === 0);
+      });
+      if (all) all.textContent = on.length === page.querySelectorAll('.cx-topic').length ? 'Clear all' : 'Select all';
+    };
+    page.addEventListener('click', e => {
+      const head = e.target.closest('.cx-head');
+      if (head) {
+        const g = head.parentElement, open = !g.classList.contains('is-open');
+        g.classList.toggle('is-open', open);
+        head.setAttribute('aria-expanded', String(open));
+        return;
+      }
+      const t = e.target.closest('.cx-topic');
+      if (t) { t.setAttribute('aria-checked', String(t.getAttribute('aria-checked') !== 'true')); update(); }
+    });
+    if (all) all.addEventListener('click', () => {
+      const every = picks().length === page.querySelectorAll('.cx-topic').length;
+      page.querySelectorAll('.cx-topic').forEach(t => t.setAttribute('aria-checked', String(!every)));
+      update();
+    });
+    start.addEventListener('click', () => {
+      const keys = picks().map(t => t.dataset.key);
+      if (keys.length) this.navigate('exam', { mode: 'custom', picks: keys });
+    });
+    update();
   },
 
   // ─── Search events ────────────────────────────────────────────────────────
@@ -904,7 +1010,41 @@ const App = {
 
   // ─── Exam start helper ───────────────────────────────────────────────────
 
+  // Questions of the stored Incorrect list as exam questions (each keeps where it came from)
+  _incorrectPool(filter, picks) {
+    let list = Storage.getIncorrect();
+    if (filter) list = list.filter(this._scopeMatch(filter));
+    if (picks)  { const set = new Set(picks); list = list.filter(q => set.has(`${q.module}|${q.examType}|${q.subject}|${q.subSubject}`)); }
+    return list.map(q => ({
+      id: q.id, question: q.question, options: q.options, answer: q.answer, explanation: q.explanation,
+      _subject: q.subject, _subSubject: q.subSubject, _subSubjectLabel: q.subSubjectLabel || q.subSubject, _module: q.module, _examType: q.examType,
+    }));
+  },
+
+  // Practice run over a pool of incorrect questions. One topic -> a retry of that topic (its results page is updated);
+  // several topics -> a mixed exam ('custom' scope) with its own results page.
+  _startPractice(pool, title) {
+    if (pool.length === 0) { UI.toast('No incorrect questions to practise.', 'info'); return false; }
+    const topics = new Set(pool.map(q => `${q._module}|${q._examType}|${q._subject}|${q._subSubject}`));
+    const same = k => new Set(pool.map(q => q[k])).size === 1 ? pool[0][k] : '';
+    let config;
+    if (topics.size === 1) {
+      const q = pool[0];
+      config = { module: q._module, examType: q._examType, subject: q._subject, subSubject: q._subSubject, subSubjectLabel: q._subSubjectLabel };
+    } else {
+      config = { module: same('_module'), examType: same('_examType'), scope: 'custom', mixed: true, title, topicCount: topics.size };
+    }
+    ExamEngine.config    = { ...config, immediateFeedback: true, randomize: true, retryOf: true };
+    ExamEngine.questions = ExamEngine._shuffle([...pool]);
+    ExamEngine.state = { currentIndex: 0, answers: {}, flagged: new Set(), startTime: Date.now(), endTime: null, elapsedMs: 0, paused: false, submitted: false };
+    Storage.clearCurrentExam();
+    ExamEngine.save();
+    return true;
+  },
+
   async _startExam(params) {
+    if (params.mode === 'incorrect') return this._startPractice(this._incorrectPool(params.filter), 'Incorrect questions');
+    if (params.mode === 'custom')    return this._startPractice(this._incorrectPool(null, params.picks || []), 'Custom exam');
     if (params.retryFromResults) {
       const pool = this._retryPool || [];
       if (pool.length === 0) { UI.toast('No incorrect questions to retry.', 'info'); return false; }
@@ -912,6 +1052,7 @@ const App = {
       ExamEngine.questions = ExamEngine._shuffle([...pool]);
       ExamEngine.state = { currentIndex: 0, answers: {}, flagged: new Set(), startTime: Date.now(), endTime: null, elapsedMs: 0, paused: false, submitted: false };
       Storage.clearCurrentExam();
+      ExamEngine.save();
       return true;
     }
     if (params.retryIncorrectOnly) {

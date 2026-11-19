@@ -94,60 +94,6 @@ const UI = {
 
   // ─── Confetti (lightweight canvas celebration) ─────────────────────────────
 
-  launchConfetti() {
-    const canvas = document.createElement('canvas');
-    canvas.className = 'confetti-canvas';
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    document.body.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
-
-    const colors = ['#1B3A6B', '#2a5298', '#0f9b82', '#d97706', '#4A9E8E'];
-    const pieces = Array.from({ length: 140 }, () => ({
-      x:        Math.random() * canvas.width,
-      y:        -20 - Math.random() * canvas.height * 0.4,
-      w:        5 + Math.random() * 5,
-      h:        8 + Math.random() * 6,
-      color:    colors[Math.floor(Math.random() * colors.length)],
-      speed:    2 + Math.random() * 3,
-      drift:    (Math.random() - 0.5) * 2.2,
-      rotation: Math.random() * 360,
-      rotSpeed: (Math.random() - 0.5) * 10,
-    }));
-
-    const onResize = () => {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', onResize);
-
-    let frame = 0;
-    const maxFrames = 210;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      pieces.forEach(p => {
-        p.y        += p.speed;
-        p.x        += p.drift;
-        p.rotation += p.rotSpeed;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.rotation * Math.PI) / 180);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        ctx.restore();
-      });
-      frame++;
-      if (frame < maxFrames) {
-        requestAnimationFrame(draw);
-      } else {
-        window.removeEventListener('resize', onResize);
-        canvas.remove();
-      }
-    };
-    draw();
-  },
-
   // ─── Resume banner ──────────────────────────────────────────────────────────
 
   renderResumeBanner(saved, config) {
@@ -566,7 +512,42 @@ const UI = {
     return `<div class="scope-review"><div class="page-label page-label--wide">Review</div><div class="scope-review__rows">${this._reviewActions(f, this.scopeStats(f))}</div></div>`;
   },
 
-  renderSubSubject(mod, examType, subjectId, subSubjectId, questionCount, progress, config) {
+  // The unfinished exam of this topic (its own record, separate from the dashboard's "Continue Exam" card)
+  topicResume(saved) {
+    const total = (saved.questions || []).length;
+    const answered = Object.keys(saved.state.answers || {}).length;
+    const cur = (saved.state.currentIndex || 0) + 1;
+    const pct = total ? Math.round((answered / total) * 100) : 0;
+    return `<div class="topic-resume">
+      <button type="button" class="topic-resume__main" id="topic-resume-btn" aria-label="Continue exam, question ${cur} of ${total}">
+        <span class="topic-resume__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="10,8.3 16,12 10,15.7" fill="currentColor" stroke="none"/></svg></span>
+        <span class="topic-resume__text"><span class="topic-resume__title">Continue exam</span><span class="topic-resume__sub"><span>Q${cur}/${total}</span><span>· ${answered} answered</span></span></span>
+      </button>
+      <button type="button" class="topic-resume__drop" id="topic-resume-drop" aria-label="Abandon exam"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="topic-resume__bar">${this.progressBar(pct)}</div>
+    </div>`;
+  },
+
+  // Stats of one topic, in this order: View last attempt (only when a stored attempt exists), Incorrect, Saved, Last score.
+  // Used twice: in the rail (tablet and up) and under the exam card (phones); the stylesheet shows one of them.
+  topicStats(f, st, key, hasLast, scoreText) {
+    const params  = JSON.stringify({ moduleId: f.moduleId, examType: f.examType, subject: f.subject, subSubject: f.subSubject, label: f.label });
+    const chevron = '<svg class="icon icon--sm tstat__go" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+    const star    = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    const redo    = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>';
+    const link = (attrs, icon, label, n) => `<button type="button" class="tstat tstat--link" ${attrs}>
+        <span class="tstat__label">${icon}${label}</span>
+        <span class="tstat__end">${n === null ? '' : `<span class="tstat__n${n ? '' : ' tstat__n--zero'}">${n}</span>`}${chevron}</span>
+      </button>`;
+    return `<div class="tstats">
+      ${hasLast ? link(`data-results-key="${key}" aria-label="View last attempt"`, this.examIcon('chart', 'icon icon--sm'), 'View last attempt', null) : ''}
+      ${link(`data-nav="scoped-review" data-params='${params}' aria-label="Review incorrect questions (${st.incorrect})"`, redo, 'Incorrect', st.incorrect)}
+      ${link(`data-nav="scoped-saved" data-params='${params}' aria-label="Review saved questions (${st.flagged})"`, star, 'Saved', st.flagged)}
+      <div class="tstat tstat--plain"><span class="tstat__label">Last score</span><span class="tstat__value">${scoreText}</span></div>
+    </div>`;
+  },
+
+  renderSubSubject(mod, examType, subjectId, subSubjectId, questionCount, progress, config, resume = null) {
     const sub    = config.subjects.find(s => s.id === subjectId);
     const et     = config.examTypes.find(e => e.id === examType);
     const subSubs = (mod.subSubjects && mod.subSubjects[examType] && mod.subSubjects[examType][subjectId]) || [];
@@ -574,19 +555,32 @@ const UI = {
     const pct    = progress && progress.total ? Math.round((progress.correct / progress.total) * 100) : 0;
     const noQ    = questionCount === 0;
     const f      = { moduleId: mod.id, examType, subject: subjectId, subSubject: subSubjectId, label: ss.label };
+    const key    = Storage.resultsKey({ module: mod.id, examType, subject: subjectId, subSubject: subSubjectId });
+    const st     = this.scopeStats(f);
+    const hasLast = !!Storage.getLastResults(key);
+    const stats  = this.topicStats(f, st, key, hasLast, progress ? `${pct}%` : '—');
 
-    const launch = this.launchCard({
-      eyebrow:    'Topic exam',
-      count:      questionCount,
-      unit:       questionCount === 1 ? 'question' : 'questions',
-      note:       'Taken in order. The answer and explanation appear after each question.',
-      startId:    'start-exam-btn',
-      startLabel: progress ? 'Retry exam' : 'Start exam',
-      last:       progress ? { pct, date: new Date(progress.lastAttempt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) } : null,
-      analyticsKey: (() => { const k = Storage.resultsKey({ module: mod.id, examType, subject: subjectId, subSubject: subSubjectId }); return Storage.getLastResults(k) ? k : ''; })(),
-    });
+    // Buttons: first visit "Start exam" ("Start a new attempt" while an unfinished one is waiting); after an attempt
+    // "Retry exam" with, when there are any, "Retry incorrect (nQ)" beside it
+    let actions;
+    if (progress) {
+      actions = st.incorrect > 0
+        ? `<div class="exam-card__pair"><button class="btn btn--primary btn--lg" id="start-exam-btn">Retry exam</button><button class="btn btn--ghost btn--lg" id="retry-topic-incorrect-btn">Retry incorrect (${st.incorrect}Q)</button></div>`
+        : `<button class="btn btn--primary btn--lg exam-card__start" id="start-exam-btn">Retry exam</button>`;
+    } else {
+      actions = `<button class="btn btn--primary btn--lg exam-card__start" id="start-exam-btn">${resume ? 'Start a new attempt' : 'Start exam'}${this.examIcon('arrow', 'icon icon--sm launch__arrow')}</button>`;
+    }
 
-    const rail = this.scopeRail(f, { lead: [['Questions', questionCount], ['Last Score', progress ? `${pct}%` : '—']], stats: ['accuracy', 'time'] });
+    const examCard = `<section class="exam-card">
+        <div class="exam-card__top">
+          <div class="exam-card__body">
+            <p class="launch__eyebrow">Topic exam</p>
+            <p class="launch__count"><span class="launch__num">${questionCount}</span><span class="launch__unit">${questionCount === 1 ? 'question' : 'questions'}</span></p>
+          </div>
+          ${ss.professor ? `<div class="exam-card__prof">${this.professorBadge(ss.professor)}</div>` : ''}
+        </div>
+        <div class="exam-card__actions">${actions}</div>
+      </section>`;
 
     return `
     <div class="page subsubject-page has-rail">
@@ -603,10 +597,10 @@ const UI = {
         <div>
           <h1 class="page__title">${ss.label}</h1>
           <p class="page__subtitle">${mod.title} · ${sub.label} · ${et.label}</p>
-          ${(ss.professor || ss.hidden) ? `<div class="page__badges">${this.professorBadge(ss.professor)}${ss.hidden ? '<span class="badge badge--hidden" title="Only admins see this">Hidden</span>' : ''}</div>` : ''}
+          ${ss.hidden ? `<div class="page__badges"><span class="badge badge--hidden" title="Only admins see this">Hidden</span></div>` : ''}
         </div>
       </header>
-      ${rail}
+      <aside class="dashboard__rail"><h2 class="section__title">Stats</h2>${stats}</aside>
       <div class="page__main">
       ${noQ
         ? this.emptyState(
@@ -614,7 +608,8 @@ const UI = {
             `Add questions to <code>data/${mod.dataPath}/${examType}/${subjectId}/${subSubjectId}.json</code> in your repo.`,
             this.subjectIcon(subjectId, 'module-icon module-icon--lg')
           )
-        : `<div class="page-label page-label--wide">Exam</div>${launch}${this.scopeReview(f)}`
+        : `<div class="page-label page-label--wide topic-exam-label">Exam</div>${resume ? this.topicResume(resume) : ''}${examCard}
+           <div class="tstats-phone"><div class="page-label page-label--wide">Stats</div>${stats}</div>`
       }
       </div>
     </div>`;
@@ -798,7 +793,10 @@ const UI = {
     let sidebarTitle, sidebarSub;
 
     if (isWide) {
-      if (engine.config.scope === 'subject') {
+      if (engine.config.scope === 'custom') {
+        sidebarTitle = engine.config.title || 'Custom exam';
+        sidebarSub   = `${engine.config.topicCount || 'Several'} topics`;
+      } else if (engine.config.scope === 'subject') {
         const sub = config.subjects.find(s => s.id === engine.config.subject);
         sidebarTitle = `${this.subjectIcon(sub?.id, 'module-icon module-icon--inline')}${sub?.label}`;
         sidebarSub   = `${modObj?.shortTitle} · ${et?.label} · All Topics`;
@@ -849,12 +847,12 @@ const UI = {
       : '';
 
     // Back nav for wide exams goes to the right place
-    const backParams = isWide
+    const backParams = engine.config.scope === 'custom' ? {} : isWide
       ? (engine.config.scope === 'subject'
           ? { moduleId: engine.config.module, examType: engine.config.examType, subject: engine.config.subject }
           : { moduleId: engine.config.module })
       : { moduleId: engine.config.module, examType: engine.config.examType, subject: engine.config.subject };
-    const backNav = isWide
+    const backNav = engine.config.scope === 'custom' ? 'review' : isWide
       ? (engine.config.scope === 'subject' ? 'subject' : 'module')
       : 'subject';
 
@@ -971,7 +969,13 @@ const UI = {
 
     let titleLabel, subtitleLabel, backNav, backParams, crumbs;
     if (isWide) {
-      if (rc.scope === 'subject') {
+      if (rc.scope === 'custom') {
+        titleLabel    = rc.title || 'Custom exam';
+        subtitleLabel = `${rc.topicCount || new Set(results.perQuestion.map(p => `${p._module}|${p._examType}|${p._subject}|${p._subSubject}`)).size} topics`;
+        backNav       = 'review';
+        backParams    = {};
+        crumbs        = [{ label: 'Dashboard', nav: 'dashboard' }, { label: 'Incorrect Questions', nav: 'review' }, { label: 'Results' }];
+      } else if (rc.scope === 'subject') {
         const sub = config.subjects.find(s => s.id === rc.subject);
         titleLabel    = `${sub?.label} — Full Exam`;
         subtitleLabel = `${mod?.title} · ${et?.label}`;
@@ -1016,8 +1020,8 @@ const UI = {
 
     const L = i => this.examLetter(i);
     const savedUids = new Set(Storage.getFlagged().map(f => f.uid));
-    const entryOf = (pq) => ({ module: rc.module, examType: rc.examType, subject: rc.subject || pq._subject, subSubject: rc.subSubject || pq._subSubject, id: pq.id });
-    const topicKey = pq => `${pq._subject || rc.subject || ''}|${pq._subSubject || rc.subSubject || ''}`;
+    const entryOf = (pq) => ({ module: pq._module || rc.module, examType: pq._examType || rc.examType, subject: rc.subject || pq._subject, subSubject: rc.subSubject || pq._subSubject, id: pq.id });
+    const topicKey = pq => `${pq._module || rc.module || ''}|${pq._subject || rc.subject || ''}|${pq._subSubject || rc.subSubject || ''}`;
     const star = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
     let savedCount = 0;
 
@@ -1025,11 +1029,12 @@ const UI = {
       const state = pq.correct ? 'correct' : pq.answered ? 'wrong' : 'skipped';
       const isSaved = pq.id !== undefined && savedUids.has(Storage.questionUid(entryOf(pq)));
       if (isSaved) savedCount++;
-      const answers = [];
-      if (!pq.answered)      answers.push(`<div class="rv-ans rv-ans--skip"><span class="rv-ans__label">Not answered</span></div>`);
-      else if (pq.correct)   answers.push(`<div class="rv-ans rv-ans--ok"><span class="rv-ans__label">Your answer</span><span class="rv-ans__text">${L(pq.userAnswer)}. ${pq.options[pq.userAnswer]}</span></div>`);
-      else                   answers.push(`<div class="rv-ans rv-ans--bad"><span class="rv-ans__label">Your answer</span><span class="rv-ans__text">${L(pq.userAnswer)}. ${pq.options[pq.userAnswer]}</span></div>`);
-      if (!pq.correct)       answers.push(`<div class="rv-ans rv-ans--ok"><span class="rv-ans__label">Correct answer</span><span class="rv-ans__text">${L(pq.answer)}. ${pq.options[pq.answer]}</span></div>`);
+      // Every choice, marked like the Incorrect page: the right one green, a wrong pick red
+      const opts = pq.options.map((opt, oi) => {
+        const cls = oi === pq.answer ? ' rv-opt--ok' : (pq.answered && oi === pq.userAnswer) ? ' rv-opt--bad' : '';
+        return `<li class="rv-opt${cls}"><span class="rv-opt__letter">${L(oi)}</span><span class="rv-opt__text">${opt}</span></li>`;
+      }).join('');
+      const note = pq.answered ? '' : '<p class="rv-skipnote">Not answered</p>';
       const saveBtn = pq.id === undefined ? '' : `<button type="button" class="btn btn--ghost btn--sm res-save${isSaved ? ' is-saved' : ''}" data-save-q="${i}" aria-pressed="${isSaved}">${star}<span class="res-save__text">${isSaved ? 'Saved' : 'Save'}</span></button>`;
       return this.rvRow({
         state,
@@ -1037,7 +1042,7 @@ const UI = {
         meta:     `Q${i + 1}${(isWide && pq._subSubjectLabel) ? ` · ${pq._subSubjectLabel}` : ''}`,
         saved:    isSaved,
         question: pq.question,
-        body:     `<div class="rv-answers">${answers.join('')}</div>${this._explanationBlock(pq.explanation, pq.options[pq.answer])}${saveBtn ? `<div class="rv__foot"><span class="rv__foot-text"></span>${saveBtn}</div>` : ''}`,
+        body:     `${note}<ul class="rv-opts">${opts}</ul>${this._explanationBlock(pq.explanation, pq.options[pq.answer])}${saveBtn ? `<div class="rv__foot"><span class="rv__foot-text"></span>${saveBtn}</div>` : ''}`,
       });
     }).join('');
 
@@ -1075,7 +1080,16 @@ const UI = {
       delta = `<p class="res-delta"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span><strong>${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)} pts</strong> vs previous attempt (${results.previous.score}%${when ? `, ${when}` : ''})</span></p>`;
     }
     const when = opts.stored && results.completedAt ? new Date(results.completedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
-    const practiceNote = rc.retryOf ? ' · Incorrect retry' : '';
+    const practiceNote = (rc.retryOf && rc.scope !== 'custom') ? ' · Incorrect retry' : (results.updated ? ' · Updated after retry' : '');
+    const title = opts.stored ? 'Last attempt' : (results.score === 100 ? 'Excellent' : 'Exam complete');
+    const retryAll = `<button class="btn ${results.incorrect > 0 ? 'btn--ghost' : 'btn--primary'} btn--lg res-retry res-retry--all" id="retry-all-btn"
+          data-module="${rc.module}"
+          data-exam-type="${rc.examType}"
+          data-subject="${rc.subject || ''}"
+          data-sub-subject="${rc.subSubject || ''}"
+          data-scope="${rc.scope || ''}">${this.examIcon('retry')}Retry exam</button>`;
+    const retryBad = results.incorrect > 0
+      ? `<button class="btn btn--primary btn--lg res-retry res-retry--bad" id="retry-incorrect-btn">Retry incorrect<span class="res-retry__n">${results.incorrect}</span></button>` : '';
 
     return `
     <div class="page results-page">
@@ -1084,7 +1098,7 @@ const UI = {
       <section class="res-hero">
         ${this.resultRing(results)}
         <div class="res-hero__text">
-          <h1 class="res-hero__title">${opts.stored ? 'Last attempt' : 'Exam complete'}</h1>
+          <h1 class="res-hero__title">${title}</h1>
           <p class="res-hero__sub">${titleLabel} · ${subtitleLabel}${practiceNote}${when ? ` · ${when}` : ''}</p>
           ${delta}
         </div>
@@ -1094,17 +1108,8 @@ const UI = {
           ${stat('', results.unanswered, 'Skipped')}
           ${stat('', ExamEngine.formatTime(results.timeSec), 'Time')}
         </div>
+        <div class="res-retries">${retryBad}${retryAll}</div>
       </section>
-      <div class="res-actions">
-        <button class="btn btn--primary btn--lg" id="retry-all-btn"
-          data-module="${rc.module}"
-          data-exam-type="${rc.examType}"
-          data-subject="${rc.subject || ''}"
-          data-sub-subject="${rc.subSubject || ''}"
-          data-scope="${rc.scope || ''}">${this.examIcon('retry')} Retry exam</button>
-        ${results.incorrect > 0 ? `<button class="btn btn--ghost btn--lg" id="retry-incorrect-btn">Retry incorrect<span class="res-actions__n">${results.incorrect}</span></button>` : ''}
-        <button class="btn btn--ghost btn--lg" data-nav="dashboard">Dashboard</button>
-      </div>
       ${topicsHTML}
       <div class="page-label page-label--wide res-review-title"><span>Question review</span><span class="res-review-title__n" id="res-count">${total} ${total === 1 ? 'question' : 'questions'}</span></div>
       <div class="res-filter" id="res-filter" role="group" aria-label="Filter questions">
@@ -1214,6 +1219,7 @@ const UI = {
           <p class="page__subtitle">${saved ? 'Questions you saved to come back to' : 'Questions you got wrong, until you mark them mastered'}</p>
         </div>
       </header>
+      ${!saved ? this._startRow(filter, list.length) : ''}
       ${tools}
       <div class="rv-head">
         <span class="rv-head__count" id="rv-count">${list.length} ${list.length === 1 ? 'question' : 'questions'}</span>
@@ -1230,10 +1236,140 @@ const UI = {
     </div>`;
   },
 
+  // Wide action row right under the Incorrect header: "Start a custom exam" on the main page, "Master incorrect Qs exam"
+  // inside a topic / subject / module. Same look as the full-exam row on the subject page.
+  _startRow(filter, n) {
+    const arrow = '<svg class="icon icon--sm wide-exam-btn__arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+    return `<button class="btn btn--primary btn--lg wide-action" id="${filter ? 'master-incorrect-btn' : 'start-custom-exam-btn'}" type="button">
+      ${filter ? 'Master incorrect Qs exam' : 'Start a custom exam'}<span class="badge badge--count">${n} Q</span>${arrow}
+    </button>`;
+  },
+
   renderReview(incorrectList, config, filter = null)  { return this._reviewPage('incorrect', incorrectList, config, filter); },
   renderFlagged(flaggedList, config, filter = null)   { return this._reviewPage('saved', flaggedList, config, filter); },
 
   // ─── Search page ──────────────────────────────────────────────────────────
+
+  // ─── Custom exam page ─────────────────────────────────────────────────────
+  // Modules that have incorrect questions; each opens to its subjects, each subject to its topics, each topic with a
+  // check mark (everything starts ticked). Built from the Incorrect list, so it only ever lists what can be practised.
+  renderCustomExam(config) {
+    const tree = new Map();
+    Storage.getIncorrect().forEach(q => {
+      const mk = q.module, sk = `${q.examType}|${q.subject}`, tk = `${q.module}|${q.examType}|${q.subject}|${q.subSubject}`;
+      const m = tree.get(mk) || tree.set(mk, new Map()).get(mk);
+      const sj = m.get(sk) || m.set(sk, { examType: q.examType, subject: q.subject, topics: new Map() }).get(sk);
+      const t = sj.topics.get(tk) || sj.topics.set(tk, { label: q.subSubjectLabel || q.subSubject, n: 0 }).get(tk);
+      t.n++;
+    });
+    const chev = '<svg class="icon icon--sm cx-head__chev" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+    const tick = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+    const sum = (m) => [...m.values()].reduce((a, t) => a + t.n, 0);
+    let total = 0;
+    const html = [...tree.entries()].map(([mid, subs]) => {
+      const mod = config.modules.find(x => x.id === mid);
+      let mTotal = 0;
+      const subHTML = [...subs.values()].map(sj => {
+        const sub = config.subjects.find(x => x.id === sj.subject);
+        const et  = config.examTypes.find(x => x.id === sj.examType);
+        const n   = sum(sj.topics); mTotal += n;
+        const rows = [...sj.topics.entries()].map(([key, t]) => `<button type="button" class="cx-topic" role="checkbox" aria-checked="true" data-key="${key}" data-n="${t.n}">
+            <span class="cx-topic__box">${tick}</span><span class="cx-topic__name">${t.label}</span><span class="cx-topic__n">${t.n}</span>
+          </button>`).join('');
+        return `<div class="cx-group cx-group--sub" data-cx-group>
+          <button type="button" class="cx-head" aria-expanded="false"><span class="cx-head__icon">${this.subjectIcon(sj.subject, 'module-icon')}</span><span class="cx-head__text"><span class="cx-head__name">${sub ? sub.label : sj.subject}</span>${et ? `<span class="cx-head__meta">${et.label}</span>` : ''}</span><span class="cx-head__n">${n}</span>${chev}</button>
+          <div class="cx-body"><div class="cx-inner">${rows}</div></div>
+        </div>`;
+      }).join('');
+      total += mTotal;
+      return `<div class="cx-group" data-cx-group>
+        <button type="button" class="cx-head" aria-expanded="false"><span class="cx-head__icon">${this.moduleIcon(mid, 'module-icon')}</span><span class="cx-head__text"><span class="cx-head__name">${mod ? mod.title : mid}</span></span><span class="cx-head__n">${mTotal}</span>${chev}</button>
+        <div class="cx-body"><div class="cx-inner">${subHTML}</div></div>
+      </div>`;
+    }).join('');
+
+    return `
+    <div class="page custom-page review-page">
+      ${this.backBtn('review', {})}
+      ${this.breadcrumb([{ label: 'Dashboard', nav: 'dashboard' }, { label: 'Incorrect Questions', nav: 'review' }, { label: 'Custom exam' }])}
+      <header class="page__header" style="--mod-color:var(--danger)">
+        <span class="page__icon"><svg class="icon icon--lg" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span>
+        <div>
+          <h1 class="page__title">Custom exam</h1>
+          <p class="page__subtitle">Choose the topics to practise</p>
+        </div>
+      </header>
+      <section class="launch">
+        <div class="launch__body">
+          <p class="launch__eyebrow">Selected</p>
+          <p class="launch__count"><span class="launch__num" id="custom-count">${total}</span><span class="launch__unit" id="custom-unit">${total === 1 ? 'question' : 'questions'}</span></p>
+        </div>
+        <div class="launch__actions">
+          <button class="btn btn--primary btn--lg launch__start" id="start-custom-btn">Start exam${this.examIcon('arrow', 'icon icon--sm launch__arrow')}</button>
+        </div>
+      </section>
+      <div class="page-label page-label--wide res-review-title"><span>Topics with incorrect questions</span><button type="button" class="cx-all" id="custom-all">Clear all</button></div>
+      <div class="cx-list">${html}</div>
+    </div>`;
+  },
+
+  // ─── Drop-down menu ───────────────────────────────────────────────────────
+  // Replaces the browser's own select: a button with a properly placed arrow, and a menu that fits the app (a popover on
+  // desktop, a small bottom sheet on phones). The real <select> stays in the page, hidden, as the value holder, so code
+  // that reads `.value` or listens to `change` keeps working.
+  enhanceSelect(sel) {
+    if (!sel || sel.dataset.enhanced) return;
+    sel.dataset.enhanced = '1';
+    const label = sel.getAttribute('aria-label') || '';
+    const wrap = document.createElement('div');
+    wrap.className = `csel${sel.id === 'rv-sort' ? ' csel--sort' : ''}`;
+    wrap.innerHTML = `<button type="button" class="csel__btn" aria-haspopup="listbox" aria-expanded="false" aria-label="${label}"><span class="csel__val"></span><svg class="icon icon--sm csel__chev" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="csel__scrim"></div>
+      <div class="csel__menu" role="listbox" aria-label="${label}"><p class="csel__title">${label}</p></div>`;
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+    sel.hidden = true; sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
+    const btn = wrap.querySelector('.csel__btn'), menu = wrap.querySelector('.csel__menu'), val = wrap.querySelector('.csel__val');
+    const tick = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+    [...sel.options].forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'csel__opt'; b.setAttribute('role', 'option'); b.dataset.value = o.value;
+      b.innerHTML = `<span>${o.textContent}</span>${tick}`;
+      menu.appendChild(b);
+    });
+    const sync = () => {
+      const cur = sel.options[sel.selectedIndex];
+      val.textContent = cur ? cur.textContent : '';
+      menu.querySelectorAll('.csel__opt').forEach(b => b.setAttribute('aria-selected', String(b.dataset.value === sel.value)));
+    };
+    const close = (focus) => { wrap.classList.remove('is-open'); btn.setAttribute('aria-expanded', 'false'); if (focus) btn.focus(); };
+    const open  = () => {
+      document.querySelectorAll('.csel.is-open').forEach(w => w !== wrap && w.querySelector('.csel__btn').click());
+      wrap.classList.add('is-open'); btn.setAttribute('aria-expanded', 'true');
+      const cur = menu.querySelector('[aria-selected="true"]') || menu.querySelector('.csel__opt');
+      if (cur) cur.focus({ preventScroll: false });
+    };
+    btn.addEventListener('click', () => wrap.classList.contains('is-open') ? close() : open());
+    wrap.querySelector('.csel__scrim').addEventListener('click', () => close(true));
+    menu.addEventListener('click', e => {
+      const b = e.target.closest('.csel__opt'); if (!b) return;
+      if (sel.value !== b.dataset.value) { sel.value = b.dataset.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      sync(); close(true);
+    });
+    wrap.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && wrap.classList.contains('is-open')) { e.preventDefault(); close(true); return; }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+      if (!wrap.classList.contains('is-open')) { open(); return; }
+      const items = [...menu.querySelectorAll('.csel__opt')], i = items.indexOf(document.activeElement);
+      (items[i + (e.key === 'ArrowDown' ? 1 : -1)] || items[i < 0 ? 0 : i]).focus();
+    });
+    sync();
+    if (!UI._cselBound) {   // one listener for every menu: a tap anywhere else closes the open one
+      UI._cselBound = true;
+      document.addEventListener('click', e => document.querySelectorAll('.csel.is-open').forEach(w => { if (!w.contains(e.target)) { w.classList.remove('is-open'); w.querySelector('.csel__btn').setAttribute('aria-expanded', 'false'); } }));
+    }
+  },
 
   renderSearch(config) {
     return `

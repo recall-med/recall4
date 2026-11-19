@@ -494,7 +494,6 @@ topicResume(saved, where = 'main') {
     const total = (saved.questions || []).length;
     const answered = Object.keys(saved.state.answers || {}).length;
     const cur = (saved.state.currentIndex || 0) + 1;
-    const pct = total ? Math.round((answered / total) * 100) : 0;
     // The dashboard's resume card, with an arrow in place of the X (the whole card is the button). Drawn twice: under the
     // exam card on phones ('main') and above the Stats list in the rail from 768 px ('rail'); the stylesheet shows one.
     return `<div class="resume-banner resume-banner--topic resume-banner--${where}">
@@ -506,7 +505,6 @@ topicResume(saved, where = 'main') {
         </span>
         <svg class="icon icon--sm resume-banner__go" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <div class="resume-banner__bar">${this.progressBar(pct)}</div>
     </div>`;
   },
 
@@ -1271,10 +1269,10 @@ topicResume(saved, where = 'main') {
       const tone  = r.score >= 70 ? 'ok' : r.score >= 50 ? 'mid' : 'bad';
       const tag   = r.config.scope === 'custom' ? (r.config.title || 'Custom exam') : (r.config.partial ? 'Some topics' : 'All topics');
       return `<button type="button" class="att" data-results-key="${r._key}" data-back-to='${JSON.stringify({ nav: 'attempts', params: opts.self })}'>
-        <span class="att__top"><span class="att__date">${when(r.completedAt)}</span><span class="att__tag">${tag}</span><span class="att__score att__score--${tone}">${r.score}%</span></span>
+        <span class="att__top"><span class="att__date">${when(r.completedAt)}</span><span class="att__tag">${tag}</span></span>
         <span class="att__meta">${r.correct} correct · ${r.incorrect} incorrect · ${r.unanswered} skipped · ${r.total} Q</span>
         <span class="att__topics">${shown}${more}</span>
-        ${chev}
+        <span class="att__side"><span class="att__score att__score--${tone}">${r.score}%</span>${chev}</span>
       </button>`;
     }).join('');
     return `

@@ -336,8 +336,8 @@ try {
     await App.navigate('subsubject', T);
     await until(() => doc.querySelector('.subsubject-page .exam-card'));
     const rc = doc.querySelector('.js-topic-resume');
-    check('topic page: the Continue card (the dashboard\'s card with an arrow, progress bar; rail copy and phone copy) shows for the topic\'s unfinished exam even when the dashboard slot is empty; Start says "Start a new attempt"',
-      !!rc && doc.querySelectorAll('.resume-banner--topic').length === 2 && !!doc.querySelector('.resume-banner--topic .progress-bar, .resume-banner--topic [class*=progress]') && !doc.querySelector('.resume-banner--topic .resume-banner__dismiss') && !!doc.querySelector('.resume-banner--topic .resume-banner__go') && /Q2\/\d+/.test(doc.querySelector('.resume-banner--topic .resume-banner__subtitle').textContent) && /Start a new attempt/.test(doc.getElementById('start-exam-btn').textContent) && doc.querySelector('.exam-card__prof') === null || !!doc.querySelector('.exam-card__prof'));
+    check('topic page: the Continue card (the dashboard\'s card with an arrow, no progress bar; rail copy and phone copy) shows for the topic\'s unfinished exam even when the dashboard slot is empty; Start says "Start a new attempt"',
+      !!rc && doc.querySelectorAll('.resume-banner--topic').length === 2 && !doc.querySelector('.resume-banner--topic .progress-bar, .resume-banner--topic [class*=progress]') && !doc.querySelector('.resume-banner--topic .resume-banner__dismiss') && !!doc.querySelector('.resume-banner--topic .resume-banner__go') && /Q2\/\d+/.test(doc.querySelector('.resume-banner--topic .resume-banner__subtitle').textContent) && /Start a new attempt/.test(doc.getElementById('start-exam-btn').textContent) && doc.querySelector('.exam-card__prof') === null || !!doc.querySelector('.exam-card__prof'));
     rc.click();
     await until(() => doc.querySelector('.exam-layout .option'));
     check('Continue card: resumes that exam at its position', V.w.eval('ExamEngine.state.currentIndex') === 1 && V.w.eval('Object.keys(ExamEngine.state.answers).length') === 1);

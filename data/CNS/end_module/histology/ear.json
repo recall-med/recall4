@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "histology",
+    "subSubject": "ear",
+    "totalQuestions": 10
+  },
+  "questions": [
+    {
+      "question": "The main part of the ear responsible for hearing is:",
+      "options": [
+        "Cristae ampullaris",
+        "Macula utricle",
+        "Tympanic membrane",
+        "Cochlea"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Cochlea",
+      "id": 1
+    },
+    {
+      "question": "Which part of the ear collects sound waves?",
+      "options": [
+        "Middle ear",
+        "Inner ear",
+        "External ear",
+        "Auditory ossicles"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. External ear",
+      "id": 2
+    },
+    {
+      "question": "The tympanic membrane separates:",
+      "options": [
+        "External ear from the middle ear",
+        "Middle ear from inner ear",
+        "Cochlea from semicircular canals",
+        "Vestibule from cochlea"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. External ear from the middle ear",
+      "id": 3
+    },
+    {
+      "question": "The fluid that fills the membranous labyrinth is:",
+      "options": [
+        "Perilymph",
+        "Endolymph",
+        "Cerebrospinal fluid",
+        "Lymph"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Endolymph",
+      "id": 4
+    },
+    {
+      "question": "The sensory organ for equilibrium in the vestibule is:",
+      "options": [
+        "Organ of Corti",
+        "Macula",
+        "Crista ampullaris",
+        "Utricle"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Macula",
+      "id": 5
+    },
+    {
+      "question": "The tympanic membrane separates the external ear from the middle ear.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: True.",
+      "id": 6
+    },
+    {
+      "question": "The Eustachian tube connects the middle ear with the oropharynx.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": "False – It connects with the nasopharynx.",
+      "id": 7
+    },
+    {
+      "question": "The perilymph fills the membranous labyrinth.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": "False – The bony labyrinth contains perilymph; the membranous labyrinth contains endolymph.",
+      "id": 8
+    },
+    {
+      "question": "The semicircular canals are responsible for detecting angular acceleration.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: True.",
+      "id": 9
+    },
+    {
+      "question": "The organ of Corti is located in the vestibule.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 1,
+      "explanation": "False – It is located in the cochlear duct (scala media).",
+      "id": 10
+    }
+  ]
+}

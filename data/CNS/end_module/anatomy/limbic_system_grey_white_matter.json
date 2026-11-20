@@ -1,0 +1,263 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "anatomy",
+    "subSubject": "limbic_system_grey_white_matter",
+    "totalQuestions": 21
+  },
+  "questions": [
+    {
+      "question": "A 68-year-old patient is brought to the clinic because of progressive memory problems, changes in personality, and difficulty controlling emotional responses. Which brain system is most closely associated with these functions?",
+      "options": [
+        "Basal ganglia",
+        "Limbic system",
+        "Cerebellum",
+        "Brainstem"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Limbic system",
+      "id": 1
+    },
+    {
+      "question": "A patient has a lesion involving the mammillary body. The neurologist explains that this structure is one of the grey matter components associated with the limbic system. Where is it located?",
+      "options": [
+        "Thalamus",
+        "Hypothalamus",
+        "Basal ganglia",
+        "Temporal lobe"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Hypothalamus",
+      "id": 2
+    },
+    {
+      "question": "During an anatomical examination, a student observes a coiled mass of grey matter embedded at the edge of the temporal lobe. Its cross-section resembles a seahorse. Which structure is being examined?",
+      "options": [
+        "Amygdaloid nucleus",
+        "Caudate nucleus",
+        "Hippocampus",
+        "Claustrum"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Hippocampus",
+      "id": 3
+    },
+    {
+      "question": "A patient has damage to the fornix. During an anatomical discussion, the physician explains that the fornix passes below the corpus callosum and eventually divides into two rounded columns. Where do these columns normally terminate?",
+      "options": [
+        "Anterior nucleus of the thalamus",
+        "Amygdaloid nucleus",
+        "Mammillary bodies",
+        "Caudate nucleus"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Mammillary bodies",
+      "id": 4
+    },
+    {
+      "question": "During a practical examination, a student identifies a large, comma-shaped mass of grey matter with a head, body, and tail. The head is related to the floor of the anterior horn of the lateral ventricle. Which structure is this?",
+      "options": [
+        "Lentiform nucleus",
+        "Caudate nucleus",
+        "Claustrum",
+        "Globus pallidus"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Caudate nucleus",
+      "id": 5
+    },
+    {
+      "question": "A brain specimen shows a biconvex, lens-shaped basal ganglion. It consists of a darker lateral part and a paler medial part. Which of the following correctly identifies these two parts?",
+      "options": [
+        "Globus pallidus laterally and putamen medially",
+        "Putamen laterally and globus pallidus medially",
+        "Caudate laterally and amygdaloid nucleus medially",
+        "Claustrum laterally and putamen medially"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Putamen laterally and globus pallidus medially",
+      "id": 6
+    },
+    {
+      "question": "During a coronal section examination, a student identifies a thin sheet of grey matter lateral to the lentiform nucleus. It is separated from the lentiform nucleus by the external capsule and is related laterally to the extreme capsule. What is this structure?",
+      "options": [
+        "Amygdaloid nucleus",
+        "Caudate nucleus",
+        "Claustrum",
+        "Hippocampus"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Claustrum",
+      "id": 7
+    },
+    {
+      "question": "A patient has damage to the white matter tract connecting the hippocampus to the mammillary bodies. Which structure is most likely affected?",
+      "options": [
+        "Corpus callosum",
+        "Fornix",
+        "Internal capsule",
+        "External capsule"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Fornix",
+      "id": 8
+    },
+    {
+      "question": "During a brain imaging examination, a neurologist identifies the anterior limb of the internal capsule. Which two structures form its medial and lateral boundaries, respectively?",
+      "options": [
+        "Thalamus and lentiform nucleus",
+        "Head of caudate nucleus and anterior part of lentiform nucleus",
+        "Head of caudate nucleus and thalamus",
+        "Thalamus and posterior part of lentiform nucleus"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Head of caudate nucleus and anterior part of lentiform nucleus",
+      "id": 9
+    },
+    {
+      "question": "A lesion is detected in the posterior limb of the internal capsule. Which two structures are related to it medially and laterally, respectively?",
+      "options": [
+        "Head of caudate nucleus and anterior part of lentiform nucleus",
+        "Thalamus and posterior part of lentiform nucleus",
+        "Caudate nucleus and thalamus",
+        "Lentiform nucleus and claustrum"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Thalamus and posterior part of lentiform nucleus",
+      "id": 10
+    },
+    {
+      "question": "During an anatomical examination, a structure is found between the head of the caudate nucleus medially and the anterior part of the lentiform nucleus laterally. Which part of the internal capsule is being examined?",
+      "options": [
+        "Posterior limb",
+        "Genu",
+        "Anterior limb",
+        "Retrolentiform part"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Anterior limb",
+      "id": 11
+    },
+    {
+      "question": "A patient has a lesion involving the internal capsule in the region between the thalamus and the posterior part of the lentiform nucleus. Which part is affected?",
+      "options": [
+        "Anterior limb",
+        "Posterior limb",
+        "Genu",
+        "Sublentiform part"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Posterior limb",
+      "id": 12
+    },
+    {
+      "question": "A patient has a lesion affecting nerve fibers responsible for connecting identical cortical areas in the right and left cerebral hemispheres. Which type of white matter fibers is affected?",
+      "options": [
+        "Association fibers",
+        "Projection fibers",
+        "Commissural fibers",
+        "Short association fibers"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Commissural fibers",
+      "id": 13
+    },
+    {
+      "question": "During brain imaging, a large C-shaped bundle of white matter connecting the two cerebral hemispheres is found to be damaged. Which structure is involved?",
+      "options": [
+        "Fornix",
+        "Corpus callosum",
+        "Internal capsule",
+        "Superior longitudinal fasciculus"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Corpus callosum",
+      "id": 14
+    },
+    {
+      "question": "A neurosurgeon identifies the largest commissure of the brain during an operation. Which structure is being identified?",
+      "options": [
+        "Anterior commissure",
+        "Posterior commissure",
+        "Corpus callosum",
+        "Hippocampal commissure"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Corpus callosum",
+      "id": 15
+    },
+    {
+      "question": "During a sagittal section of the brain, a C-shaped mass of white fibers is observed on the medial surface of the cerebral hemisphere, lying in the floor of the median longitudinal cerebral fissure. Which structure is this?",
+      "options": [
+        "Corpus callosum",
+        "Fornix",
+        "Corona radiata",
+        "Internal capsule"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Corpus callosum",
+      "id": 16
+    },
+    {
+      "question": "A patient has a lesion affecting nerve fibers that connect adjacent gyri within the same cerebral hemisphere. Which type of fibers is damaged?",
+      "options": [
+        "Long association fibers",
+        "Short association fibers",
+        "Commissural fibers",
+        "Projection fibers"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Short association fibers",
+      "id": 17
+    },
+    {
+      "question": "MRI reveals damage to a bundle of fibers connecting different lobes within the same cerebral hemisphere. Which of the following is the most likely affected structure?",
+      "options": [
+        "Corpus callosum",
+        "Anterior commissure",
+        "Superior longitudinal fasciculus",
+        "Forceps major"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Superior longitudinal fasciculus",
+      "id": 18
+    },
+    {
+      "question": "A patient has a lesion affecting the largest commissure of the brain, which connects the two cerebral hemispheres. Which structure is involved?",
+      "options": [
+        "Fornix",
+        "Corpus callosum",
+        "Internal capsule",
+        "Corona radiata"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Corpus callosum",
+      "id": 19
+    },
+    {
+      "question": "During a radiological examination, a C-shaped white matter structure is identified on the medial surface of the cerebral hemisphere. Its enlarged posterior part contains fibers that curve backward toward the occipital lobes. Which part is being examined?",
+      "options": [
+        "Genu",
+        "Rostrum",
+        "Trunk",
+        "Splenium"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Splenium",
+      "id": 20
+    },
+    {
+      "question": "A patient has a lesion involving ascending and descending fibers connecting the cerebral cortex with subcortical centers and the spinal cord. These fibers radiate upward and outward from the internal capsule in a fan-like arrangement to reach the cortex. What is this arrangement called?",
+      "options": [
+        "Forceps minor",
+        "Tapetum",
+        "Corona radiata",
+        "Forceps major"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Corona radiata",
+      "id": 21
+    }
+  ]
+}

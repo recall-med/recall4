@@ -1,0 +1,388 @@
+# Recall backend guide and handoff
+
+Last updated 2026-11-14 (admin v3: drill-down Content manager, topic and module visibility, closable-only-by-X popups; earlier: account name, navy avatar, Sync now cooldown). This file explains how the cloud side of Recall works, how to add features to it, where the project stands, and how to continue in a new chat. The older handoff files (`Recall_Cloud_Sync_Handoff_Phase3a_Status.md`, the original plan and `Recall_Security_Update_for_Next_Chat.md`) are superseded by this one where they disagree. The security update is merged into section 11.
+
+Confidence tags used below: **[Certain]** checked in code or tests, **[Likely]** strong inference, **[Guessing]** not measured.
+
+---
+
+## 1. What exists
+
+Recall is a static site (plain HTML, CSS, JavaScript, no build step) that works fully as a guest with progress saved in the browser. On top of that sits an **optional** account layer: sign in, and progress, incorrect questions, flags and exam history sync across devices.
+
+| Layer | Choice | Where it lives |
+| --- | --- | --- |
+| Front end | Static files, Cloudflare Pages, auto-deploys from `main` of `github.com/recall-med/recall4` | Live at `https://recall-med.pages.dev` |
+| Sign-in | Firebase Authentication (Spark plan, no card). Google and email/password. | `assets/js/auth.js` |
+| API | Cloudflare Pages Functions | `functions/api/*` |
+| Database | Cloudflare D1 (SQLite), database `recall-db`, bound as `DB` | `db/schema.sql` |
+| Sync engine and account window | Wraps the existing storage code, does not edit it | `assets/js/sync.js`, `assets/css/account.css` |
+| Switch | `config/sync-config.json` (`cloudEnabled`) | Currently `false` |
+
+Cloudflare settings that matter: env var `FIREBASE_PROJECT_ID=recall-med`; Functions set to **Fail closed** (a capped day returns an error, never HTML); D1 bound as `DB` on Production. `ADMIN_UIDS` (admin dashboard) and `GITHUB_TOKEN` (question editor, an **encrypted secret**, optional `GITHUB_REPO`, default `recall-med/recall4`) are set only here in Cloudflare, never in code. Firebase Firestore and Storage must stay **off** (they can prompt for billing).
+
+Do not add a root `package.json` or a root `wrangler.toml` to the repo. Either can override dashboard settings or trigger a build step.
+
+---
+
+## 2. Repository map (cloud-related files)
+
+```
+config/sync-config.json         the on/off switch
+_headers                        security headers for the static site (Cloudflare Pages)
+db/schema.sql                   the three tables (already applied to recall-db)
+functions/
+  _lib/auth.js                  verifies Firebase tokens (hand-written WebCrypto RS256, no libraries); verifyClaims() returns the claims
+  _lib/db.js                    touchUser, JSON helpers
+  _lib/http.js                  json(), readJson(), HttpError, errorResponse()
+  _lib/merge.js                 the conflict rule (server copy)
+  _lib/validate.js              LIMITS and input checks
+  _lib/names.js                 name rules and the small blocklist (server copy)
+  api/_middleware.js            runs before every /api route: checks the token, sets data.uid and data.authTime
+  api/health.js                 public check
+  api/state.js                  full account state
+  api/sync.js                   upload changes and receive merged state
+  api/reset.js                  reset progress
+  api/session.js                in-progress exam transfer (server done, no front end yet)
+  api/account.js                POST {confirm:"delete"}: delete everything for the user
+  api/profile.js                POST {firstName, lastName?}: save the display name
+  api/admin/summary.js          admin totals (server done, no front end yet)
+assets/js/sync.js               sync engine, account window, guest import, reset/delete flows, name, Sync now cooldown
+assets/js/names.js              name rules and blocklist (browser copy, generated from _lib/names.js; a test checks they agree)
+assets/js/auth.js               Firebase provider (loaded on demand)
+assets/css/account.css          account window, loading cover and toast colours (additive file)
+backend-tests/run.mjs           backend tests (local Worker + local D1)
+backend-tests/run-frontend.mjs  front-end test runner (runs the parts below; see section 2)
+backend-tests/fe/harness.mjs    shared setup of the front-end parts (local site + D1, jsdom devices, check/until helpers)
+backend-tests/fe/part-*.mjs     the parts: sync, import, account, admin, pages (each boots its own stack on its own ports)
+```
+
+`storage.js`, `exam.js` and `app.js` were **not** changed for sync. `sync.js` wraps their methods at load time.
+
+---
+
+## 3. Data model
+
+```
+users(uid PK, reset_epoch, session_version, created_at, last_seen, settings, session, first_name, last_name, email, blocked, is_admin)
+scopes(uid, scope_key, progress, incorrect, flags, version, PK(uid, scope_key))
+attempts(uid, attempt_id, epoch, created_at, client_ts, module, exam_type, subject, sub_subject,
+         scope, score, correct, total, attempted, time_sec, review, PK(uid, attempt_id))
+```
+
+- `scope_key` = `MODULE|examType|subject|subSubject`, four parts, each `[A-Za-z0-9_-]{1,40}`.
+- The cloud stores **question ids only**, never question text. Text is rebuilt from `data/**.json`. **Question ids are permanent**: never renumber or reuse one, or students' incorrect and flagged lists point at the wrong questions.
+- Statistics are **derived from attempts** on the server. There are no client-side counters to double count. `attempt_id` is the primary key and inserts use `INSERT OR IGNORE`, so a resent exam is stored once.
+- The server stores each person's **email** (taken from the verified sign-in token, lower-cased, refreshed when it changes; accounts that have not signed in since this began have none) and the **display name** (`first_name` required, `last_name` optional). Names are not unique, can be changed any time, are kept by Reset progress, and are removed by Delete account. Emails and names are returned only by the admin-only `/api/admin/students` route, never by `/api/admin/summary`. A future leaderboard can read names from `users`.
+
+### Conflict rule (same code on server `merge.js` and client `sync.js`)
+
+Each synced entry is `{epoch, rev, updatedAt, ...}`. The winner is: higher `epoch`, then higher `rev`, then later `updatedAt` (client time clamped to server time), then a string compare as a final tiebreak. Removals are **tombstones** (`removed: true`). **Flags ignore the epoch**, so they survive resets.
+
+### Reset
+
+`POST /api/reset {fromEpoch}` raises `reset_epoch` by one, only if it still equals `fromEpoch` (safe to repeat). Older-epoch progress, incorrect answers and attempts are ignored on read. A device that was offline during a reset has its stale data dropped (`droppedStale: true`) and adopts the reset.
+
+---
+
+## 4. API reference
+
+All JSON. Everything except health needs `Authorization: Bearer <Firebase ID token>`. The user id always comes from the verified token, never from the request body.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /api/health` | `{ok:true}`. `?db=1` also checks the database binding. Public. |
+| `GET /api/state` | Epoch, settings, session, scopes, derived stats, last 30 attempts |
+| `POST /api/sync` | Body `{baseEpoch, deviceId, scopes?, attempts?, settings?}`. Returns merged scopes, stats, accepted and rejected attempt ids |
+| `POST /api/reset` | Body `{fromEpoch}` |
+| `GET/PUT /api/session` | In-progress exam transfer with explicit takeover. Server tested, **no front end yet** |
+| `POST /api/profile` | Body `{firstName, lastName?}`. Letters, spaces, hyphen, apostrophe, period; 1 to 30 characters each; a small blocklist (`functions/_lib/names.js`) answers 400 `bad_name`. `/api/state` returns `profile` (or `null`). |
+| `POST /api/account` | Body `{confirm:"delete"}`. Needs a sign-in no older than 10 minutes (otherwise 403 `recent_login_required`). Deletes attempts, scopes and the user row in one atomic batch. Repeating it is harmless |
+| `GET /api/admin/summary[?refresh=1]` | Admin only (uid listed in `ADMIN_UIDS`). Aggregates only, cached 10 minutes. Front end: `admin.html` |
+| `GET /api/admin/students` | Admin only. One row per account: name, email, joined, last exam, exams, accuracy, blocked, `is_admin`, `owner`; also `me.owner`. |
+| `POST /api/admin/student` | Admin only. `{uid, action: "remove" / "unblock" / "make_admin" / "remove_admin"}`. `make_admin` and `remove_admin` are **owner only** (owners are the uids in `ADMIN_UIDS`; their rights cannot be changed in the app). An admin account cannot be removed until its admin rights are taken away. Remove deletes the person's cloud data and blocks the account (`users.blocked = 1`): every API call then answers 403 `account_blocked`, and it cannot delete its own row to start over. An administrator cannot be removed. The Firebase login is not touched. |
+| `GET/POST /api/admin/config` | Admin only. GET returns `config/modules.json` fresh from GitHub plus its version. POST `{action}`: `set_module {moduleId, ongoing?, hidden?}` (ongoing is exclusive), `set_topic {moduleId, exam, subject, topicId, label?, professor?, hidden?}`, `add_topic {moduleId, exam, subject, label, professor?}` (creates an EMPTY data file first, then registers the topic with `hidden: true`). Read-modify-write on the newest file, retried once if someone committed in between. Names: 80 / 60 characters, `< > " ` \\` refused, straight apostrophe stored as a typographic one (the app puts names inside HTML attributes). Needs `GITHUB_TOKEN`. |
+| `GET/POST /api/admin/question` | Admin only. Edits, **adds** (`action:"add"`, next free id) or **removes** (`action:"delete"`, other ids are never renumbered, the last question of a topic cannot be removed, and a `nextId` counter in the file stops a removed id from ever being handed out again) ONE question in `data/<a>/<b>/<c>/<d>.json` through the GitHub API as one commit on `main`; Pages redeploys. GET without an id returns just the file version; `full=1` returns the whole topic fresh. `meta.totalQuestions` is kept true on add and delete. Needs `GITHUB_TOKEN`. 409 if the file changed since it was opened. Formatting of the file is kept. |
+
+Errors look like `{ok:false, error, message}`. D1 quota errors become 503 `resource_exhausted`.
+
+Limits (`functions/_lib/validate.js`): 256 KB body, 200 entries per sync, 40 scopes, **30 attempts per call, 60 attempts per hour per user**, review up to 300 questions, session 64 KB, settings 2 KB, one progress entry 1 KB.
+
+### Token checks (`functions/_lib/auth.js`)
+Algorithm RS256, `kid` present in Google's key list, signature, issuer `https://securetoken.google.com/recall-med`, audience, expiry, issued-at, and a valid `sub`. A test-only key override is honoured **only** when the request host is localhost.
+
+---
+
+## 5. How the front end syncs (`assets/js/sync.js`)
+
+- Local first: the app always reads and writes the browser's storage. Sync copies changes up and brings other devices' changes down.
+- Bookkeeping lives in `dqb_sync` (per-entry versions, dirty set, upload queue, pending reset, base epoch, uid). Device id in `dqb_device_id`.
+- Sync runs after changes (debounced about 4 s), after an exam is submitted, on reconnect, when the tab hides, when the app opens (pull throttled to 60 s), and on "Sync now". Failures back off with jitter. A non-JSON or non-`ok` response is never treated as success.
+- **Sign in from guest:** the guest's progress is copied to `dqb_backup_guest`, the device is cleared, the account is loaded. A brand-new empty account (never reset) then receives the guest progress automatically. An account that already has data is only **offered** the import (button in the account window, with a confirm step). Import only adds what the account lacks and never overwrites. After import the copy is renamed `dqb_backup_guest_imported` and never deleted.
+- **Different account on the same device:** the old account's leftovers go to `dqb_backup_account_<uid12>` and are never uploaded to the new account.
+- **Sign out:** syncs first (8 s cap), asks before discarding unsynced changes, then clears progress keys.
+- **Reset progress** (signed in): in the account window, "Your data". It reuses the existing confirmation, clears scores, progress and incorrect questions on all devices, keeps flags. The header trash icon is hidden while signed in.
+- **Delete account:** asks for the password (or a Google re-sign-in), deletes the cloud data, deletes the Firebase sign-in, clears the device. If the sign-in removal fails after the data is gone, the device still signs out and clears, and the person is told to finish from a fresh sign-in.
+- **Loading cover:** while a freshly signed-in device fetches its account, a full-screen "Loading your progress" cover hides the empty dashboard. It is removed when the load ends, on failure, and after 8 s at most.
+- **Switch:** nothing is visible unless `cloudEnabled` is `true` or the device opted in with `?cloud=1` (stored as `dqb_cloud_preview`; `?cloud=0` removes it).
+- Public hooks: `window.Sync` (`syncNow`, `isActive`, `owner`, `pending`, `status`).
+
+---
+
+
+## 5b. Visibility (admin v3)
+
+- `config/modules.json`: a module or topic with `"hidden": true` is for admins only; no field means visible. Module `ongoing` is exclusive. New topics created in the dashboard start hidden.
+- `assets/js/app.js` `_applyVisibility()` strips hidden modules and topics from the config for everyone except admin devices, which keep them and show a Hidden badge. The admin flag is `localStorage.dqb_is_admin`, written by `sync.js` from `/api/state` (`isAdmin`), removed on sign-out, and applied live through the `recall:admin` event. It is a display convenience, not security.
+- **[Certain] Limit:** hiding is display-level. The data files (`data/**.json`) and `config/modules.json` stay public URLs, so a person who knows a path can still fetch hidden questions. Do not put secret material in a hidden topic.
+- A student whose saved or incorrect list points at a topic that later becomes hidden simply sees nothing for it until it is visible again.
+- Pop-up layers (account window, reset window, every confirmation, all admin drawers and dialogs) close only with X, Escape or Back; tapping outside never closes them. `assets/js/layers.js` adds the Back support and the shared motion: `RecallLayers.show/hide` (fade and rise in, fade and sink out, class `is-closing`) and `RecallLayers.confirm({title, message, ok, cancel, danger})`, a promise that replaces the browser `confirm()` and looks like the account window. There is no native `confirm()` left in the app. The admin drawer and dialog keep their own look; only their closing animation was added.
+- Admin page (`admin.html`, `assets/css/console.css`) is built from the app's own components: `module-card`, `subject-card`, `topic-row`, `badge`, `.toggle`, `page__header`, `breadcrumb`, `stats-strip`, `empty-state`. Its own classes start with `rc-`: never use an `ad-` prefix or words like banner or sponsor for class names, because ad blockers hide them. `admin.html` loads `assets/js/ui.js` only for the module, subject and topic icons.
+- Icons: the `icon` field is gone from `config/modules.json` and from `add_topic` in `functions/api/admin/config.js` (nothing read it; the app draws icons by id with `UI.moduleIcon/subjectIcon`). No emoji anywhere: all glyphs are inline SVG (`UI.examIcon(name, cls)` has the small set: check, x, star, flag, inbox, search, checkcircle, alert, info). A front-end test fails on any emoji in served files.
+- Scale (v5): ONE fluid root size, `html { font-size: clamp(100%, calc(33.333% + 0.8333vw), 150%) }`, i.e. 16px up to 1280px wide, 133% at 1920px, capped at 150%. Every length in `styles.css`, `account.css`, `console.css` and the few inline styles in `ui.js`, `app.js` and `ui-skeletons.js` is in rem (only 1 to 2px borders and the two `@container` thresholds are px), so the whole interface scales together, like browser zoom. Media-query breakpoints stay in px. The earlier stepped scale (112.5/125/150% from 1440/1920/2560px) and the 12px minimum text size were removed: they scaled text but not px paddings, so proportions drifted. Page height uses `100dvh` with a `100vh` fallback (phones: `100vh` counted the area under the address bar and made false scroll space).
+
+## 5c. Interface notes (v5, 2026-11-16)
+
+- **Dashboard.** The resume card is inside `aside.dashboard__rail`, after the "Progress" heading and before the stats. It is one `button.resume-banner__main[data-nav="resume-exam"]` (icon, "Continue Exam", detail `CPM · Spinal Cord · Q2/23`; the name part is cut with an ellipsis, the `Q2/23` part never) plus a separate X button (`#resume-dismiss-btn`) centred on the right. It is a bare button (not an `.icon-btn`, which brings a backdrop blur and press-scale): no fill, border, blur or shadow in any state. Phones use the same card with bigger touch targets.
+- **Progress bars.** One look: `.progress-bar` (exam sidebar), `.module-card__progress-track/-fill`, `.subject-card__bar` share a 0.375rem track and `linear-gradient(90deg, var(--bar-from), var(--bar-to))`. `UI.progressBar(percent)` takes no colour. Dark theme uses `#203B63 → #3B5B86`; light is unchanged.
+- **Saved** = sand gold (`--saved`, `#D8C58A` in dark, a deeper `#A8842C` in light so it stays readable). It is used for the Save/Saved button, the Saved badge, the Saved page header, the dashboard Saved button and badge (the count badges on both phone dashboard buttons, Incorrect and Saved, use `--quick-badge` #2a5298 with a white number in both themes), and the ring around a saved question in the number box. The page is `saved-review` (scoped: `scoped-saved`); `App._routeName()` maps the old `flagged-review` / `scoped-flagged` for remembered last pages. Green is only "correct", red only "wrong".
+- **Exam page.** The number box shows each answered question green (`palette-btn--correct`) or red (`palette-btn--wrong`); there is no legend. On desktop the sidebar is sticky, its top is level with the question card, Back sits above it (taken out of the Back/Save row with `position:absolute`), and its bottom is NOT tied to the Previous/Next row. The number box (`.palette`) is the flexible part: it scrolls inside the sidebar, and `App._keepCurrentChipInView()` scrolls it only when the current chip is out of view. Columns are `minmax(0,1fr)` and `align-content:start`; the 5.5rem minimum height is dropped when there are fewer than 6 chips (before this, a short deck stretched the one row and `aspect-ratio:1` made the cells overflow the card).
+- **Topic row meta.** `UI.topicMeta(count, professor)`: with a professor `14 Qs · Prof. Samaa` (one `span.topic-row__line`, plain text, ellipsis at the end), without one `14 Questions`. `professorBadge` is still used by the topic page header and the admin page. The module page has no "Done" badge. `.account-signin` is 2.25rem tall like the `.icon-btn` buttons beside it.
+- **Question change.** `App._renderExam('change')` swaps ONLY `.exam-main` (the question column) and calls `_updatePalette()`; the sidebar element is never re-drawn, so the number box keeps its scroll and nothing flickers. `#app[data-qdir=next|prev]` drives a short slide-in (220ms, starts at 40% opacity). Opening an exam, or a re-render for any other reason, still draws the whole page.
+- **Explanation.** The live explanation is inserted inside `.explanation-reveal > .explanation-reveal__inner`; the row grows from `0fr` to `1fr` while the box fades in, then it is scrolled fully into view. Explanations drawn as part of a normal render are plain.
+- **Pressing.** Rows, cards and chips (module card, subject card, topic row, exam option, number-box button, rail action, resume card) have no scale-on-press; a `::after` tint with `border-radius: inherit` fades in (`--press-tint`). `-webkit-tap-highlight-color` is transparent everywhere.
+- **Module page.** The Redline Data link has no vertical padding, so its row is exactly as tall as a plain title and the section rule is level with the "Progress" rule on every module.
+
+## 5d. Interface notes (v6, 2026-11-17): rebuilt pages
+
+Pages rebuilt from scratch (old markup and ~300 lines of CSS removed; nothing of them is left in `styles.css`): topic page (`subsubject`), full-exam start (`wide-exam-start`), `results`, Incorrect (`review`, `scoped-review`) and Saved (`saved-review`, `scoped-saved`). Route names, `Storage` shapes and `data-nav` targets are unchanged.
+
+- **Launch card.** `UI.launchCard({eyebrow, count, unit, note, startId, startLabel, last})`. The topic page has ONE button, `#start-exam-btn` (label "Start exam", or "Retry exam" once there is progress); the old separate `#retry-exam-btn` did exactly the same thing (same params) and is gone. The full-exam page uses `#start-wide-exam-btn`. `last` = `{pct, date}` draws the "Last attempt" line with `UI.progressBar`; the score is neutral text, not green or red.
+- **Full-exam page list.** `renderWideExamStart(mod, params, total, config, countMap)` now receives the question `countMap` that `_renderPage` already builds, and lists only topics (subject scope) or subjects (exam-type scope) that have questions, with counts that add up to the exam size. Before, it listed every topic, including empty ones.
+- **Phone review rows.** `UI._reviewActions(f, st)` is the Incorrect/Saved pair shared by the rail (`scopeRail`) and the phone list (`UI.scopeReview`, `.scope-review`, hidden from 768px).
+- **Results.** `UI.resultRing(results)` draws three arcs (correct / incorrect / skipped, CSS animation `ringIn`, off under reduced motion); `scoreRing` is removed. Rows are `UI.rvRow` with `state` `correct | wrong | skipped`; an explanation that only restates the right answer is dropped (`isRedundantExplanation`). `_bindResultsEvents` binds the Retry button on the button itself. The old version used `document.addEventListener('click', ..., {once:true})`, so any earlier click on the page used the listener up and Retry then did nothing (test: "Retry still works after other taps"). Retry still starts the same scope, randomized. There is no "retry incorrect only" button; the `retryIncorrectOnly` plumbing in `_startExam` is still there.
+- **Incorrect and Saved.** One renderer `UI._reviewPage(kind, ...)` (`renderReview` / `renderFlagged` are thin wrappers, names kept) and one binder `App._bindReviewList(kind)`; `UI.reviewItem(kind, q, config)` is the only place a row is written (the old code had the row markup twice, once in the page and once in the search handler). Ids: `#rv-list`, `#rv-search`, `#rv-module`, `#rv-subject`, `#rv-count`, `#rv-clear`. Scoped pages (`scoped-review`, `scoped-saved`) have no search box and always stay inside their scope (`App._scopeMatch`). Removing a row fades it out; removing the last one re-opens the page, which then shows its empty state. Page titles: "Incorrect Questions" and "Saved Questions". The Saved header keeps `--mod-color:var(--saved)` (the icon is gold; no stripe).
+- **Review row markup.** `.rv > button.rv__head[aria-expanded] + .rv__body > .rv__inner > .rv__pad`. The body opens with `grid-template-rows 0fr -> 1fr`; while closed it is `visibility:hidden`, so Tab never lands on its buttons. Padding lives on `.rv__pad` (padding on the clipped element itself would leave a sliver when closed).
+- **Topic badge.** `UI.renderExam(engine, config, shownTopics)` takes the Set `App._topicShown` (question indexes the student has opened; reset when an exam starts or resumes). `App._revealTopic(veil)` swaps the real name in, adds `.is-open`, and animates the width in rem from the measured closed width to the measured open width (inline width is cleared after 400ms so it follows resizes). The closed text is the constant "Reveal topic" (the real name is only in `data-topic`), so the badge leaks nothing, not even the length. It does not toggle closed again. The topic line inside the explanation box is unchanged (it only appears after answering).
+- **Phone dashboard count badges** (`.quick-icon-btn__badge`): number weight 600 (was 700).
+- **Last attempt record (Analytics).** `ExamEngine.submit` saves the full result of every non-practice attempt with `Storage.saveLastResults(Storage.resultsKey(config), ...)`: one record per topic / subject scope / exam type, newest 12 scopes kept, skipped above 600 kB, stored under `dqb_last_results` (in `STORAGE_KEYS`, so reset, sign-out wipe and delete remove it; left out of `snapshotLocal` on purpose). It lives on this device only (not synced): after signing in on another device the Analytics button appears after the first attempt there. The button (`#analytics-btn`, `launchCard({analyticsKey})`) only renders when a record exists; it opens `navigate('results', {stored:true, key})`, which loads the record into `App.lastResults` (title "Last attempt" plus the date). Records written before this version do not exist, so the button shows after the next attempt.
+- **Previous attempt.** `results.previous` = the newest earlier history entry of the same scope, ignoring practice runs (`history.retry`). The results page shows the difference in points; nothing is coloured red or green for it.
+- **Retry incorrect** (`#retry-incorrect-btn`): `App._retryPool` holds the questions answered wrongly in that attempt (skipped ones are not included), `_startExam({retryFromResults:true})` builds a shuffled exam with `config.retryOf = true`. A practice run records its history entry with `retry: true`, but does NOT write topic progress, the last-attempt record or the previous-attempt baseline. It still counts in the statistics and is uploaded like any attempt. The older `retryIncorrectOnly` path (matches the stored Incorrect list by topic) is unchanged and still has no button.
+- **Results page extras.** Filter chips and topic rows only hide rows (`hidden`) and recount; `UI.tidyList` marks the first visible row so no row loses or doubles its top rule. "By topic" shows for exams with 2 or more topics, 5 rows plus "Show all". Saved state of a row is read from `Storage.getFlagged()` at draw time (so the stored Last attempt view is always current); Save uses the same entry shape and uid as the star in the exam (`Storage.questionUid`). `perQuestion` now carries the question `id`.
+- **Incorrect / Saved order.** `UI.reviewListHTML(kind, items, config, sort)`: `newest` (default; `updatedAt`/`addedAt`, or `flaggedAt`), `oldest`, `topic` (headings `.rv-group`, topics A to Z, newest first inside). The order select `#rv-sort` is on every Incorrect/Saved page; the order is not remembered between visits.
+
+## 5e. Interface notes (v7, 2026-11-19)
+
+- **Refresh keeps the exam.** `ExamEngine.init` and every practice start save the exam at once (`save()`), and `App._resumeRoute(page, params)` (used by `init` for the stored last page and by `popstate`) turns the `exam` route into `resume-exam` when `Storage.loadCurrentExam()` holds an unfinished exam. Before, the exam route started a new exam from its params and `ExamEngine.init` wiped the saved one.
+- **Per-topic unfinished exam.** `STORAGE_KEYS.TOPIC_EXAMS` (`dqb_topic_exams`): a map `resultsKey -> {config, questions, state}` for normal single-topic exams only (`ExamEngine._isTopic`: no scope, not a practice run). Written by `ExamEngine.save()` next to the single current-exam slot the dashboard card uses; cleared on submit, on abandon (dashboard X; the topic card has none, "Start a new attempt" discards it) and when a new attempt of that topic starts. `Storage.getTopicExam / saveTopicExam / clearTopicExam`; entries above 600 kB are not stored. Device-local: wiped with the other progress, left out of `snapshotLocal`. `ExamEngine.resume(topicKey)` resumes from it (`navigate('resume-exam', {key})`).
+- **Retry incorrect merges into the topic.** `ExamEngine._mergeIntoLast(run)`: for a practice run of ONE topic (no scope, not mixed) whose last-attempt record exists, each answered retried question replaces its outcome in the record (matched by `_subject|_subSubject|id`), counts/score/time are recalculated, the record and `setSubjectProgress` are rewritten, and `submit()` returns that merged object (`updated: {retried, fixed}`, title shows "Updated after retry"). The history entry is still a practice run (`retry: true`), so it is not the "previous attempt" baseline. Without a stored record the run's own results are shown. Wide scopes (subject / exam type) are not merged.
+- **Incorrect-list exams.** `App._incorrectPool(filter, picks)` turns stored Incorrect entries into exam questions (each keeps `_module`, `_examType`, `_subject`, `_subSubject`, `_subSubjectLabel`); `App._startPractice(pool, title)`: one topic -> a topic practice run (merges, see above); several -> `config.scope = 'custom'`, `mixed: true`, `module`/`examType` filled only when all questions share them. Routes: `exam` with `{mode:'incorrect', filter}` (topic page "Retry incorrect", Master incorrect Qs exam) or `{mode:'custom', picks:[module|examType|subject|subSubject, ...]}` (custom exam page, route `custom-exam`). `ExamEngine.submit/toggleFlag` and the results rows use the question's own `_module/_examType` when present. A correct answer never removes a question from the Incorrect list. History entries of a mixed run carry `scope:'custom'` and an empty `module` when modules differ, which `sync.js` skips (`ID_RE`): **mixed runs are not uploaded yet** (see handoff, cloud sync).
+- **Results card.** Retry buttons live in `.res-hero > .res-retries` (`#retry-incorrect-btn` wide primary, `#retry-all-btn` compact `btn--ghost`; with 0 incorrect, Retry exam is the primary). No Dashboard button, no confetti (`launchConfetti` and its CSS removed). `title`: "Last attempt" (stored view), "Excellent" at 100%, else "Exam complete". Row bodies list every option with `.rv-opt--ok / --bad` (as `UI.reviewItem`) and a "Not answered" note for skipped; the old `.rv-ans` rows are removed.
+- **Attempts.** A topic keeps ONE last-attempt record (`dqb_last_results[key]`, retries merge into it). Full exams (scope `subject`/`examtype`) and custom exams (`resultsKey` = `'custom'`) keep EVERY attempt as `key#<completedAt>` (`Storage.saveAttempt / listAttempts`; `getLastResults(key)` falls back to the newest). Pruning: newest 40 records and about 1.5 MB. Route `attempts` (`UI.renderAttempts`) lists them with the topics covered (from `perQuestion._subSubjectLabel`), tag "All topics" / "Some topics" (`config.partial`) / the custom title; a row opens `results` with `{stored, key, backTo}` (title "Attempt", Back returns to the list). `topicStats(..., attempts)` makes "View last attempt" open the list (full-exam pages, custom page) instead of the single record (topic page).
+- **Full-exam start pages** are the topic page's pieces again (Stats list, `.exam-card--compact`, no description) plus a picker (`.cx-*`, `App._bindPicker`, shared with the custom exam page) listing topics with check marks, all ticked; unticked topics are sent as `picks` (`subject|topic` keys that stay ticked) and `_startExam` filters `subSubjectList` / `subjectMap`; `config.partial` marks such an exam. Retry exam / Retry incorrect(n) after an attempt; Retry incorrect there = `{mode:'incorrect', filter}` over the scope (a mixed practice run, not merged into the full-exam record).
+- **Topic page.** `UI.renderSubSubject(..., resume)`: exam card (`.exam-card`; professor badge moved here from the header; no description line), Continue card `UI.topicResume` (the dashboard's `.resume-banner` plus `.resume-banner--topic`: arrow instead of the X, no progress bar; drawn in the rail above the Stats list from 768 px and under the exam card below it; no abandon button, "Start a new attempt" asks and discards), Stats `UI.topicStats` (View last attempt only when `Storage.getLastResults(key)` exists, Incorrect, Saved, Last score). Buttons: first visit `Start exam` ("Start a new attempt" while a Continue card is shown); after an attempt `Retry exam` + `Retry incorrect (nQ)` (only when n > 0).
+- **Drop-downs.** `UI.enhanceSelect` is called by `_bindReviewList` for `#rv-sort`, `#rv-module`, `#rv-subject`; one document listener closes an open menu on an outside tap; Escape and arrow keys work.
+
+## 6. Recipes for adding features
+
+**Add a new endpoint.** Create `functions/api/<name>.js` exporting `onRequest({request, env, data})`. The middleware already verifies the token and gives you `data.uid`. Copy the shape of `functions/api/account.js`: check the method, validate the body, run D1 queries with `.bind(...)` (never string-concatenate input), return `json(...)`, and wrap everything in `try/catch` that returns `errorResponse(err)`. Add it to the "must be refused without a token" list and write tests in `backend-tests/run.mjs`.
+
+**Column for admin roles (run once in the D1 console, BEFORE uploading this code):** `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;`
+
+**Columns for emails and blocking (already run):** `ALTER TABLE users ADD COLUMN email TEXT;` then `ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0;`
+
+**Column added for the name (already run):** `ALTER TABLE users ADD COLUMN first_name TEXT;` then `ALTER TABLE users ADD COLUMN last_name TEXT;`
+
+**Add a column or table.** Edit `db/schema.sql` so new installs match, **and** run the matching `ALTER TABLE` / `CREATE TABLE` in the Cloudflare D1 console for the live database (the schema file is not re-applied automatically). Use `CREATE TABLE IF NOT EXISTS`. Remember every extra row written per exam counts against the free write cap.
+
+**Add a new kind of synced data.** Decide whether it fits an existing scope entry. If not, add validation in `validate.js`, merge handling in `merge.js` **and** the matching client code in `sync.js` (the two merge implementations must stay identical), then extend both test suites.
+
+**Add an admin metric.** Add a query in `functions/api/admin/summary.js`. Keep it aggregated (no per-person data) and cheap, because the result is cached for 10 minutes and each load scans attempt rows.
+
+**Change the blocklist.** Edit the lists in `functions/_lib/names.js`, then copy the same change into `assets/js/names.js` (or regenerate it from the server file). The backend test fails if the two disagree.
+
+**Change a limit.** Edit `LIMITS` in `validate.js`. Keep the client in step (it chunks attempts at 30 per call).
+
+**Rules that keep it safe:** never trust a uid from the request body; never return other users' rows; keep error bodies JSON; keep every write idempotent (a resent request must not duplicate anything); keep the front end working with the API unreachable (guest behaviour must never depend on the cloud).
+
+---
+
+## 7. Checks you can run in the Cloudflare D1 console
+
+```sql
+SELECT uid, reset_epoch, created_at, last_seen FROM users ORDER BY last_seen DESC LIMIT 20;
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM scopes;
+SELECT COUNT(*) FROM attempts;
+SELECT date(created_at/1000,'unixepoch') AS day, COUNT(*) FROM attempts GROUP BY day ORDER BY day DESC LIMIT 14;
+```
+
+Dashboards to watch: Cloudflare, Workers & Pages, Usage (requests and CPU time); D1, Metrics (rows read and written).
+
+---
+
+## 8. Testing
+
+Both suites start a **local** Worker and a **local** database with `wrangler pages dev`. Nothing touches the live site.
+
+```
+git clone https://github.com/recall-med/recall4.git site && cd site/backend-tests
+npm install
+node run.mjs            # backend: expect 203 passed, 0 failed
+node run-frontend.mjs   # front end in jsdom, all parts: expect 272 passed, 0 failed (about 4 minutes on one core; side by side on 4+ cores)
+node run-frontend.mjs pages   # only the part about pages and styles: expect 76 passed, about 20 seconds
+```
+
+Front-end parts (`backend-tests/fe/`): `sync` 49, `import` 23, `account` 55, `admin` 69, `pages` 76. Each part boots its own local site and database on its own ports and creates what it needs, so any part can be run alone (`node fe/part-pages.mjs`) and in any order. After a change to pages or styles, `pages` is the one to run (and the others only when sync, account or admin code changed). Each part stays well under the 300 s limit of a single sandbox command. The runner runs the parts side by side when the machine has 4 or more cores (`FE_PARALLEL=1` / `0` forces it), prints a one-line summary per part, and exits non-zero if any failed. A part that stops on an exception now reports it as a failure instead of ending without a summary.
+
+```
+```
+
+The front-end suite uses a fake sign-in provider and a simulated browser (jsdom), so it cannot prove real Firebase sign-in, the Google popup, or how things look on a phone. Test those by hand. Look (sizes, spacing, animation) was checked separately with a headless Chromium (Playwright) at 390, 820, 1366, 1536, 1919 and 2560px wide; that script is not part of the repo.
+
+Test-harness lessons: jsdom does not run `type="module"` scripts (the admin test extracts the inline module script and evals it); all tests share one local D1, so seeded test data must use ids/scopes no other test touches; `pkill -f <name>` inside the same shell command kills the shell; backgrounded processes do not survive between separate tool calls, so run a suite in the foreground; jsdom's loader reads the middle dot as two characters, so tests match it loosely; the front-end suite uses the real `config/modules.json` with a tiny fixture `data/` (larynx = 6, pharynx = 4 questions), so a test must never hard-code which module is ongoing (it changes from the admin page).
+
+---
+
+## 9. Where we are
+
+| Phase | What | Status |
+| --- | --- | --- |
+| 0 | Audit of the repo | Done |
+| 1 | Accounts and dashboards (D1, Firebase, env var) | Done |
+| 2 | Backend code and tests | Done, live |
+| 3a | Sign-in UI and sync engine behind the flag | Done, live, verified on a real phone |
+| 4 | Guest progress import | Done, live, both paths verified on a real phone |
+| 4+ | Reset progress moved to the account window; Delete account (`/api/account`); false "reset on another device" notice fixed; loading cover; navy notifications | Built and tested in the sandbox; Reset progress in the account window and the last three still need a phone check |
+| 4++ | Security hardening: safe headers file, recent sign-in required to delete an account, retention line in the account window | Built and tested in the sandbox; needs the sign-in re-test after upload |
+| 4+++ | Display name at sign-up and in the account window (shown as Dr. First Last), generic navy avatar, opening animation, 30 s "Sync now" cooldown (button only; automatic syncing untouched). Needs two `ALTER TABLE` lines in the D1 console before the upload (section 6) | Built and tested in the sandbox; needs a phone check |
+| 3b | Service worker (offline caching) and the full Content-Security-Policy | Not started |
+| 5 (admin, v2) | Questions tab is a full browser of every question (Module, Exam type, Subject, Topic; search; Add / Edit / Remove). Saving a question (formerly Flag, now a star) is a student's own review list: the dashboard shows it as a neutral "saved by" count, not as reports. Owners can make or remove admins in the Students tab; the app shows admins an "Open admin dashboard" button in the account window (`/api/state` returns `isAdmin`; the server still checks every admin call). | Built and tested in the sandbox |
+| 5 (dashboard) | `admin.html`: Overview, Questions (flagged, possible wrong key, hardest, Edit here / Edit on GitHub), Students (emails, search, Remove / Unblock), Retention (weekly cohorts, activation), System. Needs two more `ALTER TABLE` lines (section on the D1 console) and `GITHUB_TOKEN`. Server side is `/api/admin/summary` (cache key v=2). Needs `ADMIN_UIDS` set | Built and tested in the sandbox; needs `ADMIN_UIDS` and a phone/desktop check |
+| 5 (UI v5) | Fluid scale for every screen, one-tap resume card under Progress, correct/wrong number box, gold Saved, unified progress bars, directional question transition and real explanation reveal, press tint instead of shrinking, dvh page height, no emoji, no `icon` fields (section 5c) | Built and tested in the sandbox; needs a real-phone look |
+| 5 (rest) | Cross-device exam resume, past-attempt review | Not started (server parts exist) |
+| 6 | Pilot with 20 to 30 students, then announce | Not started |
+
+Test status: backend 203 of 203, front end 272 of 272 in five parts (jsdom).
+
+### Verified on real devices
+Email sign-up and sign-in, studying uploads data, second-device pull, automatic import for a new account, offered import for an existing account, sign-out and sign-in, Delete account with a password (the real Firebase deletion).
+
+### Not verified yet
+1. Google sign-in popup on phones (in-app browsers such as Telegram and Instagram may fail; a message is shown). Delete account through Google re-sign-in is untested for the same reason.
+2. Behaviour with many real users at once. All load figures are **[Guessing]** until measured. The tightest limit is probably D1 row writes (100,000 per day on the free plan).
+3. CPU time per request: your own testing averaged about 2.6 ms, against a 10 ms free-plan limit, but heavy syncs were not measured.
+4. The Firebase key restriction (done by the owner, not yet confirmed by screenshot or by a sign-in test).
+5. Whether `DB` is bound on Preview deployments (only matters for non-`main` branches). Do not bind the production database to Preview.
+6. Visual check of the newest changes (loading cover, navy notifications in both themes, and the v5 interface on a real phone: false scroll on the dashboard and exam pages, the resume card, the press tint, the question transition, the number box in a 200+ question exam).
+
+---
+
+## 10. Known limits and honest caveats
+
+- Imported guest exams have no per-question review and show the import time on other devices.
+- Guest totals that have no matching exam in history are not carried over, because totals are derived from exams.
+- More than 60 guest exams take more than an hour to finish uploading (the per-hour limit); nothing is lost while they wait.
+- Whole-module exams over 300 questions count, but their per-question review is not stored.
+- `settings` sync exists but the app does not use settings yet.
+- Counters come from client-submitted attempts, so analytics are a rough guide, not tamper-proof. Exams are practice only.
+- Firebase password-reset emails have their own sending limits (unconfirmed). Google sign-in is the more reliable path on exam night.
+- Daily Cloudflare limits reset at 00:00 UTC (about 02:00 to 03:00 in Cairo), so a late study night can cross the reset.
+- The backend tests folder and `db/schema.sql` are publicly downloadable on the site (they contain no secrets). The Firebase web config in `auth.js` is public by design.
+- Rolling back a bad deploy: Cloudflare, Workers & Pages, the project, Deployments, Rollback. Switching sync off for everyone: set `cloudEnabled` to `false` and commit.
+
+---
+
+## 11. Security (standing priority)
+
+The app is free, but students' emails, study history and exam results are personal data. Treat security as part of every change.
+
+### The GitHub "publicly leaked secret" alert
+- **What it is [Certain]:** the Firebase web API key (`AIzaSy...`) that sits in `assets/js/auth.js`. Every Firebase web app has to ship this key in its client code, and Google documents it as a public project identifier, not a secret. GitHub flags every Google-format key it finds, so the alert is a false positive in the usual sense.
+- **What it does not allow [Certain]:** reading or changing anyone's data. The backend trusts only a verified Firebase ID token and takes the user id from the token, never from the request.
+- **What it does allow (the real, smaller risk):** anyone with the key can call Firebase's sign-up, sign-in and password-reset endpoints directly: bot accounts filling the `users` table, password-reset emails sent to addresses the attacker picks, and use of the project's Firebase quotas. Existing limits that help: 60 exam uploads per hour per account; Firebase also throttles per IP **[Likely]**.
+- **Do not regenerate the key.** That would break sign-in until `auth.js` is updated and redeployed. Restrict it instead.
+
+### Key restriction (Google Cloud console, no billing needed)
+Status: the owner reports the website restriction is **done**. It is **not yet verified by screenshot**, and sign-in has not been re-tested after it. To verify:
+1. Open `https://console.cloud.google.com/apis/credentials?project=recall-med`, open the key ending in `...g9j74cU`, reload, and check that Application restrictions shows **Websites** with two rows: `https://recall-med.pages.dev/*` and `https://recall-med.firebaseapp.com/*` (the second is needed for the Google popup). Decline any "activate" or "start free trial" prompt.
+2. Wait about 5 minutes after any change, then on a phone: sign out and sign in with **email**; sign out and sign in with **Google**; open a **private tab** at `https://recall-med.pages.dev/?cloud=1` and sign in (closest to a student's first visit).
+3. If anything fails, switch Application restrictions back to **None** and note the exact message shown.
+4. Only after sign-in is confirmed: close the GitHub alert as **False positive**.
+5. In Firebase, Authentication, Settings, User actions: confirm **email enumeration protection** is on (unverified).
+
+The API restriction was left at Firebase's default list (it includes the Identity Toolkit and Token Service APIs, so sign-in and token refresh work). Narrowing it to those two is optional, after the website restriction is proven. A website restriction is a speed bump, not a lock, because a script can fake the referrer header. If a new address is ever added (custom domain), add it to the key **and** to Firebase Authorized domains. Sign-in will not work on preview deployment links; that is expected.
+
+**Never set `Referrer-Policy: no-referrer`** (or any policy that removes the origin from cross-origin requests) in `_headers`, because the website restriction depends on the referrer. `strict-origin-when-cross-origin` is safe.
+
+### The bigger weak spot: no rate limiting on `/api/*`
+Anyone can call `/api/*` without any key, and every request counts against Cloudflare's daily Functions limit. Because Functions are set to **Fail closed**, a flood that exhausts the limit would pause cloud sync for **everyone** (studying keeps working locally; changes queue and upload after the reset at 00:00 UTC).
+- Requests without a valid token are rejected before any database work, so a flood costs requests but not D1 writes **[Certain]**.
+- **Rate limiting rules are free** on Cloudflare's Free plan: one rule, counted per client IP in a short fixed window, matched on the path (for example `/api/`) **[Certain, per Cloudflare's rate-limiting docs and plan tables]**. The catch is that these rules are configured per **zone**, meaning a domain added to your Cloudflare account **[Likely]**. A bare `recall-med.pages.dev` address is not a zone in your account, so the Security, WAF menu is probably unavailable for it. To check: open the Cloudflare dashboard and see whether any domain is listed under Websites. If none is, you cannot use it. A domain costs money (roughly the price of a `.com` per year), which breaks the $0 rule.
+- If you ever get a domain: one rule on `/api/`, for example block an IP that sends more than about 100 requests in 10 seconds. A normal sync is a handful of requests. Many students can share one campus IP, so do not set it low.
+- Whether Pages Functions can use Cloudflare's separate in-code rate-limiting binding for Workers is **unverified [Guessing]**. Check Cloudflare's Pages bindings docs before relying on it.
+- Realistic options: accept the risk for now (the damage is a paused sync, not lost or exposed data), or move to a custom domain later. Decide this before the wide rollout and write the decision down.
+
+### Done in the security round
+- `_headers` with the safe set above (no `no-referrer`, no Cross-Origin-Opener-Policy, no enforced CSP, on purpose).
+- Deleting an account now needs a sign-in no older than 10 minutes, checked on the server from the token's `auth_time`. If the app ever shows "sign out, sign in again, then delete your account", that is this check. **[Likely]** Firebase's re-confirmation step refreshes `auth_time`, so the normal flow works; if it does not, a fresh sign-in certainly does, and the message says so.
+- API responses were already `no-store` and `nosniff`; unchanged.
+- The account window states that progress is kept until the account is deleted.
+
+### Other security work, in priority order
+| Priority | Item | Notes |
+| --- | --- | --- |
+| 1 | Rate limiting (above) | Decide: accept the risk, or custom domain. Test that exam-night traffic is not blocked. |
+| 2 | Security headers | **Partly done:** `_headers` sets `X-Content-Type-Options`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `frame-ancestors 'none'` and a Permissions-Policy. **Still open:** a full CSP allowing only what sign-in needs (`gstatic.com` scripts, Google and Firebase auth domains and popup, same-origin API). It cannot be tested without real Google and Firebase sign-in, and a wrong CSP breaks sign-in for everyone, so it waits for Phase 3b and a real-phone test. |
+| 3 | Bot sign-ups | Firebase App Check or email verification is not enforced (deliberate, to avoid blocking students before exams). Decide and document. |
+| 4 | Account and data deletion | **Done.** Delete account removes cloud data and the Firebase sign-in, and the server requires a sign-in no older than 10 minutes. The account window now says progress is kept until the account is deleted. Emails exist only in Firebase and go when the account is deleted. |
+| 5 | Public repo exposure | `backend-tests/` and `db/schema.sql` are downloadable on the live site. No secrets inside. **Left as is:** Pages has no free way to exclude a folder without a build step, and moving them would break the test setup. |
+| 6 | Pinned Firebase SDK | `auth.js` loads Firebase `10.14.1` from `gstatic.com` with no integrity check (dynamic imports cannot use it). **Verified by use** (real sign-ins and a real account deletion worked). Keep the version pinned, never `latest`. |
+| 7 | Admin access | Set `ADMIN_UIDS` **only** in Cloudflare variables. Copy the owner's uid as **text** from the D1 `users` table; do not retype it from a screenshot (capital I vs lowercase l). `/api/admin/summary` returns aggregates only. Emails and per-student rows exist only in `/api/admin/students`, which checks the same admin list. **Secrets:** the GitHub token is a fine-grained token limited to this one repository (Contents: read and write), stored only as an encrypted Cloudflare variable, never in the repo; `GITHUB_API` is honoured only on localhost so a variable can never redirect the token. |
+
+### Hard rules
+- Never add the test-only key override variable (named in `functions/_lib/auth.js`), a service-account key or any private key to Cloudflare variables or the repo. The code honours that override only on localhost, and a repo test fails if keys, `wrangler.toml` or `.dev.vars` are committed, or if that variable's name appears anywhere except `auth.js` and the test files.
+- Never commit a root `wrangler.toml` (it overrides dashboard settings).
+- Never set `Cross-Origin-Opener-Policy` in `_headers`: it breaks the Google sign-in popup.
+- Never trust a user id from the request; it comes only from the verified token.
+- When unsure whether something is secret or safe, say so and tag it **[Certain] / [Likely] / [Guessing]**.
+
+---
+
+## 12. Next steps, in order
+
+1. **Upload and check the newest changes** on a phone: the loading cover after sign-in, navy notifications in light and dark mode, a flag notification in dark mode, email and Google sign-in still working after `_headers` goes live, and Delete account on a throwaway account.
+2. **Verify the key restriction** (section 11): screenshot of the two website rows after a reload, then the email, Google and private-tab sign-in checks. Then close the GitHub alert as a false positive and confirm email enumeration protection. This also covers Google sign-in; test Google account deletion with a throwaway account.
+3. **Small pilot.** Set `cloudEnabled` to `true` only when ready, or give a few classmates the `?cloud=1` link. Watch the Cloudflare usage page and D1 metrics for a few days, before any exam week.
+4. **Phase 5:** decide what the admin dashboard must show (candidates: accounts, active users today and this week, exams per day and per module, accuracy by subject, average exam time, sync failures). Then set `ADMIN_UIDS` (copy your uid as text from the D1 `users` table, do not retype it), and build `admin.html`. Wire `/api/session` for "Resume from another device".
+5. **Phase 3b:** service worker for offline caching, plus the full CSP on top of `_headers` (section 11). It must have a kill switch so a bad cache can never strand students, and it needs real-phone testing, including sign-in under the new CSP.
+6. **Decide the rate-limiting question** (section 11) before announcing to everyone.
+7. **Phase 6:** pilot with 20 to 30 students, compare real numbers with the estimates, then announce to everyone.
+8. Optional: narrow the API restriction to the two sign-in APIs; self-host the three fonts.
+
+---
+
+## 13. Continuing in a new chat
+
+1. Start the new chat **inside the same Claude Project** ("Medical Question bank REPO") so its saved notes are available.
+2. Upload this file. Say, for example: *"Continue Recall from BACKEND_GUIDE.md. Start with step 1 of the next steps."*
+3. The repo is public. The assistant can fetch it with `git clone https://github.com/recall-med/recall4.git` in its sandbox, then run both test suites (section 8). Fetching raw GitHub URLs only works if the URL appeared earlier in the chat.
+4. Working style the assistant should follow:
+   - Owner goes by Notnt, a medical student, not a developer. Everything is done through web dashboards and the GitHub web uploader. No command line.
+   - Short, direct answers. Tag claims **[Certain] / [Likely] / [Guessing]**. Put the uncomfortable truth first.
+   - Deliver **only new or changed files**, say exactly where each goes, never a full-project zip.
+   - No emojis in the UI. Do not rewrite existing CSS or change base variables; add rules in `account.css` instead. Keep dark mode working. Small surgical changes. **Ask before consequential or ambiguous UI decisions.**
+   - The owner owns the budget limit: zero dollars, no card, free plans only. Keep replies and tool use compact because of usage limits.
+   - Test in the sandbox before delivering, and say plainly what could not be tested (real Firebase, real phones).
+
+### Quick reference
+
+| Item | Value |
+| --- | --- |
+| Live site | `https://recall-med.pages.dev` (test sign-in on one device with `?cloud=1`) |
+| Repo | `https://github.com/recall-med/recall4`, branch `main` |
+| D1 database | `recall-db`, binding `DB` |
+| Firebase project | `recall-med` (Spark plan) |
+| Env var set | `FIREBASE_PROJECT_ID=recall-med` |
+| Env var pending | `ADMIN_UIDS` |
+| Switch file | `config/sync-config.json` |

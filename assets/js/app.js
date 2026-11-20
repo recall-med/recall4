@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * DEPT. Q. BANK — app.js  (v3 — subject & exam-type wide exams)
+ * Recall — app.js  (v3 — subject & exam-type wide exams)
  * ============================================================
  */
 
@@ -14,13 +14,16 @@ const App = {
   // ─── Bootstrap ───────────────────────────────────────────────────────────
 
   async init() {
-    UI.setContent(UI.skeletonAppBoot());
+    // Only show the boot skeleton if the config is slow to arrive; on a normal visit it would just flash.
+    const bootTimer = setTimeout(() => UI.setContent(UI.skeletonAppBoot(), 'swap'), 150);
     try {
       this.config = await this._loadConfig();
+      clearTimeout(bootTimer);
       document.title = this.config.siteTitle;
     } catch (e) {
+      clearTimeout(bootTimer);
       UI.setContent(`<div class="error-screen">
-        <h2>⚠️ Configuration Error</h2>
+        <h2>Configuration Error</h2>
         <p>Could not load <code>config/modules.json</code>. Check the file exists and is valid JSON.</p>
         <pre>${e.message}</pre>
       </div>`);
@@ -29,6 +32,8 @@ const App = {
 
     this._initTheme();
     document.addEventListener('click', e => this._handleGlobalClick(e));
+    // iOS Safari only applies :active (the press feedback) when a touch listener exists on the page
+    document.addEventListener('touchstart', () => {}, { passive: true });
 
     document.addEventListener('visibilitychange', () => {
       const onExamScreen = this.currentPage === 'exam' || this.currentPage === 'resume-exam';
@@ -42,18 +47,50 @@ const App = {
 
     window.addEventListener('popstate', e => {
       if (e.state && e.state.page) {
-        this._navigateWithoutHistory(e.state.page, e.state.params || {});
+        const r = this._resumeRoute(this._routeName(e.state.page), e.state.params || {});
+        this._navigateWithoutHistory(r.page, r.params);
       } else {
         this._navigateWithoutHistory('dashboard', {});
       }
     });
 
-    const last = Storage.loadLastPage();
+    // The admin flag arrived (or went away) after the page loaded: apply it to what is shown.
+    window.addEventListener('recall:admin', () => {
+      if (!this._rawConfig) return;
+      this.config = this._applyVisibility(this._rawConfig);
+      this._countCache = null; this._countsChecked = new Set();
+      if (!['dashboard', 'module', 'subject', 'subsubject', 'wide-exam-start'].includes(this.currentPage)) return;
+      if (this.currentParams && this.currentParams.moduleId && !this._getModule(this.currentParams.moduleId)) { this.navigate('dashboard'); return; }
+      UI._silent = true;
+      Promise.resolve(this._renderPage(this.currentPage, this.currentParams)).catch(() => {}).finally(() => { UI._silent = false; });
+    });
+
+    let last = Storage.loadLastPage();
+    // A remembered page inside a module that is hidden for this person (or no longer exists) falls back to the dashboard.
+    if (last && last.params && last.params.moduleId && !this._getModule(last.params.moduleId)) last = null;
     if (last && last.page) {
-      this.navigate(last.page, last.params);
+      // A refresh (or reopening the tab) on an exam page must continue that exam, not start a new one
+      const r = this._resumeRoute(this._routeName(last.page), last.params);
+      this.navigate(r.page, r.params);
     } else {
       this.navigate('dashboard');
     }
+  },
+
+  // Pages were renamed flagged-review → saved-review and scoped-flagged → scoped-saved. A remembered last page or an old
+  // history entry on a device that has not reloaded yet may still carry the old name, so it is mapped here.
+  _routeName(page) {
+    return ({ 'flagged-review': 'saved-review', 'scoped-flagged': 'scoped-saved' })[page] || page;
+  },
+
+  // The exam route starts a NEW exam from its params. When it is reached by a refresh or the Back button while an exam is
+  // unfinished, the unfinished one is continued instead (all answers, flags and the position are kept in storage).
+  _resumeRoute(page, params) {
+    if (page === 'exam') {
+      const saved = Storage.loadCurrentExam();
+      if (saved && saved.state && !saved.state.submitted) return { page: 'resume-exam', params: {} };
+    }
+    return { page, params };
   },
 
   // ─── Theme toggle ────────────────────────────────────────────────────────
@@ -94,7 +131,7 @@ const App = {
     this.currentParams = params;
     Storage.saveLastPage({ page, params });
     history.pushState({ page, params }, '', '#' + page);
-    this._renderPage(page, params);
+    this._safeRender(page, params);
   },
 
   _navigateWithoutHistory(page, params = {}) {
@@ -102,7 +139,23 @@ const App = {
     this.currentPage   = page;
     this.currentParams = params;
     Storage.saveLastPage({ page, params });
-    this._renderPage(page, params);
+    this._safeRender(page, params);
+  },
+
+  // Never leave the person on an endless loading screen: if a page fails to render, say so and offer a reload.
+  _safeRender(page, params) {
+    return Promise.resolve(this._renderPage(page, params)).catch(err => this._showRenderError(err));
+  },
+
+  _showRenderError(err) {
+    console.error('[Recall] Page failed to render:', err);
+    const msg = String((err && err.message) || err).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    UI.setContent(`<div class="error-screen">
+      <h2>This page could not be displayed</h2>
+      <p>Try reloading. If it keeps happening, some site files may be out of date, so reload again after the next update finishes publishing.</p>
+      <pre>${msg}</pre>
+      <button class="btn btn--primary" onclick="location.reload()">Reload</button>
+    </div>`, 'swap');
   },
 
   async _renderPage(page, params) {
@@ -111,12 +164,14 @@ const App = {
       case 'dashboard': {
         const progress = Storage.getProgress();
         const stats    = Storage.getStats();
-        UI.setContent(UI.skeletonDashboard());
+        const warm = this._hasAllCounts(this.config);
+        if (!warm) UI.setContent(UI.skeletonDashboard(), 'swap');
         const countMap  = await this._buildCountMap(this.config);
         const savedExam = Storage.loadCurrentExam();
         const resumeBannerHTML = (savedExam && !savedExam.state?.submitted)
           ? UI.renderResumeBanner(savedExam, this.config) : '';
-        UI.setContent(UI.renderDashboard(this.config, progress, stats, countMap, resumeBannerHTML));
+        UI.setContent(UI.renderDashboard(this.config, progress, stats, countMap, resumeBannerHTML), warm ? 'enter' : 'swap');
+        UI.initModuleCarousel();
         this._applyThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
         break;
       }
@@ -125,9 +180,10 @@ const App = {
         const mod = this._getModule(params.moduleId);
         if (!mod) { this.navigate('dashboard'); break; }
         const progress = Storage.getProgress();
-        UI.setContent(UI.skeletonModule());
+        const warm = this._hasAllCounts(this.config, mod);
+        if (!warm) UI.setContent(UI.skeletonModule(), 'swap');
         const countMap = await this._buildCountMap(this.config, mod);
-        UI.setContent(UI.renderModule(mod, this.config, progress, countMap));
+        UI.setContent(UI.renderModule(mod, this.config, progress, countMap), warm ? 'enter' : 'swap');
         break;
       }
 
@@ -139,9 +195,10 @@ const App = {
         if (!mod) { this.navigate('dashboard'); break; }
         const subSubjects = (mod.subSubjects && mod.subSubjects[et] && mod.subSubjects[et][subject]) || [];
         const progress    = Storage.getProgress();
-        UI.setContent(UI.skeletonSubject());
+        const warm = this._hasAllCounts(this.config, mod);
+        if (!warm) UI.setContent(UI.skeletonSubject(), 'swap');
         const countMap = await this._buildCountMap(this.config, mod);
-        UI.setContent(UI.renderSubject(mod, et, subject, subSubjects, progress, this.config, countMap));
+        UI.setContent(UI.renderSubject(mod, et, subject, subSubjects, progress, this.config, countMap), warm ? 'enter' : 'swap');
         this._bindSubjectPageEvents(mod, et, subject, subSubjects, countMap);
         break;
       }
@@ -153,10 +210,19 @@ const App = {
         const et         = params.examType;
         const subSubject = params.subSubject;
         if (!mod) { this.navigate('dashboard'); break; }
-        UI.setContent(UI.skeletonSubSubject());
-        const count    = await this._getQuestionCount(mod, et, subject, subSubject);
+        const ssKey = this._countKey(mod, et, subject, subSubject);
+        const known = this._counts()[ssKey];
+        let count;
+        if (known !== undefined) {
+          count = known;
+          this._revalidateCounts([{ key: ssKey, m: mod, et, sub: subject, ss: subSubject }]);
+        } else {
+          UI.setContent(UI.skeletonSubSubject(), 'swap');
+          count = await this._getQuestionCount(mod, et, subject, subSubject);
+        }
         const progress = Storage.getSubjectProgress(mod.id, et, subject, subSubject);
-        UI.setContent(UI.renderSubSubject(mod, et, subject, subSubject, count, progress, this.config));
+        const resume   = Storage.getTopicExam(Storage.resultsKey({ module: mod.id, examType: et, subject, subSubject }));
+        UI.setContent(UI.renderSubSubject(mod, et, subject, subSubject, count, progress, this.config, resume), known !== undefined ? 'enter' : 'swap');
         this._bindSubSubjectEvents(mod, et, subject, subSubject);
         break;
       }
@@ -165,20 +231,24 @@ const App = {
       case 'wide-exam-start': {
         const mod = this._getModule(params.moduleId);
         if (!mod) { this.navigate('dashboard'); break; }
-        UI.setContent(UI.skeletonWideExamStart());
+        const warm = this._hasAllCounts(this.config, mod);
+        if (!warm) UI.setContent(UI.skeletonWideExamStart(), 'swap');
         const countMap  = await this._buildCountMap(this.config, mod);
         const totalCount = await this._getWideQuestionCount(mod, params.examType, params.subject, params.scope, countMap);
-        UI.setContent(UI.renderWideExamStart(mod, params, totalCount, this.config));
+        UI.setContent(UI.renderWideExamStart(mod, params, totalCount, this.config, countMap), warm ? 'enter' : 'swap');
         this._bindWideExamStartEvents(mod, params);
         break;
       }
 
       case 'exam': {
-        UI.setContent(UI.skeletonExam());
+        const skelTimer = setTimeout(() => UI.setContent(UI.skeletonExam(), 'swap'), 150);
         const started = await this._startExam(params);
+        clearTimeout(skelTimer);
         if (!started) {
           // Go back to appropriate page
-          if (params.scope === 'examtype') {
+          if (params.mode) {
+            this.navigate('review');
+          } else if (params.scope === 'examtype') {
             this.navigate('module', { moduleId: params.moduleId });
           } else if (params.scope === 'subject') {
             this.navigate('subject', { moduleId: params.moduleId, examType: params.examType, subject: params.subject });
@@ -187,23 +257,40 @@ const App = {
           }
           break;
         }
+        this._topicShown = new Set();
         this._renderExam();
         this._bindExamEvents();
         break;
       }
 
       case 'resume-exam': {
-        UI.setContent(UI.skeletonExam());
-        const resumed = await ExamEngine.resume();
+        const skelTimer = setTimeout(() => UI.setContent(UI.skeletonExam(), 'swap'), 150);
+        const resumed = await ExamEngine.resume(params && params.key);
+        clearTimeout(skelTimer);
         if (!resumed) { this.navigate('dashboard'); break; }
+        this._topicShown = new Set();
         this._renderExam();
         this._bindExamEvents();
         break;
       }
 
+      case 'attempts': {
+        const list = Storage.listAttempts(params.key);
+        if (list.length === 0) { UI.toast('No saved attempt on this device yet.', 'info'); this.navigate(params.back ? params.back.nav : 'dashboard', params.back ? params.back.params : {}); break; }
+        UI.setContent(UI.renderAttempts(list, { back: params.back, self: params }));
+        this._bindAnalytics();
+        break;
+      }
+
       case 'results': {
+        // Analytics: the stored last attempt of a topic / subject / exam type, opened from its start page
+        if (params && params.stored) {
+          const saved = Storage.getLastResults(params.key);
+          if (!saved) { UI.toast('No saved attempt on this device yet.', 'info'); this.navigate('dashboard'); break; }
+          this.lastResults = saved;
+        }
         if (!this.lastResults) { this.navigate('dashboard'); break; }
-        UI.setContent(UI.renderResults(this.lastResults, this.config));
+        UI.setContent(UI.renderResults(this.lastResults, this.config, { stored: !!(params && params.stored), backTo: params && params.backTo }));
         this._bindResultsEvents();
         break;
       }
@@ -211,40 +298,37 @@ const App = {
       case 'review': {
         const incorrect = Storage.getIncorrect();
         UI.setContent(UI.renderReview(incorrect, this.config));
-        this._bindReviewEvents();
+        this._bindReviewList('incorrect');
         break;
       }
 
       case 'scoped-review': {
         const filter    = params;
-        const incorrect = Storage.getIncorrect().filter(q =>
-          q.module     === filter.moduleId   &&
-          q.examType   === filter.examType   &&
-          q.subject    === filter.subject    &&
-          q.subSubject === filter.subSubject
-        );
+        const incorrect = Storage.getIncorrect().filter(this._scopeMatch(filter));
         UI.setContent(UI.renderReview(incorrect, this.config, filter));
-        this._bindReviewEvents();
+        this._bindReviewList('incorrect');
         break;
       }
 
-      case 'flagged-review': {
+      case 'saved-review': {
         const flagged = Storage.getFlagged();
         UI.setContent(UI.renderFlagged(flagged, this.config));
-        this._bindFlaggedReviewEvents();
+        this._bindReviewList('saved');
         break;
       }
 
-      case 'scoped-flagged': {
+      case 'scoped-saved': {
         const filter  = params;
-        const flagged = Storage.getFlagged().filter(q =>
-          q.module     === filter.moduleId   &&
-          q.examType   === filter.examType   &&
-          q.subject    === filter.subject    &&
-          q.subSubject === filter.subSubject
-        );
+        const flagged = Storage.getFlagged().filter(this._scopeMatch(filter));
         UI.setContent(UI.renderFlagged(flagged, this.config, filter));
-        this._bindFlaggedReviewEvents();
+        this._bindReviewList('saved');
+        break;
+      }
+
+      case 'custom-exam': {
+        if (Storage.getIncorrect().length === 0) { this.navigate('review'); break; }
+        UI.setContent(UI.renderCustomExam(this.config));
+        this._bindCustomExam();
         break;
       }
 
@@ -270,14 +354,14 @@ const App = {
     // Wipe history button — show modal
     if (e.target.closest('#wipe-history-btn')) {
       const modal = document.getElementById('wipe-modal');
-      if (modal) modal.style.display = 'flex';
+      if (modal) { if (window.RecallLayers) window.RecallLayers.show(modal); else modal.style.display = 'flex'; }
       return;
     }
 
     // Wipe modal — cancel
-    if (e.target.closest('#wipe-cancel-btn')) {
+    if (e.target.closest('#wipe-cancel-btn, #wipe-close')) {
       const modal = document.getElementById('wipe-modal');
-      if (modal) modal.style.display = 'none';
+      if (modal) { if (window.RecallLayers) window.RecallLayers.hide(modal); else modal.style.display = 'none'; }
       return;
     }
 
@@ -285,18 +369,21 @@ const App = {
     if (e.target.closest('#wipe-confirm-btn')) {
       Storage.wipeHistory();
       const modal = document.getElementById('wipe-modal');
-      if (modal) modal.style.display = 'none';
-      UI.toast('Progress reset. Flagged questions kept.', 'success');
+      if (modal) { if (window.RecallLayers) window.RecallLayers.hide(modal); else modal.style.display = 'none'; }
+      UI.toast('Progress reset. Saved questions kept.', 'success');
       this.navigate('dashboard');
       return;
     }
     // Resume banner — dismiss (abandons the in-progress exam)
     if (e.target.closest('#resume-dismiss-btn')) {
-      if (confirm('Abandon this exam? Your progress on this attempt will be lost.')) {
+      RecallLayers.confirm({ title: 'Abandon this exam?', message: 'Your progress on this attempt will be lost.', ok: 'Abandon exam', danger: true }).then(ok => {
+        if (!ok) return;
+        const cur = Storage.loadCurrentExam();
+        if (cur && cur.config && !cur.config.scope && !cur.config.retryOf) Storage.clearTopicExam(Storage.resultsKey(cur.config));
         Storage.clearCurrentExam();
         UI.toast('Exam abandoned.', 'success');
         this.navigate('dashboard');
-      }
+      });
       return;
     }
 
@@ -335,50 +422,60 @@ const App = {
   // ─── Sub-subject page events ──────────────────────────────────────────────
 
   _bindSubSubjectEvents(mod, examType, subject, subSubject) {
+    this._bindAnalytics();
+    const key = Storage.resultsKey({ module: mod.id, examType, subject, subSubject });
+    const filter = { moduleId: mod.id, examType, subject, subSubject };
+    const begin = () => this.navigate('exam', {
+      moduleId: mod.id, examType, subject, subSubject,
+      immediateFeedback: true, randomize: false, retryIncorrectOnly: false,
+    });
+    // Starting over while an unfinished exam of this topic exists throws that one away: ask first
+    const startFresh = () => {
+      if (!Storage.getTopicExam(key)) { begin(); return; }
+      RecallLayers.confirm({ title: 'Start a new attempt?', message: 'Your unfinished exam on this topic will be discarded.', ok: 'Start new attempt' })
+        .then(ok => { if (ok) { Storage.clearTopicExam(key); begin(); } });
+    };
     const startBtn = document.getElementById('start-exam-btn');
-    if (startBtn) {
-      startBtn.addEventListener('click', () => {
-        this.navigate('exam', {
-          moduleId:           mod.id,
-          examType,
-          subject,
-          subSubject,
-          immediateFeedback:  true,
-          randomize:          false,
-          retryIncorrectOnly: false,
-        });
-      });
-    }
-    const retryBtn = document.getElementById('retry-exam-btn');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', () => {
-        this.navigate('exam', {
-          moduleId:           mod.id,
-          examType,
-          subject,
-          subSubject,
-          immediateFeedback:  true,
-          randomize:          false,
-          retryIncorrectOnly: false,
-        });
-      });
-    }
+    if (startBtn) startBtn.addEventListener('click', startFresh);
+
+    // Retry incorrect: a practice run made of this topic's stored incorrect questions
+    const bad = document.getElementById('retry-topic-incorrect-btn');
+    if (bad) bad.addEventListener('click', () => this.navigate('exam', { mode: 'incorrect', filter }));
+
+    // Continue card: its own unfinished exam of this topic (drawn twice, rail and phone; only one is visible).
+    // There is no separate abandon button: "Start a new attempt" asks, then discards it.
+    document.querySelectorAll('.js-topic-resume').forEach(btn => btn.addEventListener('click', () => this.navigate('resume-exam', { key })));
   },
 
   // ─── Wide exam start page events ─────────────────────────────────────────
 
+  // Analytics button on the topic page and the full-exam page: the results page of the last attempt
+  _bindAnalytics() {
+    document.querySelectorAll('[data-results-key]').forEach(btn =>
+      btn.addEventListener('click', () => this.navigate('results', { stored: true, key: btn.dataset.resultsKey, backTo: btn.dataset.backTo ? JSON.parse(btn.dataset.backTo) : null })));
+    // Full exams and custom exams: the list of every stored attempt first
+    document.querySelectorAll('[data-attempts-key]').forEach(btn =>
+      btn.addEventListener('click', () => this.navigate('attempts', { key: btn.dataset.attemptsKey, back: JSON.parse(btn.dataset.back) })));
+  },
+
   _bindWideExamStartEvents(mod, params) {
+    this._bindAnalytics();
     const startBtn = document.getElementById('start-wide-exam-btn');
+    const pick = document.querySelector('.wide-pick');
+    const picker = pick ? this._bindPicker(document.querySelector('.page__main'), {
+      countEl: document.getElementById('wide-count'), unitEl: document.getElementById('wide-unit'), allEl: document.getElementById('wide-all'),
+      onCount: n => { if (startBtn) startBtn.disabled = n === 0; },
+    }) : null;
     if (startBtn) {
       startBtn.addEventListener('click', () => {
-        this.navigate('exam', {
-          ...params,
-          immediateFeedback:  true,
-          randomize:          true,
-          retryIncorrectOnly: false,
-        });
+        // Only topics that were ticked off go into the exam; with everything ticked it is the plain full exam
+        const picks = picker && !picker.allTicked() ? picker.keys() : null;
+        this.navigate('exam', { ...params, picks, immediateFeedback: true, randomize: true, retryIncorrectOnly: false });
       });
     }
+    // Retry incorrect: a practice run of this exam's stored incorrect questions
+    const bad = document.getElementById('retry-wide-incorrect-btn');
+    if (bad) bad.addEventListener('click', () => this.navigate('exam', { mode: 'incorrect', filter: { moduleId: params.moduleId, examType: params.examType, ...(params.scope === 'subject' ? { subject: params.subject } : {}) } }));
   },
 
   // ─── Exam events ──────────────────────────────────────────────────────────
@@ -390,6 +487,9 @@ const App = {
     }
 
     document.addEventListener('click', this._examClickHandler = e => {
+      const veil = e.target.closest('.topic-veil');
+      if (veil) { this._revealTopic(veil); return; }
+
       const optBtn = e.target.closest('.option:not([disabled])');
       if (optBtn) {
         const idx    = parseInt(optBtn.dataset.option, 10);
@@ -406,15 +506,23 @@ const App = {
           if (ExamEngine.config.immediateFeedback && !document.querySelector('.explanation-box')) {
             const q = ExamEngine.getCurrent();
             const topic = (ExamEngine.config.scope && q._subSubjectLabel) ? q._subSubjectLabel : '';
-            document.querySelector('.options-list').insertAdjacentHTML('afterend', UI.examExplanation({
+            const html = UI.examExplanation({
               correct:      result.correct,
               correctIndex: result.correctIndex,
               explanation:  result.explanation,
               topic,
               correctText:  q.options[result.correctIndex],
-            }));
-            const box = document.querySelector('.explanation-box');
-            if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+            if (html) {
+              // The box grows open inside a wrapper (see .explanation-reveal in the stylesheet); once it has
+              // finished opening, bring it fully into view if it ends up under the bottom bar.
+              document.querySelector('.options-list').insertAdjacentHTML('afterend',
+                `<div class="explanation-reveal"><div class="explanation-reveal__inner">${html}</div></div>`);
+              const wrap = document.querySelector('.explanation-reveal');
+              const settle = () => { const box = document.querySelector('.explanation-box'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+              if (wrap && wrap.getAnimations && wrap.getAnimations().length) wrap.getAnimations()[0].finished.then(settle).catch(() => {});
+              else settle();
+            }
           }
         }
       }
@@ -422,16 +530,16 @@ const App = {
       const palBtn = e.target.closest('.palette-btn');
       if (palBtn && palBtn.dataset.goto !== undefined) {
         ExamEngine.goTo(parseInt(palBtn.dataset.goto, 10));
-        this._renderExam();
+        this._renderExam('change');
       }
 
       if (e.target.closest('#next-btn')) {
         ExamEngine.next();
-        this._renderExam();
+        this._renderExam('change');
       }
       if (e.target.closest('#prev-btn')) {
         ExamEngine.prev();
-        this._renderExam();
+        this._renderExam('change');
       }
 
       if (e.target.id === 'flag-btn' || e.target.closest('#flag-btn')) {
@@ -439,18 +547,20 @@ const App = {
         const btn = document.getElementById('flag-btn');
         if (btn) {
           btn.classList.toggle('flag-btn--active', nowFlagged);
+          btn.setAttribute('aria-pressed', String(nowFlagged)); btn.title = nowFlagged ? 'Remove from saved' : 'Save question';
           const label = btn.querySelector('.flag-btn__label');
-          if (label) label.textContent = nowFlagged ? 'Flagged' : 'Flag';
+          if (label) label.textContent = nowFlagged ? 'Saved' : 'Save';
         }
         this._updatePalette();
-        UI.toast(nowFlagged ? 'Question flagged.' : 'Flag removed.', 'info', 1500);
+        UI.toast(nowFlagged ? 'Question saved.' : 'Removed from saved.', 'info', 1500);
       }
 
       if (e.target.closest('.submit-exam-trigger')) {
         const unanswered = ExamEngine.getProgress().unanswered;
         if (unanswered > 0) {
-          const ok = confirm(`You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Submit anyway?`);
-          if (!ok) return;
+          RecallLayers.confirm({ title: 'Submit with unanswered questions?', message: `You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Submit anyway?`, ok: 'Submit anyway', cancel: 'Go back' })
+            .then(ok => { if (ok) this._submitExam(); });
+          return;
         }
         this._submitExam();
       }
@@ -461,17 +571,89 @@ const App = {
     };
   },
 
+  // The topic badge of a multi-topic exam starts blurred. Pressing it swaps the real name in (still blurred), then it
+  // sharpens while the pill grows from its fixed width to fit the name. The choice is remembered for that question for
+  // the rest of this attempt, so coming back to it does not hide it again.
+  _revealTopic(veil) {
+    if (veil.classList.contains('is-open')) return;
+    if (!this._topicShown) this._topicShown = new Set();
+    this._topicShown.add(ExamEngine.state.currentIndex);
+    const text  = veil.querySelector('.topic-veil__text');
+    const name  = veil.dataset.topic || '';
+    const rem   = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const from  = veil.getBoundingClientRect().width;
+    if (text) text.textContent = name;
+    veil.classList.add('is-open');
+    veil.setAttribute('aria-expanded', 'true');
+    veil.setAttribute('aria-label', `Topic: ${name}`);
+    veil.removeAttribute('title');
+    veil.style.width = 'auto';
+    const to = veil.getBoundingClientRect().width;
+    if (from && to && Math.abs(to - from) > 1) {
+      veil.style.width = `${from / rem}rem`;
+      void veil.offsetWidth;
+      veil.style.width = `${to / rem}rem`;
+      setTimeout(() => { veil.style.width = ''; }, 400);
+    } else {
+      veil.style.width = '';
+    }
+  },
+
   // Single entry point for (re)drawing the exam screen. Always lands at the top of the
   // new question and keeps the current palette chip in view (palette scrolls on long exams
   // and is a horizontal strip on mobile).
-  _renderExam() {
-    UI.setContent(UI.renderExam(ExamEngine, this.config));
+  // kind: 'enter'  = opening the exam (one quick fade)
+  //       'change' = moving between questions: nothing flashes; only the question and its options ease in
+  _renderExam(kind = 'enter') {
+    const idx = ExamEngine.state.currentIndex;
+    const dir = kind === 'change' && this._examIdx != null ? Math.sign(idx - this._examIdx) : 0;   // 1 = forward, -1 = back
+    this._examIdx = idx;
+    const html = UI.renderExam(ExamEngine, this.config, this._topicShown);
+
+    // Moving between questions: swap ONLY the question column. The sidebar (with its number box and scroll
+    // position), the header and the page background are never re-drawn, so nothing flickers and the number
+    // box keeps its scroll. The phone's number strip lives in the column, so its scroll is carried over.
+    const layout = UI.root.querySelector('.exam-layout');
+    if (kind === 'change' && layout) {
+      const tpl = document.createElement('template');
+      tpl.innerHTML = html;
+      const newMain = tpl.content.querySelector('.exam-main');
+      const oldMain = layout.querySelector('.exam-main');
+      if (newMain && oldMain) {
+        const strip = oldMain.querySelector('.palette--strip');
+        const stripLeft = strip ? strip.scrollLeft : 0;
+        UI.root.dataset.qdir = dir < 0 ? 'prev' : 'next';
+        UI.root.classList.add('exam-q-change');
+        oldMain.replaceWith(newMain);
+        const newStrip = newMain.querySelector('.palette--strip');
+        if (newStrip) newStrip.scrollLeft = stripLeft;
+        this._updatePalette();
+        window.scrollTo(0, 0);
+        this._keepCurrentChipInView();
+        return;
+      }
+    }
+
+    UI.setContent(html, kind === 'change' ? 'none' : 'swap');
+    UI.root.classList.toggle('exam-q-change', kind === 'change');
+    UI.root.dataset.qdir = dir < 0 ? 'prev' : 'next';
     window.scrollTo(0, 0);
+    this._keepCurrentChipInView(true);
+  },
+
+  // Scrolls a number box (vertical on desktop, a strip on phones) only if the current question's chip is out of view,
+  // and only as far as needed. `jump` places it without animation (opening an exam).
+  _keepCurrentChipInView(jump = false) {
     document.querySelectorAll('.exam-layout .palette').forEach(pal => {
       const cur = pal.querySelector('.palette-btn--current');
       if (!cur || !pal.clientWidth) return;   // skip the palette hidden at this breakpoint
-      pal.scrollTop  = cur.offsetTop  - pal.clientHeight / 2 + cur.offsetHeight / 2;
-      pal.scrollLeft = cur.offsetLeft - pal.clientWidth  / 2 + cur.offsetWidth  / 2;
+      const pr = pal.getBoundingClientRect(), cr = cur.getBoundingClientRect();
+      const out = cr.top < pr.top || cr.bottom > pr.bottom || cr.left < pr.left || cr.right > pr.right;
+      if (!out && !jump) return;
+      const top  = pal.scrollTop  + (cr.top  - pr.top)  - pal.clientHeight / 2 + cur.offsetHeight / 2;
+      const left = pal.scrollLeft + (cr.left - pr.left) - pal.clientWidth  / 2 + cur.offsetWidth  / 2;
+      if (jump) { pal.scrollTop = top; pal.scrollLeft = left; }
+      else pal.scrollTo({ top, left, behavior: 'smooth' });
     });
   },
 
@@ -484,7 +666,7 @@ const App = {
         if (!btn) return;
         btn.className = 'palette-btn';
         if (i === ExamEngine.state.currentIndex) btn.classList.add('palette-btn--current');
-        else if (ExamEngine.isAnswered(i))       btn.classList.add('palette-btn--answered');
+        else { const st = UI.examPaletteState(ExamEngine, i).trim(); if (st) btn.classList.add(st); }
         if (ExamEngine.isFlagged(i))             btn.classList.add('palette-btn--flagged');
       });
     });
@@ -504,166 +686,278 @@ const App = {
     if (this._cleanupExamListeners) this._cleanupExamListeners();
     this.lastResults = ExamEngine.submit();
     this.navigate('results');
-    if (this.lastResults && this.lastResults.score === 100) {
-      UI.launchConfetti();
-    }
   },
 
   // ─── Results events ───────────────────────────────────────────────────────
 
   _bindResultsEvents() {
-    document.addEventListener('click', e => {
-      if (e.target.id === 'retry-incorrect-btn' || e.target.closest('#retry-incorrect-btn')) {
-        const btn = e.target.closest('#retry-incorrect-btn') || e.target;
-        this.navigate('exam', {
-          moduleId:           btn.dataset.module,
-          examType:           btn.dataset.examType,
-          subject:            btn.dataset.subject,
-          subSubject:         btn.dataset.subSubject,
-          immediateFeedback:  true,
-          randomize:          true,
-          retryIncorrectOnly: true,
-        });
-      }
-      if (e.target.id === 'retry-all-btn' || e.target.closest('#retry-all-btn')) {
-        const btn = e.target.closest('#retry-all-btn') || e.target;
-        this.navigate('exam', {
-          moduleId:           btn.dataset.module,
-          examType:           btn.dataset.examType,
-          subject:            btn.dataset.subject || null,
-          subSubject:         btn.dataset.subSubject || null,
-          scope:              btn.dataset.scope || null,
-          immediateFeedback:  true,
-          randomize:          true,
-          retryIncorrectOnly: false,
-        });
-      }
-    }, { once: true });
-  },
+    const list = document.getElementById('results-list');
+    this._bindRowToggle(list);
+    const res = this.lastResults;
+    const rc  = res && res.config;
+    UI.tidyList(list);
 
-  // ─── Review events ────────────────────────────────────────────────────────
+    // Filter chips (All / Incorrect / Skipped / Saved) and the topic rows below "By topic" narrow the same list
+    let stateF = 'all', topicF = '';
+    const chips = [...document.querySelectorAll('.res-chip')];
+    const apply = () => {
+      let shown = 0;
+      list.querySelectorAll('.rv').forEach(row => {
+        const okState = stateF === 'all' || (stateF === 'saved' ? row.dataset.saved === '1' : row.dataset.state === stateF);
+        const okTopic = !topicF || row.dataset.topic === topicF;
+        row.hidden = !(okState && okTopic);
+        if (!row.hidden) shown++;
+      });
+      const none = document.getElementById('res-none');
+      if (none) none.hidden = shown !== 0;
+      const total = list.querySelectorAll('.rv').length;
+      const count = document.getElementById('res-count');
+      if (count) count.textContent = shown === total ? `${total} ${total === 1 ? 'question' : 'questions'}` : `${shown} of ${total}`;
+      chips.forEach(c => c.setAttribute('aria-pressed', String(c.dataset.filter === stateF)));
+      document.querySelectorAll('.res-topic').forEach(t => t.setAttribute('aria-pressed', String(t.dataset.topic === topicF)));
+      UI.tidyList(list);
+    };
+    // Chips with nothing behind them are hidden; with only "All" left the whole bar goes
+    const tidyChips = () => {
+      const saved = list.querySelectorAll('.rv[data-saved="1"]').length;
+      const sc = document.querySelector('.res-chip[data-filter="saved"]');
+      if (sc) { sc.hidden = saved === 0; sc.querySelector('.res-chip__n').textContent = saved; }
+      const bar = document.getElementById('res-filter');
+      if (bar) bar.hidden = chips.filter(c => !c.hidden).length < 2;
+      if (stateF === 'saved' && saved === 0) { stateF = 'all'; apply(); }
+    };
+    tidyChips();
+    chips.forEach(c => c.addEventListener('click', () => { stateF = c.dataset.filter; apply(); }));
+    document.querySelectorAll('.res-topic').forEach(t => t.addEventListener('click', () => {
+      topicF = topicF === t.dataset.topic ? '' : t.dataset.topic;
+      apply();
+      if (topicF) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    const more = document.getElementById('res-topics-toggle');
+    if (more) more.addEventListener('click', () => {
+      const box = document.getElementById('res-topics-more');
+      const open = box.hidden;
+      box.hidden = !open;
+      more.textContent = open ? 'Show fewer' : `Show all ${document.querySelectorAll('.res-topic').length} topics`;
+    });
 
-  _bindReviewEvents() {
-    const list    = document.getElementById('review-list');
-    const search  = document.getElementById('review-search');
-    const fMod    = document.getElementById('review-filter-module');
-    const fSub    = document.getElementById('review-filter-subject');
-    const clearAll = document.getElementById('clear-all-review');
+    // Save / unsave a question from the review (same list as the star during the exam)
+    list.addEventListener('click', e => {
+      const btn = e.target.closest('[data-save-q]');
+      if (!btn || !res) return;
+      const pq = res.perQuestion[Number(btn.dataset.saveQ)];
+      if (!pq || pq.id === undefined) return;
+      const on = Storage.toggleFlag({
+        module: pq._module || rc.module, examType: pq._examType || rc.examType,
+        subject: rc.subject || pq._subject, subSubject: rc.subSubject || pq._subSubject,
+        id: pq.id, question: pq.question, options: pq.options, answer: pq.answer, explanation: pq.explanation,
+      });
+      const row = btn.closest('.rv');
+      row.dataset.saved = on ? '1' : '0';
+      btn.classList.toggle('is-saved', on);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.querySelector('.res-save__text').textContent = on ? 'Saved' : 'Save';
+      const meta = row.querySelector('.rv__meta');
+      const star = meta.querySelector('.rv__saved');
+      if (on && !star) meta.insertAdjacentHTML('beforeend', '<svg class="icon rv__saved" viewBox="0 0 24 24" aria-label="Saved"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>');
+      if (!on && star) star.remove();
+      UI.toast(on ? 'Saved.' : 'Removed from saved.', 'info');
+      tidyChips();
+      if (stateF !== 'all' || topicF) apply();
+    });
 
-    const filterAndRender = () => {
-      let items = Storage.getIncorrect();
-      const q = search?.value.toLowerCase() ?? '';
-      const m = fMod?.value ?? '';
-      const s = fSub?.value ?? '';
-      if (q) items = items.filter(i => i.question.toLowerCase().includes(q));
-      if (m) items = items.filter(i => i.module === m);
-      if (s) items = items.filter(i => i.subject === s);
-      if (list) {
-        list.innerHTML = items.length === 0
-          ? UI.emptyState('No Matches', 'Try adjusting your filters.', '🔍')
-          : items.map(q => {
-              const sub = this.config.subjects.find(s => s.id === q.subject);
-              const et  = this.config.examTypes.find(e => e.id === q.examType);
-              return `<div class="review-item" data-uid="${q.uid}">
-                <div class="review-item__meta">
-                  <span class="badge" style="background:${sub?.color}20;color:${sub?.color}">${sub?.icon} ${sub?.label}</span>
-                  <span class="badge badge--ghost">${q.module}</span>
-                  ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
-                  <span class="badge badge--ghost">${et?.label}</span>
-                </div>
-                <p class="review-item__question">${q.question}</p>
-                <div class="review-item__options">
-                  ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : i === q.userAnswer ? 'review-opt--wrong' : ''}">${['A','B','C','D'][i]}. ${opt}</span>`).join('')}
-                </div>
-                <div class="review-item__explanation">${q.explanation}</div>
-                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">✓ Mark as Mastered</button>
-              </div>`;
-            }).join('');
-      }
+    const poolOf = list => list.map(p => ({
+      id: p.id, question: p.question, options: p.options, answer: p.answer, explanation: p.explanation,
+      _subject: p._subject, _subSubject: p._subSubject, _subSubjectLabel: p._subSubjectLabel, _module: p._module, _examType: p._examType,
+    }));
+    const practice = (list) => {
+      this._retryPool = poolOf(list);
+      this._retryConfig = { ...rc };
+      this.navigate('exam', {
+        moduleId: rc.module, examType: rc.examType, subject: rc.subject || null, subSubject: rc.subSubject || null,
+        scope: rc.scope || null, immediateFeedback: true, randomize: true, retryIncorrectOnly: true, retryFromResults: true,
+      });
     };
 
-    search?.addEventListener('input', filterAndRender);
-    fMod?.addEventListener('change', filterAndRender);
-    fSub?.addEventListener('change', filterAndRender);
-
-    clearAll?.addEventListener('click', () => {
-      if (confirm('Remove all questions from review? This cannot be undone.')) {
-        Storage.clearAllIncorrect();
-        this.navigate('review');
-      }
+    // Retry exam: the same exam again. A custom / mixed exam has no start page of its own, so it reruns its own questions.
+    const retry = document.getElementById('retry-all-btn');
+    if (retry) retry.addEventListener('click', () => {
+      if (rc && rc.scope === 'custom' && res) { practice(res.perQuestion); return; }
+      this.navigate('exam', {
+        moduleId:           retry.dataset.module,
+        examType:           retry.dataset.examType,
+        subject:            retry.dataset.subject || null,
+        subSubject:         retry.dataset.subSubject || null,
+        scope:              retry.dataset.scope || null,
+        immediateFeedback:  true,
+        randomize:          true,
+        retryIncorrectOnly: false,
+      });
     });
 
-    list?.addEventListener('click', e => {
-      const btn = e.target.closest('[data-remove-uid]');
-      if (btn) {
-        Storage.removeIncorrect(btn.dataset.removeUid);
-        btn.closest('.review-item')?.remove();
-        UI.toast('Marked as mastered.', 'success');
-      }
+    // Retry incorrect: a practice run made of exactly the questions answered wrongly in this attempt
+    const retryBad = document.getElementById('retry-incorrect-btn');
+    if (retryBad && res) retryBad.addEventListener('click', () => practice(res.perQuestion.filter(p => p.answered && !p.correct)));
+  },
+
+  // Review rows (results, Incorrect, Saved) open and close on tap; only the row's own button toggles it.
+  _bindRowToggle(list) {
+    if (!list) return;
+    list.addEventListener('click', e => {
+      const head = e.target.closest('.rv__head');
+      if (!head || !list.contains(head)) return;
+      const row  = head.closest('.rv');
+      const open = !row.classList.contains('is-open');
+      row.classList.toggle('is-open', open);
+      head.setAttribute('aria-expanded', String(open));
     });
   },
 
-  // ─── Flagged review events ───────────────────────────────────────────────
+  // ─── Incorrect and Saved pages ───────────────────────────────────────────
 
-  _bindFlaggedReviewEvents() {
-    const list    = document.getElementById('flagged-list');
-    const search  = document.getElementById('flagged-search');
-    const fMod    = document.getElementById('flagged-filter-module');
-    const fSub    = document.getElementById('flagged-filter-subject');
-    const clearAll = document.getElementById('clear-all-flagged');
+  // Does a stored question belong to a scope (module, optionally exam type, subject, topic)?
+  _scopeMatch(f) {
+    return q => q.module === f.moduleId
+      && (!f.examType   || q.examType   === f.examType)
+      && (!f.subject    || q.subject    === f.subject)
+      && (!f.subSubject || q.subSubject === f.subSubject);
+  },
 
-    const filterAndRender = () => {
-      let items = Storage.getFlagged();
-      const q = search?.value.toLowerCase() ?? '';
-      const m = fMod?.value ?? '';
-      const s = fSub?.value ?? '';
-      if (q) items = items.filter(i => i.question.toLowerCase().includes(q));
+  // kind: 'incorrect' | 'saved'. One binder for both pages; rows come from UI.reviewItem, so a search result looks
+  // exactly like the first draw. Scoped pages (opened from a topic, subject or module) have no search box and always
+  // stay inside their scope.
+  _bindReviewList(kind) {
+    const saved   = kind === 'saved';
+    const list    = document.getElementById('rv-list');
+    if (!list) return;
+    const sortEl  = document.getElementById('rv-sort');
+    const search  = document.getElementById('rv-search');
+    const fMod    = document.getElementById('rv-module');
+    const fSub    = document.getElementById('rv-subject');
+    const clear   = document.getElementById('rv-clear');
+    const count   = document.getElementById('rv-count');
+    const scoped  = this.currentPage === 'scoped-review' || this.currentPage === 'scoped-saved';
+    const inScope = scoped ? this._scopeMatch(this.currentParams) : () => true;
+    const route   = this.currentPage, params = this.currentParams;
+
+    // The native drop-downs are replaced by the app's own menu (the select stays underneath as the value holder)
+    [sortEl, fMod, fSub].forEach(el => UI.enhanceSelect(el));
+
+    // Incorrect page: custom exam (all pages) / master exam (inside a topic, subject or module)
+    const customBtn = document.getElementById('start-custom-exam-btn');
+    if (customBtn) customBtn.addEventListener('click', () => this.navigate('custom-exam'));
+    const masterBtn = document.getElementById('master-incorrect-btn');
+    if (masterBtn) masterBtn.addEventListener('click', () => this.navigate('exam', { mode: 'incorrect', filter: { ...params } }));
+
+    const all = () => (saved ? Storage.getFlagged() : Storage.getIncorrect()).filter(inScope);
+    const word = n => `${n} ${n === 1 ? 'question' : 'questions'}`;
+
+    const draw = () => {
+      let items = all();
+      const q = (search?.value || '').trim().toLowerCase();
+      const m = fMod?.value || '';
+      const s = fSub?.value || '';
+      if (q) items = items.filter(i => String(i.question).toLowerCase().includes(q));
       if (m) items = items.filter(i => i.module === m);
       if (s) items = items.filter(i => i.subject === s);
-      if (list) {
-        list.innerHTML = items.length === 0
-          ? UI.emptyState('No Matches', 'Try adjusting your filters.', '🔍')
-          : items.map(q => {
-              const sub = this.config.subjects.find(s => s.id === q.subject);
-              const et  = this.config.examTypes.find(e => e.id === q.examType);
-              return `<div class="review-item" data-uid="${q.uid}">
-                <div class="review-item__meta">
-                  <span class="badge" style="background:${sub?.color}20;color:${sub?.color}">${sub?.icon} ${sub?.label}</span>
-                  <span class="badge badge--ghost">${q.module}</span>
-                  ${q.subSubjectLabel ? `<span class="badge badge--ghost">${q.subSubjectLabel}</span>` : ''}
-                  <span class="badge badge--ghost">${et?.label}</span>
-                  <span class="badge" style="background:#4A9E8E20;color:#4A9E8E">🚩 Flagged</span>
-                </div>
-                <p class="review-item__question">${q.question}</p>
-                <div class="review-item__options">
-                  ${q.options.map((opt, i) => `<span class="review-opt ${i === q.answer ? 'review-opt--correct' : ''}">${['A','B','C','D'][i]}. ${opt}</span>`).join('')}
-                </div>
-                <div class="review-item__explanation">${q.explanation}</div>
-                <button class="btn btn--ghost btn--sm review-item__remove" data-remove-uid="${q.uid}">🚩 Remove Flag</button>
-              </div>`;
-            }).join('');
-      }
+      list.innerHTML = items.length === 0
+        ? UI.emptyState('No Matches', 'Try a different search or filter.', UI.examIcon('search', 'icon icon--xl'))
+        : UI.reviewListHTML(kind, items, this.config, sortEl ? sortEl.value : 'newest');
+      UI.tidyList(list);
+      if (count) count.textContent = word(items.length);
     };
 
-    search?.addEventListener('input', filterAndRender);
-    fMod?.addEventListener('change', filterAndRender);
-    fSub?.addEventListener('change', filterAndRender);
+    sortEl?.addEventListener('change', draw);
+    search?.addEventListener('input', draw);
+    fMod?.addEventListener('change', draw);
+    fSub?.addEventListener('change', draw);
 
-    clearAll?.addEventListener('click', () => {
-      if (confirm('Remove all flags? This cannot be undone.')) {
-        Storage.getFlagged().forEach(f => Storage.toggleFlag(f));
-        this.navigate('dashboard');
-      }
+    clear?.addEventListener('click', () => {
+      RecallLayers.confirm({
+        title:   saved ? 'Remove all saved questions?' : 'Remove all questions from review?',
+        message: 'This cannot be undone.', ok: 'Remove all', danger: true,
+      }).then(ok => {
+        if (!ok) return;
+        if (saved) Storage.getFlagged().forEach(f => Storage.toggleFlag(f));
+        else       Storage.clearAllIncorrect();
+        this._navigateWithoutHistory(route, params);
+      });
     });
 
-    list?.addEventListener('click', e => {
+    this._bindRowToggle(list);
+    UI.tidyList(list);
+    list.addEventListener('click', e => {
       const btn = e.target.closest('[data-remove-uid]');
-      if (btn) {
-        const item = Storage.getFlagged().find(f => f.uid === btn.dataset.removeUid);
-        if (item) Storage.toggleFlag(item);
-        btn.closest('.review-item')?.remove();
-        UI.toast('Flag removed.', 'info');
+      if (!btn) return;
+      const uid = btn.dataset.removeUid;
+      if (saved) { const item = Storage.getFlagged().find(f => f.uid === uid); if (item) Storage.toggleFlag(item); }
+      else       Storage.removeIncorrect(uid);
+      UI.toast(saved ? 'Removed from saved.' : 'Marked as mastered.', saved ? 'info' : 'success');
+      const row = btn.closest('.rv');
+      const done = () => {
+        row?.remove();
+        if (all().length === 0) { this._navigateWithoutHistory(route, params); return; }   // last one gone: the page's empty state
+        if ((sortEl && sortEl.value === 'topic') || (count && !list.querySelector('.rv'))) draw();   // grouped: headings and their counts change
+        else { if (count) count.textContent = word(list.querySelectorAll('.rv').length); UI.tidyList(list); }
+      };
+      if (row) { row.classList.add('is-leaving'); setTimeout(done, 260); } else done();
+    });
+  },
+
+  // ─── Topic picker (custom exam page, full-exam start pages) ───────────────────────────────────────────────────────────
+  // Check-mark rows (`.cx-topic`, data-key + data-n) inside groups (`.cx-group`) that open and close. Keeps the question
+  // count, the "Select all / Clear all" text and the header counts up to date; `onCount(n)` lets the page react.
+  _bindPicker(root, { countEl, unitEl, allEl, onCount }) {
+    const rows   = () => [...root.querySelectorAll('.cx-topic')];
+    const ticked = () => rows().filter(t => t.getAttribute('aria-checked') === 'true');
+    const update = () => {
+      const n = ticked().reduce((a, t) => a + Number(t.dataset.n), 0);
+      if (countEl) countEl.textContent = n;
+      if (unitEl)  unitEl.textContent = n === 1 ? 'question' : 'questions';
+      root.querySelectorAll('[data-cx-group]').forEach(g => {
+        const tops = [...g.querySelectorAll('.cx-topic')];
+        const sel  = tops.filter(t => t.getAttribute('aria-checked') === 'true').reduce((a, t) => a + Number(t.dataset.n), 0);
+        const tot  = tops.reduce((a, t) => a + Number(t.dataset.n), 0);
+        const out  = g.querySelector(':scope > .cx-head .cx-head__n');
+        if (out) out.textContent = sel === tot ? tot : `${sel}/${tot}`;
+        g.classList.toggle('is-none', sel === 0);
+      });
+      if (allEl) allEl.textContent = ticked().length === rows().length ? 'Clear all' : 'Select all';
+      if (onCount) onCount(n);
+    };
+    root.addEventListener('click', e => {
+      const head = e.target.closest('.cx-head');
+      if (head && root.contains(head)) {
+        const g = head.parentElement, open = !g.classList.contains('is-open');
+        g.classList.toggle('is-open', open);
+        head.setAttribute('aria-expanded', String(open));
+        return;
       }
+      const t = e.target.closest('.cx-topic');
+      if (t && root.contains(t)) { t.setAttribute('aria-checked', String(t.getAttribute('aria-checked') !== 'true')); update(); }
+    });
+    if (allEl) allEl.addEventListener('click', () => {
+      const every = ticked().length === rows().length;
+      rows().forEach(t => t.setAttribute('aria-checked', String(!every)));
+      update();
+    });
+    update();
+    return { keys: () => ticked().map(t => t.dataset.key), allTicked: () => ticked().length === rows().length };
+  },
+
+  // Custom exam page: modules open to subjects, subjects to topics; nothing is ticked until the student ticks it
+  _bindCustomExam() {
+    const page = document.querySelector('.custom-page');
+    if (!page) return;
+    this._bindAnalytics();
+    const start = document.getElementById('start-custom-btn');
+    const picker = this._bindPicker(page, {
+      countEl: document.getElementById('custom-count'), unitEl: document.getElementById('custom-unit'), allEl: document.getElementById('custom-all'),
+      onCount: n => { start.disabled = n === 0; },
+    });
+    start.addEventListener('click', () => {
+      const keys = picker.keys();
+      if (keys.length) this.navigate('exam', { mode: 'custom', picks: keys });
     });
   },
 
@@ -686,10 +980,10 @@ const App = {
       return;
     }
     container.innerHTML = Array(4).fill(`<div class="search-result-item" style="cursor:default">
-      ${UI._skel('34px', '34px', 'var(--radius-sm)')}
+      ${UI._skel('2.125rem', '2.125rem', 'var(--radius-sm)')}
       <div style="flex:1">
-        ${UI._skel('55%', '12px', '4px')}
-        <div style="margin-top:6px">${UI._skel('35%', '9px', '4px')}</div>
+        ${UI._skel('55%', '0.75rem', '0.25rem')}
+        <div style="margin-top:0.375rem">${UI._skel('35%', '0.5625rem', '0.25rem')}</div>
       </div>
     </div>`).join('');
     const q = query.toLowerCase().trim();
@@ -727,7 +1021,51 @@ const App = {
 
   // ─── Exam start helper ───────────────────────────────────────────────────
 
+  // Questions of the stored Incorrect list as exam questions (each keeps where it came from)
+  _incorrectPool(filter, picks) {
+    let list = Storage.getIncorrect();
+    if (filter) list = list.filter(this._scopeMatch(filter));
+    if (picks)  { const set = new Set(picks); list = list.filter(q => set.has(`${q.module}|${q.examType}|${q.subject}|${q.subSubject}`)); }
+    return list.map(q => ({
+      id: q.id, question: q.question, options: q.options, answer: q.answer, explanation: q.explanation,
+      _subject: q.subject, _subSubject: q.subSubject, _subSubjectLabel: q.subSubjectLabel || q.subSubject, _module: q.module, _examType: q.examType,
+    }));
+  },
+
+  // Practice run over a pool of incorrect questions. One topic -> a retry of that topic (its results page is updated);
+  // several topics -> a mixed exam ('custom' scope) with its own results page.
+  _startPractice(pool, title) {
+    if (pool.length === 0) { UI.toast('No incorrect questions to practise.', 'info'); return false; }
+    const topics = new Set(pool.map(q => `${q._module}|${q._examType}|${q._subject}|${q._subSubject}`));
+    const same = k => new Set(pool.map(q => q[k])).size === 1 ? pool[0][k] : '';
+    let config;
+    if (topics.size === 1) {
+      const q = pool[0];
+      config = { module: q._module, examType: q._examType, subject: q._subject, subSubject: q._subSubject, subSubjectLabel: q._subSubjectLabel };
+    } else {
+      config = { module: same('_module'), examType: same('_examType'), scope: 'custom', mixed: true, title, topicCount: topics.size };
+    }
+    ExamEngine.config    = { ...config, immediateFeedback: true, randomize: true, retryOf: true };
+    ExamEngine.questions = ExamEngine._shuffle([...pool]);
+    ExamEngine.state = { currentIndex: 0, answers: {}, flagged: new Set(), startTime: Date.now(), endTime: null, elapsedMs: 0, paused: false, submitted: false };
+    Storage.clearCurrentExam();
+    ExamEngine.save();
+    return true;
+  },
+
   async _startExam(params) {
+    if (params.mode === 'incorrect') return this._startPractice(this._incorrectPool(params.filter), 'Incorrect questions');
+    if (params.mode === 'custom')    return this._startPractice(this._incorrectPool(null, params.picks || []), 'Custom exam');
+    if (params.retryFromResults) {
+      const pool = this._retryPool || [];
+      if (pool.length === 0) { UI.toast('No incorrect questions to retry.', 'info'); return false; }
+      ExamEngine.config    = { ...this._retryConfig, immediateFeedback: true, randomize: true, retryOf: true };
+      ExamEngine.questions = ExamEngine._shuffle([...pool]);
+      ExamEngine.state = { currentIndex: 0, answers: {}, flagged: new Set(), startTime: Date.now(), endTime: null, elapsedMs: 0, paused: false, submitted: false };
+      Storage.clearCurrentExam();
+      ExamEngine.save();
+      return true;
+    }
     if (params.retryIncorrectOnly) {
       const all = Storage.getIncorrect().filter(
         q => q.module === params.moduleId &&
@@ -764,14 +1102,17 @@ const App = {
       const mod = this._getModule(params.moduleId);
       if (!mod) return false;
 
+      // picks: "subject|topic" keys the student left ticked on the start page (none = every topic)
+      const only = Array.isArray(params.picks) ? new Set(params.picks) : null;
       let examConfig;
       if (params.scope === 'subject') {
-        const subSubjectList = (mod.subSubjects?.[params.examType]?.[params.subject]) || [];
+        const subSubjectList = ((mod.subSubjects?.[params.examType]?.[params.subject]) || []).filter(ss => !only || only.has(`${params.subject}|${ss.id}`));
         examConfig = {
           module:            params.moduleId,
           examType:          params.examType,
           subject:           params.subject,
           scope:             'subject',
+          partial:           !!only,
           subSubjectList,
           immediateFeedback: true,
           randomize:         true,
@@ -780,13 +1121,14 @@ const App = {
         // examtype scope — collect all subjects and their sub-subjects
         const subjectMap = {};
         (this.config.subjects || []).forEach(sub => {
-          const ssList = (mod.subSubjects?.[params.examType]?.[sub.id]) || [];
+          const ssList = ((mod.subSubjects?.[params.examType]?.[sub.id]) || []).filter(ss => !only || only.has(`${sub.id}|${ss.id}`));
           if (ssList.length > 0) subjectMap[sub.id] = ssList;
         });
         examConfig = {
           module:            params.moduleId,
           examType:          params.examType,
           scope:             'examtype',
+          partial:           !!only,
           subjectMap,
           immediateFeedback: true,
           randomize:         true,
@@ -820,13 +1162,41 @@ const App = {
 
   // ─── Config / data loaders ────────────────────────────────────────────────
 
+  _countCache:    null,
+  _countsChecked: new Set(),
+
   async _loadConfig() {
     const res = await fetch('config/modules.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    this._rawConfig = await res.json();
+    return this._applyVisibility(this._rawConfig);
   },
 
-  async _buildCountMap(config, mod = null) {
+  // Modules and topics marked "hidden": true in config/modules.json are for admins only (shown to them with a Hidden badge).
+  // The admin flag is a display convenience written by sync.js from the server's answer; the data files themselves are still public files.
+  _isAdminDevice() { try { return localStorage.getItem('dqb_is_admin') === '1'; } catch { return false; } },
+  _applyVisibility(raw) {
+    if (this._isAdminDevice()) return raw;
+    const keep = list => (list || []).filter(t => !t.hidden);
+    return {
+      ...raw,
+      modules: (raw.modules || []).filter(m => !m.hidden).map(m => ({
+        ...m,
+        subSubjects: Object.fromEntries(Object.entries(m.subSubjects || {}).map(([et, subs]) =>
+          [et, Object.fromEntries(Object.entries(subs).map(([sub, list]) => [sub, keep(list)]))])),
+      })),
+    };
+  },
+
+  // ─── Question counts (cached) ─────────────────────────────────────────────
+  // Counts come from a small cache in LocalStorage, so pages open instantly. Only topics
+  // that have never been counted are fetched before showing a page. After showing it, the
+  // files are re-checked in the background (once per visit) and the page quietly refreshes
+  // if a count changed (e.g. new questions were added).
+
+  _countKey(m, et, sub, ss) { return `${m.id}|${et}|${sub}|${ss}`; },
+
+  _countEntries(config, mod = null) {
     const mods = mod ? [mod] : (config.modules || []);
     const entries = [];
     for (const m of mods) {
@@ -834,15 +1204,76 @@ const App = {
         for (const sub of (config.subjects || [])) {
           const subs = (m.subSubjects && m.subSubjects[et.id] && m.subSubjects[et.id][sub.id]) || [];
           for (const ss of subs) {
-            entries.push({ key: `${m.id}|${et.id}|${sub.id}|${ss.id}`, m, et: et.id, sub: sub.id, ss: ss.id });
+            entries.push({ key: this._countKey(m, et.id, sub.id, ss.id), m, et: et.id, sub: sub.id, ss: ss.id });
           }
         }
       }
     }
-    const results = await Promise.all(
-      entries.map(e => this._getQuestionCount(e.m, e.et, e.sub, e.ss).then(n => [e.key, n]))
-    );
-    return Object.fromEntries(results);
+    return entries;
+  },
+
+  _counts() {
+    if (!this._countCache) this._countCache = Storage.getCountCache();
+    return this._countCache;
+  },
+
+  // True when every topic for this page already has a remembered count (no waiting needed)
+  _hasAllCounts(config, mod = null) {
+    const cache = this._counts();
+    return this._countEntries(config, mod).every(e => e.key in cache);
+  },
+
+  // Fetch one topic's count. Returns null only when the network failed (so nothing wrong gets remembered).
+  async _fetchCount(e) {
+    let res;
+    try { res = await fetch(`data/${e.m.dataPath}/${e.et}/${e.sub}/${e.ss}.json`); }
+    catch { return null; }
+    if (!res.ok) return res.status === 404 ? 0 : null;
+    try {
+      const data = await res.json();
+      return Array.isArray(data.questions) ? data.questions.length : 0;
+    } catch { return 0; }
+  },
+
+  async _buildCountMap(config, mod = null) {
+    const entries = this._countEntries(config, mod);
+    const cache   = this._counts();
+    const missing = entries.filter(e => !(e.key in cache));
+    if (missing.length) {
+      const results = await Promise.all(missing.map(e => this._fetchCount(e).then(n => [e, n])));
+      let saved = false;
+      for (const [e, n] of results) {
+        if (n === null) continue;
+        cache[e.key] = n;
+        this._countsChecked.add(e.key);
+        saved = true;
+      }
+      if (saved) Storage.saveCountCache(cache);
+    }
+    this._revalidateCounts(entries);
+    return Object.fromEntries(entries.map(e => [e.key, cache[e.key] || 0]));
+  },
+
+  // Re-check files in the background; refresh the open page quietly if anything changed
+  _revalidateCounts(entries) {
+    const stale = entries.filter(e => !this._countsChecked.has(e.key));
+    if (!stale.length) return;
+    stale.forEach(e => this._countsChecked.add(e.key));
+    const cache = this._counts();
+    Promise.all(stale.map(e => this._fetchCount(e).then(n => [e, n]))).then(results => {
+      let changed = false;
+      for (const [e, n] of results) {
+        if (n !== null && cache[e.key] !== n) { cache[e.key] = n; changed = true; }
+      }
+      if (!changed) return;
+      Storage.saveCountCache(cache);
+      const refreshable = ['dashboard', 'module', 'subject', 'subsubject', 'wide-exam-start'];
+      if (!refreshable.includes(this.currentPage)) return;
+      UI._silent = true;
+      Promise.resolve(this._renderPage(this.currentPage, this.currentParams))
+        .catch(() => {})
+        .finally(() => { UI._silent = false; });
+    });
   },
 
   async _getQuestionCount(mod, examType, subject, subSubject) {

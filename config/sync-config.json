@@ -1,0 +1,4 @@
+{
+  "cloudEnabled": false,
+  "note": "Set cloudEnabled to true to show Sign in to everyone. To test on one device first, open the site once with ?cloud=1 on the end of the address."
+}

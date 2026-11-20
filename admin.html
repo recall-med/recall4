@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Recall admin</title>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('dqb_theme') || 'light');</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" />
+<link rel="stylesheet" href="assets/css/styles.css" />
+<link rel="stylesheet" href="assets/css/account.css" />
+<link rel="stylesheet" href="assets/css/console.css" />
+<script src="assets/js/ui.js"></script>
+</head>
+<body class="rc-body">
+<div id="root"><div class="rc-msg">Loading…</div></div>
+<script>
+window.Sync = { attachAuth: function (p) { window.__prov = p; p.onChange(function (u) { window.__onUser && window.__onUser(u); }); } };
+</script>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString('en-US'));
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
+const enc = encodeURIComponent;
+const letter = (i) => String.fromCharCode(65 + i);
+const root = $('root');
+document.body.classList.add('rc-body');
+const REPO = 'recall-med/recall4';
+const ICONS = {
+  overview: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+  content: '<path d="M3 6a2 2 0 012-2h4l2 3h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+  students: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.6a3.5 3.5 0 010 6.8M18 14.7c2 .7 3.2 2.5 3.5 5.3"/>',
+  retention: '<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>',
+  system: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+  chev: '<path d="M9 6l6 6-6 6"/>', plus: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  refresh: '<path d="M21 12a9 9 0 11-3-6.7M21 4v5h-5"/>', logout: '<path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/>',
+  app: '<path d="M14 3h7v7M21 3l-9 9M19 14v6H4V5h6"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', code: '<path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+};
+const ic = (n, c) => '<svg class="rc-i' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[n] + '</svg>';
+
+let data = null, loading = false, cfg = null, cfgErr = '', studentList = [], meOwner = false, renderId = 0, studFilter = 'all', studTerm = '', contentTerm = '';
+const qcache = {};   // data file path -> { questions, sha, fresh }
+
+// ---------- toasts ----------
+const toastBox = document.createElement('div'); toastBox.className = 'rc-toasts'; toastBox.setAttribute('role', 'status'); toastBox.setAttribute('aria-live', 'polite'); document.body.appendChild(toastBox);
+function toast(msg, bad) { const t = document.createElement('div'); t.className = 'rc-toast' + (bad ? ' rc-toast--bad' : ''); t.textContent = msg; toastBox.appendChild(t); setTimeout(() => { t.classList.add('rc-toast--out'); setTimeout(() => t.remove(), 180); }, bad ? 7000 : 4200); }
+
+// ---------- layers (drawers and dialogs) ----------
+// Rule: a layer closes ONLY with its X button, the Escape key, or the browser/phone Back button. Tapping outside never closes it.
+// Each layer adds one history entry; Back removes it. History changes are chained so entries never get out of step.
+const layers = []; let swallow = 0, backDone = null, chain = Promise.resolve(), lid = 0;
+const histPush = (st) => { chain = chain.then(() => { try { history.pushState(st, '', location.href); } catch (e) { /* ignore */ } }); };
+const histBack = () => { chain = chain.then(() => new Promise((res) => {
+  swallow++; const t = setTimeout(() => { swallow = Math.max(0, swallow - 1); backDone = null; res(); }, 500);
+  backDone = () => { clearTimeout(t); backDone = null; res(); };
+  try { history.back(); } catch (e) { clearTimeout(t); swallow = 0; res(); }
+})); };
+window.addEventListener('popstate', () => {
+  if (swallow > 0) { swallow--; if (backDone) backDone(); return; }
+  const top = layers[layers.length - 1]; if (top) top.tryClose(true);
+});
+document.addEventListener('keydown', (e) => {
+  const top = layers[layers.length - 1]; if (!top) return;
+  if (e.key === 'Escape') { e.preventDefault(); top.tryClose(false); return; }
+  if (e.key === 'Tab') {   // keep keyboard focus inside the open layer
+    const f = Array.from(top.panel.querySelectorAll('button:not([disabled]),input:not([disabled]),textarea,select,a[href]')).filter((x) => x.offsetParent !== null || x === document.activeElement);
+    if (!f.length) return; const a = f[0], z = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+  }
+});
+function openLayer(o) {
+  const id = ++lid, kind = o.kind || 'drawer', prev = document.activeElement;
+  const scrim = document.createElement('div'); scrim.className = 'rc-scrim' + (kind === 'dialog' ? ' rc-scrim--dialog' : '');
+  scrim.innerHTML = '<div class="rc-layer rc-layer--' + kind + '" role="dialog" aria-modal="true" aria-labelledby="lt' + id + '"><div class="rc-layer__head"><div><h2 id="lt' + id + '">' + esc(o.title) + '</h2>' +
+    (o.sub ? '<p class="rc-sub">' + esc(o.sub) + '</p>' : '') + '</div><button class="icon-btn" type="button" data-x aria-label="Close">' + ic('x') + '</button></div><div class="rc-layer__body"></div><div class="rc-layer__foot"></div></div>';
+  // no click handler on the scrim: tapping outside the panel does nothing
+  const L = { id, el: scrim, panel: scrim.firstChild, body: scrim.querySelector('.rc-layer__body'), foot: scrim.querySelector('.rc-layer__foot'), closing: false };
+  L.body.innerHTML = o.body || ''; L.foot.innerHTML = o.foot || ''; if (!o.foot) L.foot.hidden = true;
+  L.finish = (dropEntry) => { const i = layers.indexOf(L); if (i < 0) return; layers.splice(i, 1); scrim.classList.add('rc-closing'); setTimeout(() => scrim.remove(), 170); document.body.style.overflow = layers.length ? 'hidden' : ''; if (dropEntry) histBack(); if (prev && prev.focus && document.contains(prev)) prev.focus(); };
+  L.tryClose = async (fromPop) => {
+    if (L.closing || layers[layers.length - 1] !== L) return; L.closing = true;
+    let ok = true; try { ok = o.beforeClose ? await o.beforeClose() : true; } finally { L.closing = false; }
+    if (ok) L.finish(!fromPop); else if (fromPop) histPush({ layer: id });
+  };
+  scrim.querySelector('[data-x]').onclick = () => L.tryClose(false);
+  layers.push(L); document.body.appendChild(scrim); document.body.style.overflow = 'hidden'; histPush({ layer: id });
+  setTimeout(() => { const f = L.body.querySelector('.rc-in,textarea,input') || L.foot.querySelector('button.btn--primary') || scrim.querySelector('[data-x]'); if (f) f.focus(); }, 30);
+  return L;
+}
+function confirmDialog(o) {
+  return new Promise((resolve) => {
+    let settled = false; const settle = (v) => { if (!settled) { settled = true; resolve(v); } };
+    const L = openLayer({ kind: 'dialog', title: o.title, body: '<p style="margin:0;font-size:.9rem;line-height:1.55;color:var(--text-2)">' + o.message + '</p>',
+      foot: '<button class="btn btn--ghost" type="button" data-no>Cancel</button><button class="btn ' + (o.danger ? 'btn--danger' : 'btn--primary') + '" type="button" data-ok>' + esc(o.ok || 'Confirm') + '</button>',
+      beforeClose: async () => { settle(false); return true; } });
+    L.foot.querySelector('[data-no]').onclick = () => L.tryClose(false);
+    L.foot.querySelector('[data-ok]').onclick = () => { settle(true); L.finish(true); };
+  });
+}
+
+// ---------- sign-in (reuses the app's Firebase module) ----------
+window.__onUser = (u) => { if (u) load(false); else showSignin(); };
+function showSignin(msg) {
+  root.innerHTML = '<div class="rc-card rc-signin"><h2>Recall admin</h2><p style="margin:0 0 12px">Sign in with the administrator account.</p>' +
+    '<button class="btn btn--ghost acct-google" id="g" type="button" style="width:100%;justify-content:center">Continue with Google</button>' +
+    '<div class="acct-or"><span>or</span></div><form id="f"><label class="acct-field"><span>Email</span><input class="acct-input" name="e" type="email" autocomplete="email" required></label>' +
+    '<label class="acct-field"><span>Password</span><input class="acct-input" name="p" type="password" autocomplete="current-password" required></label>' +
+    '<p class="acct-error" id="err">' + esc(msg || '') + '</p><button class="btn btn--primary acct-submit" type="submit">Sign in</button></form></div>';
+  const fail = (e) => { $('err').textContent = e && e.code === 'auth/popup-closed-by-user' ? 'Sign-in was cancelled.' : 'Could not sign in. Check the details and try again.'; };
+  $('g').onclick = () => window.__prov.signInGoogle().catch(fail);
+  $('f').onsubmit = (ev) => { ev.preventDefault(); window.__prov.signInEmail(ev.target.e.value.trim(), ev.target.p.value).catch(fail); };
+}
+import('./assets/js/auth.js').catch(() => { root.innerHTML = '<div class="rc-msg">Sign-in could not load. Check your connection and reload.</div>'; });
+
+// ---------- data ----------
+async function adminFetch(url, opts) {
+  const call = async (force) => fetch(url, { ...(opts || {}), headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await window.__prov.getToken(force)) } });
+  let res = await call(false); if (res.status === 401) res = await call(true);
+  return { status: res.status, body: await res.json().catch(() => ({})) };
+}
+async function load(refresh) {
+  if (loading) return; loading = true;
+  try {
+    const r = await adminFetch('/api/admin/summary' + (refresh ? '?refresh=1' : ''));
+    if (r.status === 403) { root.innerHTML = '<div class="rc-msg">This account is not an administrator.<br><button class="btn btn--ghost" id="so" style="margin-top:12px">Sign out</button></div>'; $('so').onclick = () => window.__prov.signOut(); return; }
+    if (!r.body || !r.body.ok) throw new Error('bad');
+    data = r.body; if (refresh) { cfg = null; Object.keys(qcache).forEach((k) => delete qcache[k]); }
+    renderShell(); show();
+  } catch (e) {
+    root.innerHTML = '<div class="rc-msg">Could not load the dashboard. Check your connection.<br><button class="btn btn--ghost" id="rt" style="margin-top:12px">Try again</button></div>';
+    $('rt').onclick = () => load(true);
+  } finally { loading = false; }
+}
+async function loadCfg() {
+  if (cfg) return;
+  const r = await adminFetch('/api/admin/config');   // fresh from GitHub, so a change made a minute ago is already in it
+  if (r.status === 200 && r.body.ok) { cfg = r.body.config; cfgErr = ''; return; }
+  cfgErr = r.body.message || 'Could not read the site configuration from GitHub.';
+  cfg = await fetch('config/modules.json').then((x) => x.json());   // read-only fallback: the deployed copy
+}
+async function cfgPost(body) {
+  const r = await adminFetch('/api/admin/config', { method: 'POST', body: JSON.stringify(body) });
+  if (r.status === 200 && r.body.ok) { cfg = r.body.config; cfgErr = ''; return r.body; }
+  throw new Error(r.body.message || 'That did not work.');
+}
+const lab = (arr, id) => ((arr || []).find((x) => x.id === id) || {}).label || id;
+function allTopics() {
+  const out = [];
+  ((cfg && cfg.modules) || []).forEach((m) => Object.entries(m.subSubjects || {}).forEach(([exam, subs]) => Object.entries(subs).forEach(([subject, list]) => (list || []).forEach((ss) => out.push({
+    m, module: m.id, moduleTitle: m.shortTitle || m.title || m.id, exam, examLabel: lab(cfg.examTypes, exam), subject, subjectLabel: lab(cfg.subjects, subject), ss, sub: ss.id,
+    label: ss.label || ss.id, professor: ss.professor || '', hidden: !!ss.hidden, path: 'data/' + (m.dataPath || m.id) + '/' + exam + '/' + subject + '/' + ss.id + '.json' })))));
+  return out;
+}
+const tkey = (t) => [t.module, t.exam, t.subject, t.sub].join('|');
+const topicByKey = (k) => allTopics().find((t) => tkey(t) === k);
+const qs = (t) => (qcache[t.path] && qcache[t.path].questions) || [];
+const nq = (list) => list.reduce((s, t) => s + qs(t).length, 0);
+const keyOf = (t, q) => tkey(t) + '|' + q.id;
+function byKey(key) { for (const t of allTopics()) { const q = qs(t).find((x) => keyOf(t, x) === key); if (q) return { t, q }; } return null; }
+const hashOf = (...p) => '#content/' + p.filter(Boolean).map(enc).join('/');
+// Every topic's questions from the deployed data files (used for counts and search); a topic's own page reads fresh from GitHub.
+async function loadBank() {
+  await loadCfg();
+  await Promise.all(allTopics().filter((t) => !qcache[t.path]).map((t) => fetch(t.path + '?v=' + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((d) => {
+    qcache[t.path] = { questions: d ? (Array.isArray(d) ? d : d.questions || []) : [], sha: null, fresh: false };
+  })));
+}
+async function freshTopic(t) {
+  if (qcache[t.path] && qcache[t.path].fresh) return qcache[t.path];
+  const r = await adminFetch('/api/admin/question?path=' + enc(t.path) + '&full=1');
+  if (r.status !== 200 || !r.body.ok) throw new Error(r.body.message || 'Could not open the topic.');
+  return (qcache[t.path] = { questions: r.body.questions, sha: r.body.sha, fresh: true });
+}
+
+// ---------- shell and routing ----------
+const SECTIONS = { overview: 'Overview', content: 'Content', students: 'Students', retention: 'Retention', system: 'System' };
+const parseRoute = () => { const p = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/').filter(Boolean); return { sec: SECTIONS[p[0]] ? p[0] : 'overview', parts: p.slice(1) }; };
+function renderShell() {
+  root.innerHTML = '<div class="rc-shell"><aside class="rc-side"><div class="rc-brand">Recall<small>Admin</small></div><nav class="rc-nav" id="nav" aria-label="Sections">' +
+    Object.entries(SECTIONS).map(([k, v]) => '<a href="#' + k + '" data-sec="' + k + '">' + ic(k) + '<span>' + v + '</span></a>').join('') + '</nav></aside>' +
+    '<main class="rc-main"><div class="rc-head"><div class="rc-crumbs" id="crumbs"></div><div class="rc-tools">' +
+    '<a class="icon-btn" href="./" title="Back to Recall" aria-label="Back to Recall">' + ic('app') + '</a>' +
+    '<button class="icon-btn" id="rf" type="button" title="Refresh data" aria-label="Refresh data">' + ic('refresh') + '</button>' +
+    '<button class="icon-btn" id="so" type="button" title="Sign out" aria-label="Sign out">' + ic('logout') + '</button></div></div><div id="pane"><div class="rc-msg">Loading…</div></div></main></div>';
+  $('rf').onclick = () => load(true); $('so').onclick = () => window.__prov.signOut();
+}
+window.addEventListener('hashchange', () => { if (data && $('pane')) show(); });
+async function show() {
+  const my = ++renderId, { sec, parts } = parseRoute();
+  document.querySelectorAll('#nav a').forEach((a) => { if (a.dataset.sec === sec) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  const pane = $('pane'); if (!pane) return;
+  pane.innerHTML = '<div class="rc-msg">Loading…</div>'; crumbs([[SECTIONS[sec]]]);
+  let html = '';
+  try { html = await VIEWS[sec](parts); } catch (e) { html = '<div class="rc-msg">' + esc(e && e.message ? e.message : 'Something went wrong.') + '</div>'; }
+  if (my !== renderId || !$('pane')) return;
+  $('pane').innerHTML = '<div class="page-enter">' + html + '</div>'; window.scrollTo(0, 0);
+  if (sec === 'content') afterContent();
+}
+function crumbs(items) { $('crumbs').innerHTML = '<nav class="breadcrumb" aria-label="Breadcrumb">' + items.map((c, i) => (i === items.length - 1 ? '<span class="breadcrumb__current">' + esc(c[0]) + '</span>' : '<a class="breadcrumb__link" href="' + c[1] + '">' + esc(c[0]) + '</a><span class="breadcrumb__sep">' + chevSvg + '</span>')).join('') + '</nav>'; }
+const kpi = (label, value, sub) => '<div class="stat-pill"><div class="stat-pill__value">' + value + '</div><div class="stat-pill__label">' + label + (sub ? '<small class="rc-sub">' + sub + '</small>' : '') + '</div></div>';
+const tog = (on, attrs, label) => '<input type="checkbox" role="switch" class="toggle" ' + (on ? 'checked ' : '') + attrs + ' aria-label="' + esc(label) + '">';
+const badge = (t, c) => '<span class="badge' + (c ? ' badge--' + c : '') + '">' + t + '</span>';
+const hiddenBadge = '<span class="badge badge--hidden" title="Only admins see this">Hidden</span>', ongoingBadge = '<span class="badge badge--ongoing">Ongoing</span>';
+const arrowSvg = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+const chevSvg = '<svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+const U = () => (typeof UI !== 'undefined' ? UI : null);
+const micon = (id) => (U() ? U().moduleIcon(id) : ''), sicon = (id) => (U() ? U().subjectIcon(id) : ''), prof = (n) => (U() ? U().professorBadge(n) : '');
+
+// ---------- Overview ----------
+function overview() {
+  const d = data, days = [];
+  for (let i = 29; i >= 0; i--) { const t = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10); const r = d.examsPerDay.find((x) => x.day === t); days.push({ t, n: r ? r.exams : 0 }); }
+  const max = Math.max(1, ...days.map((x) => x.n));
+  const bars = days.map((x, i) => '<rect x="' + (i * 20 + 2) + '" y="' + (80 - (x.n / max) * 76) + '" width="16" height="' + Math.max(1, (x.n / max) * 76) + '" rx="3" fill="var(--accent-text)"><title>' + x.t + ': ' + x.n + ' exams</title></rect>').join('');
+  const cairoH = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', hour12: false }).format(new Date())) % 24;
+  const off = (cairoH - new Date().getUTCHours() + 24) % 24, hrs = Array(24).fill(0);
+  d.examsPerHourUtc.forEach((r) => { hrs[(r.h + off) % 24] += r.n; });
+  const hmax = Math.max(1, ...hrs);
+  const heat = hrs.map((n, h) => '<i title="' + h + ':00 Cairo: ' + n + ' exams" style="opacity:' + (0.08 + 0.92 * (n / hmax)).toFixed(2) + '"></i>').join('');
+  const att = d.accuracy.reduce((s, r) => s + (r.attempted || 0), 0), cor = d.accuracy.reduce((s, r) => s + (r.correct || 0), 0);
+  const mods = d.examsPerModule.map((m) => '<tr><td>' + esc(m.module) + '</td><td class="n">' + fmt(m.exams) + '</td><td><span class="rc-bar" style="width:' + Math.round((m.exams / d.examsPerModule[0].exams) * 100) + 'px"></span></td></tr>').join('');
+  const subs = d.accuracy.map((r) => '<tr><td>' + esc(r.module) + ' / ' + esc(r.subject || 'whole module') + '</td><td class="n">' + fmt(r.exams) + '</td><td class="n">' + fmt(r.attempted) + '</td><td class="n' + (r.accuracyPct != null && r.accuracyPct < 50 ? ' rc-bad' : '') + '">' + (r.accuracyPct == null ? '–' : r.accuracyPct + '%') + '</td></tr>').join('');
+  return '<div class="page rc-wide"><header class="page__header"><div><h1 class="page__title">Overview</h1><p class="page__subtitle">Updated ' + new Date(d.generatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + (d.cached ? ' (cached up to 10 min)' : '') + '</p></div></header>' +
+    '<div class="stats-strip rc-strip">' + kpi('Accounts', fmt(d.accounts), fmt(d.newWeek) + ' new in 7 days · ' + fmt(d.newToday) + ' today') +
+    kpi('Studying today', fmt(d.studyingToday), 'finished an exam · 7 days: ' + fmt(d.studyingWeek)) +
+    kpi('Studying (30 days)', fmt(d.studyingMonth), 'stickiness ' + (pct(d.studyingToday, d.studyingMonth) ?? '–') + '% (today ÷ 30 days)') +
+    kpi('Exams (30 days)', fmt(d.examsTotal), 'average ' + Math.round((d.avgTimeSec || 0) / 60) + ' min each') +
+    kpi('Accuracy (30 days)', att ? pct(cor, att) + '%' : '–', fmt(att) + ' answers') + '</div>' +
+    '<div class="rc-cols"><div class="rc-card"><h2 class="section__title">Exams per day (UTC dates)</h2><svg viewBox="0 0 600 84" width="100%" role="img" aria-label="Exams per day">' + bars + '</svg></div>' +
+    '<div class="rc-card"><h2 class="section__title">When students study (Cairo time, 30 days)</h2><div class="rc-heat">' + heat + '</div><div class="rc-hl"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div><p class="rc-note">Darker is busier. Cloudflare daily limits reset at 00:00 UTC.</p></div></div>' +
+    '<div class="rc-cols"><div class="rc-card rc-scroll"><h2 class="section__title">Exams by module (30 days)</h2><table class="rc-t"><tbody>' + (mods || '<tr><td class="rc-low">No exams yet.</td></tr>') + '</tbody></table></div>' +
+    '<div class="rc-card rc-scroll"><h2 class="section__title">Accuracy by subject (30 days)</h2><table class="rc-t"><thead><tr><th>Subject</th><th class="n">Exams</th><th class="n">Answers</th><th class="n">Correct</th></tr></thead><tbody>' + (subs || '<tr><td class="rc-low" colspan="4">No exams yet.</td></tr>') + '</tbody></table></div></div>' +
+    '<p class="rc-note">' + esc(d.note) + '</p></div>';
+}
+
+// ---------- Content: Module > Subject > Topic > Questions (built from the app's own components) ----------
+const statsOf = (t, q) => {
+  const it = (data.items || []).find((i) => i.key === keyOf(t, q)); if (!it) return null;
+  const c = Object.entries(it.counts).filter(([a]) => Number(a) >= 0), n = c.reduce((s, [, x]) => s + x, 0); if (!n) return null;
+  const top = c.slice().sort((x, y) => y[1] - x[1])[0];
+  return { n, pct: pct(it.counts[q.answer] || 0, n), topOpt: Number(top[0]), topPct: pct(top[1], n) };
+};
+const savedOf = (t, q) => { const s = (data.saved || []).find((x) => x.qk === keyOf(t, q)); return s ? s.students : 0; };
+const where = (t) => t.moduleTitle + ' › ' + t.examLabel + ' › ' + t.subjectLabel + ' › ' + t.label;
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+function ghLink(t) { return '<a class="btn btn--ghost btn--sm" href="https://github.com/' + REPO + '/blob/main/' + esc(t.path) + '" target="_blank" rel="noopener">' + ic('code', 'rc-i--sm') + ' Open file on GitHub</a>'; }
+function setupBanner() { return cfgErr ? '<div class="rc-notice"><div><b>Editing is not available yet</b>' + esc(cfgErr) + '</div></div>' : ''; }
+const panel = (title, body) => '<aside class="dashboard__rail"><h2 class="section__title">' + title + '</h2><div class="rc-panel">' + body + '</div></aside>';
+const prow = (label, hint, control) => '<label class="rc-prow"><span class="rc-prow__text"><b>' + label + '</b>' + (hint ? '<small>' + hint + '</small>' : '') + '</span>' + control + '</label>';
+
+async function content(parts) {
+  await loadBank();
+  const [modId, exam, subject, topicId] = parts;
+  if (!modId) return contentHome();
+  const m = cfg.modules.find((x) => x.id === modId); if (!m) return '<div class="rc-msg">That module does not exist.</div>';
+  if (!exam || !(cfg.examTypes || []).some((e) => e.id === exam) || !subject) return moduleView(m);
+  if (!(cfg.subjects || []).some((s) => s.id === subject)) return '<div class="rc-msg">That subject does not exist.</div>';
+  if (!topicId) return subjectView(m, exam, subject);
+  const t = allTopics().find((x) => x.module === modId && x.exam === exam && x.subject === subject && x.sub === topicId);
+  if (!t) return '<div class="rc-msg">That topic does not exist.</div>';
+  return topicView(t);
+}
+const topicIc = () => (typeof UI !== 'undefined' ? UI.topicIcon() : '');
+function topicRow(t, o) {
+  const n = qs(t).length, tk = esc(tkey(t));
+  return '<div class="topic-row" role="link" tabindex="0" data-go="' + hashOf(t.module, t.exam, t.subject, t.sub) + '"><div class="topic-row__left"><span class="topic-row__icon">' + topicIc() + '</span><div class="topic-row__text"><div class="topic-row__name">' + esc(t.label) + (t.hidden ? ' ' + hiddenBadge : '') + '</div><div class="topic-row__meta">' +
+    (o.path ? '<span>' + esc(t.moduleTitle + ' › ' + t.examLabel + ' › ' + t.subjectLabel) + '</span>' : '') + '<span>' + plural(n, 'Question') + '</span>' + prof(t.professor) + '</div></div></div>' +
+    '<div class="topic-row__right">' + (o.publish ? '<button class="btn btn--primary btn--sm" type="button" data-act="publish" data-tk="' + tk + '">Make visible</button>'
+      : '<label class="rc-hit" title="Visible to students">' + tog(!t.hidden, 'data-sw="topic" data-tk="' + tk + '"', 'Visible to students: ' + t.label) + '</label><button class="icon-btn" type="button" data-act="tdetails" data-tk="' + tk + '" title="Edit details" aria-label="Edit details of ' + esc(t.label) + '">' + ic('edit') + '</button>') +
+    '<span class="topic-row__arrow">' + chevSvg + '</span></div></div>';
+}
+function contentHome() {
+  crumbs([['Content']]);
+  const topics = allTopics(), pending = topics.filter((t) => t.hidden);
+  const cards = cfg.modules.map((m, i) => {
+    const ts = topics.filter((t) => t.module === m.id), vis = ts.filter((t) => !t.hidden).length;
+    return '<a class="module-card" href="' + hashOf(m.id) + '" style="--i:' + i + '" aria-label="Manage ' + esc(m.title || m.id) + '"><div class="module-card__header"><span class="module-card__icon">' + micon(m.id) + '</span><div class="module-card__meta"><div class="module-card__titlerow"><h3 class="module-card__title">' + esc(m.title || m.id) + '</h3>' +
+      (m.ongoing ? ongoingBadge : '') + (m.hidden ? hiddenBadge : '') + '</div><p class="module-card__subtitle">' + esc(m.fullTitle || '') + '</p></div></div>' +
+      '<div class="module-card__progress-track" title="' + vis + ' of ' + ts.length + ' topics visible to students"><div class="module-card__progress-fill" style="width:' + (ts.length ? Math.round((vis / ts.length) * 100) : 0) + '%"></div></div>' +
+      '<div class="module-card__row"><div class="module-card__stats"><div class="module-card__stat"><strong>' + ts.length + '</strong><span>Topics</span></div><div class="module-card__stat"><strong>' + nq(ts) + '</strong><span>Questions</span></div></div><span class="module-card__cta">Manage ' + arrowSvg + '</span></div></a>';
+  }).join('');
+  const waiting = pending.length ? '<h2 class="section__title">Waiting for approval · ' + pending.length + '</h2><div class="topics-list">' + pending.map((t) => topicRow(t, { path: true, publish: true })).join('') + '</div>' +
+    '<p class="rc-note">These topics are hidden from students. You see them in the Recall app with a Hidden badge. Check them there, then make them visible.</p><div class="rc-gap"></div>' : '';
+  return '<div class="dashboard rc-dash">' + setupBanner() + '<div class="dashboard__intro"><div><h1 class="dashboard__greeting">Content</h1><p class="dashboard__subgreeting">Modules, topics and questions</p></div></div>' +
+    '<section class="section">' + waiting + '<label class="rc-search">' + ic('search') + '<input id="cs" type="search" placeholder="Search all questions" aria-label="Search questions" value="' + esc(contentTerm) + '"></label>' +
+    '<div id="cres"></div><div id="chome"><h2 class="section__title">Modules</h2><div class="modules-grid rc-modules">' + cards + '</div>' + insights() + '</div></section>' +
+    panel('Library', '<div class="rc-stat"><span>Modules</span><b>' + cfg.modules.length + '</b></div><div class="rc-stat"><span>Topics</span><b>' + topics.length + '</b></div><div class="rc-stat"><span>Questions</span><b>' + nq(topics) + '</b></div><div class="rc-stat"><span>Waiting for approval</span><b>' + pending.length + '</b></div>') + '</div>';
+}
+function insights() {
+  const all = []; allTopics().forEach((t) => qs(t).forEach((q) => { const s = statsOf(t, q); if (s) all.push({ t, q, s }); }));
+  const MIN = 20, ok = all.filter((x) => x.s.n >= MIN);
+  const wrong = ok.filter((x) => x.s.topOpt !== x.q.answer && x.s.topPct >= 50 && x.s.pct < 25);
+  const hard = ok.slice().sort((a, b) => a.s.pct - b.s.pct).slice(0, 10);
+  const mostSaved = (data.saved || []).slice(0, 10).map((s) => ({ f: byKey(s.qk), n: s.students })).filter((x) => x.f);
+  const line = (t, q) => '<a href="' + hashOf(t.module, t.exam, t.subject, t.sub) + '" style="color:inherit;text-decoration:none">' + esc(String(q.question).slice(0, 130)) + (q.question.length > 130 ? '…' : '') + '<small>' + esc(where(t)) + ' · #' + esc(q.id) + '</small></a>';
+  const tbl = (head, rows, empty) => '<div class="rc-scroll"><table class="rc-t"><thead><tr>' + head + '</tr></thead><tbody>' + (rows || '<tr><td class="rc-low" colspan="4">' + empty + '</td></tr>') + '</tbody></table></div>';
+  return '<details class="rc-card rc-details"><summary><b>Statistics worth a look</b> <span class="rc-sub">from students\u2019 exam answers</span></summary>' +
+    '<h2 class="section__title rc-h">Possible wrong answer key</h2>' + tbl('<th>Question</th><th class="n">Key</th><th class="n">Most chosen</th><th class="n">n</th>',
+      wrong.map((x) => '<tr><td>' + line(x.t, x.q) + '</td><td class="n">' + letter(x.q.answer) + ' (' + x.s.pct + '%)</td><td class="n rc-bad">' + letter(x.s.topOpt) + ' (' + x.s.topPct + '%)</td><td class="n">' + x.s.n + '</td></tr>').join(''), 'None found.') +
+    '<p class="rc-note">Most students picked one other option and few picked the key. This is an inference: check the question before changing it.</p>' +
+    '<h2 class="section__title rc-h">Hardest questions</h2>' + tbl('<th>Question</th><th class="n">Correct</th><th class="n">Most chosen</th><th class="n">n</th>',
+      hard.map((x) => '<tr><td>' + line(x.t, x.q) + '</td><td class="n">' + x.s.pct + '%</td><td class="n">' + letter(x.s.topOpt) + ' (' + x.s.topPct + '%)</td><td class="n">' + x.s.n + '</td></tr>').join(''), 'Needs at least ' + MIN + ' answers per question.') +
+    '<h2 class="section__title rc-h">Saved by the most students</h2>' + tbl('<th>Question</th><th class="n">Saved by</th>',
+      mostSaved.map((x) => '<tr><td>' + line(x.f.t, x.f.q) + '</td><td class="n">' + x.n + '</td></tr>').join(''), 'Nothing saved yet.') +
+    '<p class="rc-note">Saving is a student\u2019s own "review this later" list, not a report. A high count shows what students find tricky or worth revisiting. Answer statistics cover the last 90 days, only questions answered at least ' + MIN + ' times, and exams with a stored review.</p></details>';
+}
+function moduleView(m) {
+  crumbs([['Content', '#content'], [m.title || m.id]]);
+  const topics = allTopics().filter((t) => t.module === m.id);
+  const sections = cfg.examTypes.map((e) => {
+    const rows = cfg.subjects.map((s) => {
+      const ts = topics.filter((t) => t.exam === e.id && t.subject === s.id), hid = ts.filter((t) => t.hidden).length, vis = ts.length - hid;
+      return '<a class="subject-card" href="' + hashOf(m.id, e.id, s.id) + '"><div class="subject-card__left"><span class="subject-card__icon">' + sicon(s.id) + '</span><div class="subject-card__text"><div class="subject-card__name">' + esc(s.label) + '</div><div class="subject-card__score">' + plural(ts.length, 'topic') + ' · ' + plural(nq(ts), 'question') + '</div></div></div>' +
+        '<div class="subject-card__bar" aria-hidden="true"><span style="width:' + (ts.length ? Math.round((vis / ts.length) * 100) : 0) + '%"></span></div><div class="subject-card__right">' + (hid ? hiddenBadge.replace('Hidden', hid + ' hidden') : '') + '<span class="subject-card__arrow">' + chevSvg + '</span></div></a>';
+    }).join('');
+    return '<div class="exam-type-section"><div class="exam-type-header"><div class="exam-type-header__top"><h2 class="exam-type-header__title">' + esc(e.label) + '</h2></div></div><div class="subjects-list">' + rows + '</div></div>';
+  }).join('');
+  return '<div class="page has-rail rc-wide">' + setupBanner() + '<header class="page__header"><span class="page__icon">' + micon(m.id) + '</span><div><h1 class="page__title">' + esc(m.title || m.id) + '</h1><p class="page__subtitle">' + esc(m.fullTitle || '') + '</p></div></header>' +
+    panel('Module settings', prow('Ongoing module', 'Pinned first on every student\u2019s dashboard. Only one module can be ongoing.', tog(m.ongoing, 'data-sw="mod-ongoing" data-m="' + esc(m.id) + '"', 'Ongoing module')) +
+      prow('Visible to students', 'Off hides the whole module from students. Admins still see it.', tog(!m.hidden, 'data-sw="mod-visible" data-m="' + esc(m.id) + '"', 'Visible to students'))) +
+    '<div class="page__main">' + sections + '</div></div>';
+}
+function subjectView(m, exam, subject) {
+  const e = cfg.examTypes.find((x) => x.id === exam), s = cfg.subjects.find((x) => x.id === subject);
+  crumbs([['Content', '#content'], [m.title || m.id, hashOf(m.id)], [e.label + ' · ' + s.label]]);
+  const topics = allTopics().filter((t) => t.module === m.id && t.exam === exam && t.subject === subject);
+  return '<div class="page has-rail rc-wide">' + setupBanner() + '<header class="page__header"><span class="page__icon">' + sicon(subject) + '</span><div><h1 class="page__title">' + esc(s.label) + '</h1><p class="page__subtitle">' + esc((m.title || m.id) + ' · ' + e.label) + '</p></div></header>' +
+    panel('This subject', '<div class="rc-stat"><span>Topics</span><b>' + topics.length + '</b></div><div class="rc-stat"><span>Questions</span><b>' + nq(topics) + '</b></div><div class="rc-stat"><span>Hidden from students</span><b>' + topics.filter((t) => t.hidden).length + '</b></div>' +
+      '<div class="rc-pbtn"><button class="btn btn--primary" type="button" data-act="newtopic" data-sk="' + esc([m.id, exam, subject].join('|')) + '">' + ic('plus', 'rc-i--sm') + ' New topic</button></div>') +
+    '<div class="page__main">' + (topics.length ? '<div class="topics-list">' + topics.map((t) => topicRow(t, {})).join('') + '</div><p class="rc-note">Use the switch to show or hide a topic for students. New topics start hidden.</p>'
+      : '<div class="empty-state"><h3 class="empty-state__title">No topics yet</h3><p class="empty-state__body">No topics in ' + esc(s.label) + ' yet. Create one with New topic.</p></div>') + '</div></div>';
+}
+async function topicView(t) {
+  crumbs([['Content', '#content'], [t.moduleTitle, hashOf(t.module)], [t.examLabel + ' · ' + t.subjectLabel, hashOf(t.module, t.exam, t.subject)], [t.label]]);
+  let warn = '';
+  try { await freshTopic(t); } catch (e) { warn = '<div class="rc-notice"><div><b>Showing the last published copy</b>' + esc(e.message) + '</div></div>'; }
+  const list = qs(t), tk = esc(tkey(t));
+  return '<div class="page has-rail rc-wide">' + setupBanner() + warn + '<header class="page__header"><span class="page__icon">' + sicon(t.subject) + '</span><div><h1 class="page__title">' + esc(t.label) + '</h1><p class="page__subtitle">' + esc(t.moduleTitle + ' · ' + t.examLabel + ' · ' + t.subjectLabel) + '</p>' +
+    '<div class="rc-badges">' + prof(t.professor) + badge(plural(list.length, 'question'), 'ghost') + (t.hidden ? hiddenBadge.replace('Hidden', 'Hidden from students') : badge('Visible to students', 'success')) + '</div></div></header>' +
+    panel('Topic', prow('Visible to students', t.hidden ? 'Hidden. Review the questions here and in the Recall app (you see this topic there with a Hidden badge), then switch it on.' : 'Students can see and practise this topic.', tog(!t.hidden, 'data-sw="topic" data-tk="' + tk + '"', 'Visible to students')) +
+      '<div class="rc-pbtn"><button class="btn btn--primary" type="button" data-add="' + tk + '">' + ic('plus', 'rc-i--sm') + ' Add a question</button><button class="btn btn--ghost" type="button" data-act="tdetails" data-tk="' + tk + '">' + ic('edit', 'rc-i--sm') + ' Details</button>' + ghLink(t).replace('btn--sm', '') + '</div>') +
+    '<div class="page__main">' + (list.length > 6 ? '<label class="rc-search">' + ic('search') + '<input id="tq" type="search" placeholder="Filter these questions" aria-label="Filter questions"></label>' : '') + '<div id="qlist">' + questionCards(t, '') + '</div></div></div>';
+}
+function questionCards(t, term) {
+  const f = term.trim().toLowerCase(), list = qs(t).filter((q) => !f || (q.question + ' ' + (q.options || []).join(' ') + ' #' + q.id).toLowerCase().includes(f));
+  if (!list.length) return '<div class="empty-state"><h3 class="empty-state__title">' + (qs(t).length ? 'No question matches' : 'No questions yet') + '</h3><p class="empty-state__body">' + (qs(t).length ? 'Try other words.' : 'Use Add a question.') + '</p></div>';
+  return '<div class="topics-list">' + list.map((q) => qcard(t, q)).join('') + '</div>';
+}
+function qcard(t, q, showPath) {
+  const s = statsOf(t, q), sv = savedOf(t, q);
+  return '<div class="topic-row rc-static rc-q"><div class="topic-row__left"><span class="badge badge--ghost">#' + esc(q.id) + '</span><div class="topic-row__text"><div class="rc-qtext">' + esc(q.question) + '</div>' + (showPath ? '<div class="topic-row__meta"><span>' + esc(where(t)) + '</span></div>' : '') +
+    '<div class="topic-row__meta">' + badge('Key ' + letter(q.answer), 'ghost') + (s ? badge(s.pct + '% correct · n ' + s.n, 'ghost') : '') + (sv ? badge('Saved by ' + sv, 'ghost') : '') + '</div></div></div>' +
+    '<div class="topic-row__right"><button class="btn btn--ghost btn--sm" type="button" data-act="edit" data-key="' + esc(keyOf(t, q)) + '">Edit</button><button class="btn btn--ghost btn--sm rc-danger" type="button" data-act="del" data-key="' + esc(keyOf(t, q)) + '">Remove</button></div></div>';
+}
+function afterContent() {
+  const cs = $('cs');
+  if (cs) { cs.oninput = () => { contentTerm = cs.value; searchAll(); }; if (contentTerm) searchAll(); }
+  const tq = $('tq'), { parts } = parseRoute();
+  if (tq) tq.oninput = () => { const t = allTopics().find((x) => x.module === parts[0] && x.exam === parts[1] && x.subject === parts[2] && x.sub === parts[3]); if (t) $('qlist').innerHTML = questionCards(t, tq.value); };
+}
+function searchAll() {
+  const term = contentTerm.trim().toLowerCase(), box = $('cres'), home = $('chome'); if (!box) return;
+  if (!term) { box.innerHTML = ''; home.hidden = false; return; }
+  home.hidden = true; const hits = [];
+  allTopics().forEach((t) => qs(t).forEach((q) => { if ((q.question + ' ' + (q.options || []).join(' ') + ' #' + q.id).toLowerCase().includes(term)) hits.push({ t, q }); }));
+  box.innerHTML = '<p class="rc-note" style="margin:0 0 8px">' + hits.length + ' question' + (hits.length === 1 ? '' : 's') + ' match' + (hits.length > 40 ? ' (showing the first 40)' : '') + '</p><div class="topics-list">' +
+    (hits.length ? hits.slice(0, 40).map((h) => qcard(h.t, h.q, true)).join('') : '<div class="empty-state"><h3 class="empty-state__title">Nothing matches</h3></div>') + '</div>';
+}
+
+// ---------- editors (drawers) ----------
+async function openEditor(key, addKey) {
+  const found = key ? byKey(key) : null, t = found ? found.t : topicByKey(addKey); if (!t) return;
+  const form0 = () => ({ question: '', options: ['', '', '', ''], answer: 0, explanation: '' });
+  let initial = null, c = null;
+  const L = openLayer({ kind: 'drawer', title: found ? 'Edit question #' + found.q.id : 'Add a question', sub: where(t), body: '<p class="rc-sub">Loading…</p>',
+    beforeClose: async () => !(initial && JSON.stringify(read()) !== initial) || confirmDialog({ title: 'Discard your changes?', message: 'This question has edits that are not saved.', ok: 'Discard', danger: true }) });
+  const read = () => {
+    const f = L.body.querySelector('form'); if (!f) return null;
+    const e = f.elements;
+    return { question: e.question.value, options: Array.from(f.querySelectorAll('[data-o]')).map((i) => i.value), answer: Number((f.querySelector('input[name=answer]:checked') || {}).value), explanation: e.explanation.value };
+  };
+  const fail = (msg) => { L.body.innerHTML = '<p class="rc-err">' + esc(msg) + '</p>'; L.foot.hidden = false; L.foot.innerHTML = '<button class="btn btn--ghost" type="button" data-no>Close</button>'; L.foot.querySelector('[data-no]').onclick = () => L.tryClose(false); };
+  try { c = await freshTopic(t); } catch (e) { return fail(e.message); }
+  const q = found ? c.questions.find((x) => String(x.id) === String(found.q.id)) : form0();
+  if (!q) return fail('That question is no longer in the file. Reload the topic.');
+  if (!Array.isArray(q.options) || !q.options.every((o) => typeof o === 'string')) return fail('This question stores its options in a format the editor does not change. Use Open file on GitHub.');
+  L.body.innerHTML = '<form id="edf" novalidate><label class="rc-field"><span>Question <em id="cq"></em></span><textarea class="rc-in" name="question" rows="4">' + esc(q.question) + '</textarea></label>' +
+    '<div class="rc-field"><span>Answer options <em>Select the correct one</em></span>' + q.options.map((o, i) => '<label class="rc-opt"><input type="radio" name="answer" value="' + i + '"' + (i === q.answer ? ' checked' : '') + ' aria-label="Option ' + letter(i) + ' is correct"><b>' + letter(i) + '</b><input class="rc-in" data-o name="o' + i + '" value="' + esc(o) + '" aria-label="Option ' + letter(i) + '"></label>').join('') + '</div>' +
+    '<label class="rc-field"><span>Explanation <em>shown after answering</em></span><textarea class="rc-in" name="explanation" rows="5">' + esc(q.explanation || '') + '</textarea></label><p class="rc-err" id="ederr" role="alert" hidden></p></form>';
+  L.foot.hidden = false; L.foot.innerHTML = '<button class="btn btn--ghost" type="button" data-no>Cancel</button><button class="btn btn--primary" type="button" data-save>' + (found ? 'Save to GitHub' : 'Add to GitHub') + '</button>';
+  initial = JSON.stringify(read());
+  const cq = () => { $('cq').textContent = L.body.querySelector('[name=question]').value.length + ' characters'; }; cq(); L.body.querySelector('[name=question]').addEventListener('input', cq);
+  L.foot.querySelector('[data-no]').onclick = () => L.tryClose(false);
+  L.foot.querySelector('[data-save]').onclick = async () => {
+    const v = read(), err = (m) => { const el = $('ederr'); el.textContent = m; el.hidden = !m; };
+    if (!v.question.trim()) return err('Write the question.');
+    if (v.options.some((o) => !o.trim())) return err('Every option needs text.');
+    if (!Number.isInteger(v.answer)) return err('Select the correct answer.');
+    err(''); const btn = L.foot.querySelector('[data-save]'); btn.disabled = true;
+    const s = await adminFetch('/api/admin/question', { method: 'POST', body: JSON.stringify(found ? { path: t.path, id: q.id, sha: c.sha, ...v } : { action: 'add', path: t.path, sha: c.sha, ...v }) });
+    if (s.status === 200 && s.body.ok) {
+      c.sha = s.body.sha || c.sha;
+      if (found) Object.assign(q, v); else c.questions.push({ id: s.body.id, ...v });
+      initial = null; L.finish(true); toast(found ? 'Saved. Students see the change in about a minute.' : 'Question added. Students see it in about a minute.'); show(); return;
+    }
+    if (s.status === 409) delete qcache[t.path];   // the file moved on: the next open reads it fresh
+    err(s.body.message || 'Could not save.'); btn.disabled = false;
+  };
+}
+async function removeQuestion(key) {
+  const f = byKey(key); if (!f) return;
+  const ok = await confirmDialog({ title: 'Remove question #' + f.q.id + '?', ok: 'Remove', danger: true,
+    message: '\u201c' + esc(String(f.q.question).slice(0, 180)) + '\u201d<br><br>This commits the removal to GitHub. The other questions keep their numbers. Copies students already saved on their own devices are not touched.' });
+  if (!ok) return;
+  try {
+    const c = await freshTopic(f.t);
+    const s = await adminFetch('/api/admin/question', { method: 'POST', body: JSON.stringify({ action: 'delete', path: f.t.path, id: f.q.id, sha: c.sha }) });
+    if (s.status !== 200 || !s.body.ok) { if (s.status === 409) delete qcache[f.t.path]; throw new Error(s.body.message || 'Could not remove it.'); }
+    c.sha = s.body.sha || c.sha; c.questions = c.questions.filter((x) => String(x.id) !== String(f.q.id));
+    toast('Removed question #' + f.q.id + '. Students see the change in about a minute.');
+  } catch (e) { toast(e.message, true); }
+  show();
+}
+function topicForm(o) {   // shared by "New topic" and "Details"
+  return '<form id="tf" novalidate><label class="rc-field"><span>Name <em>shown to students</em></span><input class="rc-in" name="label" maxlength="80" value="' + esc(o.label) + '" autocomplete="off"></label>' +
+    '<label class="rc-field"><span>Professor <em>optional</em></span><input class="rc-in" name="professor" maxlength="60" value="' + esc(o.professor) + '" placeholder="Prof. Samaa" autocomplete="off"></label>' +
+    (o.isNew ? '<p class="rc-hint">A new topic starts hidden from students. Add its questions, check it in the Recall app (you will see it there with a Hidden badge), then switch it on here.</p>'
+      : '<div class="rc-set" style="padding-top:0"><div><b>Visible to students</b><span>Hidden topics are shown to admins only.</span></div>' + '<label class="rc-hit">' + tog(!o.hidden, 'data-vis', 'Visible to students') + '</label></div>') +
+    '<p class="rc-hint">A straight apostrophe is saved as a typographic one. The characters &lt; &gt; " ` and \\ are not allowed.</p><p class="rc-err" id="tferr" role="alert" hidden></p></form>';
+}
+function openTopicEditor(t, sk) {
+  const isNew = !t, [mid, exam, subject] = isNew ? sk.split('|') : [];
+  const start = isNew ? { label: '', professor: '', hidden: true, isNew: true } : { label: t.label, professor: t.professor, hidden: t.hidden };
+  let initial = '';
+  const L = openLayer({ kind: 'drawer', title: isNew ? 'New topic' : 'Topic details', sub: isNew ? 'Created as a hidden topic' : where(t), body: topicForm(start),
+    foot: '<button class="btn btn--ghost" type="button" data-no>Cancel</button><button class="btn btn--primary" type="button" data-save>' + (isNew ? 'Create topic' : 'Save changes') + '</button>',
+    beforeClose: async () => JSON.stringify(read()) === initial || confirmDialog({ title: 'Discard your changes?', message: 'The details have edits that are not saved.', ok: 'Discard', danger: true }) });
+  const f = L.body.querySelector('form'), vis = L.body.querySelector('[data-vis]');
+  const read = () => ({ label: f.elements.label.value.trim(), professor: f.elements.professor.value.trim(), hidden: vis ? !vis.checked : true });
+  initial = JSON.stringify(read());
+  L.foot.querySelector('[data-no]').onclick = () => L.tryClose(false);
+  L.foot.querySelector('[data-save]').onclick = async () => {
+    const v = read(), err = (m) => { const el = $('tferr'); el.textContent = m; el.hidden = !m; };
+    if (!v.label) return err('Give the topic a name.');
+    err(''); const btn = L.foot.querySelector('[data-save]'); btn.disabled = true;
+    try {
+      let body, msg;
+      if (isNew) { body = { action: 'add_topic', moduleId: mid, exam, subject, label: v.label, professor: v.professor }; msg = 'Topic created and hidden. Add its questions next.'; }
+      else {
+        body = { action: 'set_topic', moduleId: t.module, exam: t.exam, subject: t.subject, topicId: t.sub };
+        if (v.label !== t.label) body.label = v.label; if (v.professor !== t.professor) body.professor = v.professor; if (v.hidden !== t.hidden) body.hidden = v.hidden;
+        if (Object.keys(body).length === 5) { initial = JSON.stringify(v); L.finish(true); return; }
+        msg = 'Saved. Students see the change in about a minute.';
+      }
+      const r = await cfgPost(body); initial = JSON.stringify(v); L.finish(true); toast(msg);
+      if (isNew && r.topicId) { await loadBank(); location.hash = hashOf(mid, exam, subject, r.topicId); } else show();
+    } catch (e) { err(e.message); btn.disabled = false; }
+  };
+}
+
+// ---------- Students ----------
+const day = (t) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '–');
+function studentRows() {
+  const f = studTerm.trim().toLowerCase();
+  const list = studentList.filter((s) => (studFilter === 'all' || (studFilter === 'admins' && (s.is_admin || s.owner)) || (studFilter === 'removed' && s.blocked)) && (!f || [s.email, s.first_name, s.last_name, s.uid].join(' ').toLowerCase().includes(f)));
+  if (!list.length) return '<tr><td class="rc-low" colspan="7">No accounts match.</td></tr>';
+  return list.map((s) => {
+    const role = s.owner ? badge('Owner', 'ongoing') + ' ' : s.is_admin ? badge('Admin', 'ongoing') + ' ' : '', acts = [];
+    if (s.blocked) acts.push('<span class="rc-bad">Removed</span> <button class="rc-link" type="button" data-ub="' + esc(s.uid) + '">Unblock</button>');
+    else if (!s.owner && !s.is_admin) acts.push('<button class="rc-link rc-link--warn" type="button" data-rm="' + esc(s.uid) + '">Remove</button>');
+    if (meOwner && !s.owner && !s.blocked) acts.push(s.is_admin ? '<button class="rc-link rc-link--warn" type="button" data-rma="' + esc(s.uid) + '">Remove admin</button>' : '<button class="rc-link" type="button" data-mk="' + esc(s.uid) + '">Make admin</button>');
+    return '<tr><td data-l="Name"><b>' + (esc([s.first_name, s.last_name].filter(Boolean).join(' ')) || '<span class="rc-low">no name</span>') + '</b><small>' + esc(s.uid) + '</small></td>' +
+      '<td data-l="Email">' + (s.email ? esc(s.email) : '<span class="rc-low">not yet on file</span>') + '</td><td data-l="Joined">' + day(s.created_at) + '</td><td data-l="Last exam">' + day(s.last_exam) + '</td>' +
+      '<td class="n" data-l="Exams">' + s.exams + '</td><td class="n" data-l="Correct">' + (s.attempted ? Math.round((s.correct / s.attempted) * 100) + '%' : '–') + '</td><td data-l="Role">' + role + acts.join(' ') + '</td></tr>';
+  }).join('');
+}
+async function students() {
+  const r = await adminFetch('/api/admin/students');
+  if (r.status !== 200 || !r.body.ok) return '<div class="rc-msg">Could not load the student list.</div>';
+  studentList = r.body.students; meOwner = !!(r.body.me && r.body.me.owner);
+  const n = (f) => studentList.filter(f).length, chip = (k, l) => '<button class="btn btn--sm ' + (studFilter === k ? 'btn--primary' : 'btn--ghost') + '" type="button" data-sf="' + k + '" aria-pressed="' + (studFilter === k) + '">' + l + '</button>';
+  return '<div class="page rc-wide"><header class="page__header"><div><h1 class="page__title">Students</h1><p class="page__subtitle">' + studentList.length + ' accounts. Emails appear once a person has signed in after the email update.' + (meOwner ? '' : ' Only an owner can make or remove admins.') + '</p></div></header>' +
+    '<label class="rc-search">' + ic('search') + '<input id="sq" type="search" placeholder="Search name, email or id" aria-label="Search students" value="' + esc(studTerm) + '"></label>' +
+    '<div class="rc-chips">' + chip('all', 'All ' + studentList.length) + chip('admins', 'Admins ' + n((s) => s.is_admin || s.owner)) + chip('removed', 'Removed ' + n((s) => s.blocked)) + '</div>' +
+    '<div class="rc-card rc-scroll"><table class="rc-t rc-stack"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Last exam</th><th class="n">Exams</th><th class="n">Correct</th><th>Role / actions</th></tr></thead><tbody id="sb">' + studentRows() + '</tbody></table>' +
+    '<p>Admins can open this page, see student emails, and edit or remove questions and topics. Remove deletes a student\u2019s cloud data and blocks the account from syncing; their login stays in Firebase until you delete it there. To remove an admin account, first remove its admin rights.</p></div></div>';
+}
+async function studentAction(uid, action) {
+  const s = studentList.find((x) => x.uid === uid), who = esc((s && (s.email || [s.first_name, s.last_name].filter(Boolean).join(' '))) || uid);
+  const ask = { remove: ['Remove ' + who + '?', 'Their cloud progress is deleted and the account is blocked from syncing. Their Firebase login stays until you delete it there.', 'Remove', true],
+    make_admin: ['Make ' + who + ' an admin?', 'Admins can open this page, see every student\u2019s email, and edit or remove questions and topics.', 'Make admin', false],
+    remove_admin: ['Remove admin rights from ' + who + '?', 'They keep their student account.', 'Remove admin', true] }[action];
+  if (ask && !(await confirmDialog({ title: ask[0], message: ask[1], ok: ask[2], danger: ask[3] }))) return;
+  const r = await adminFetch('/api/admin/student', { method: 'POST', body: JSON.stringify({ uid, action }) });
+  if (r.status !== 200) { toast(r.body.message || 'That did not work.', true); return; }
+  toast(action === 'unblock' ? 'Account unblocked.' : action === 'remove' ? 'Account removed.' : action === 'make_admin' ? 'Admin rights given.' : 'Admin rights removed.'); show();
+}
+
+// ---------- Retention and System ----------
+function retention() {
+  const a = data.activation, cr = data.cohorts.map((c) => '<tr><td>' + new Date(c.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + '</td><td class="n">' + c.size + '</td>' +
+    c.retained.map((n) => '<td class="n' + (n == null ? ' rc-low' : '') + '">' + (n == null ? '–' : n + ' (' + pct(n, c.size) + '%)') + '</td>').join('') + '</tr>').join('');
+  return '<div class="page rc-wide"><header class="page__header"><div><h1 class="page__title">Retention</h1><p class="page__subtitle">Do students come back?</p></div></header><div class="stats-strip rc-strip">' +
+    kpi('Studied at least once', pct(a.ever, a.signups) == null ? '–' : pct(a.ever, a.signups) + '%', 'of ' + a.signups + ' signups, last 8 weeks') +
+    kpi('First exam within 24 h', pct(a.within24h, a.eligible24h) == null ? '–' : pct(a.within24h, a.eligible24h) + '%', 'of signups older than a day') +
+    kpi('First exam within 7 days', pct(a.within7d, a.eligible7d) == null ? '–' : pct(a.within7d, a.eligible7d) + '%', 'of signups older than a week') +
+    kpi('Median time to first exam', a.medianHours == null ? '–' : a.medianHours + ' h', 'after signing up') + '</div>' +
+    '<div class="rc-card rc-scroll"><h2>Weekly signup cohorts: studied again in week…</h2><table class="rc-t"><thead><tr><th>Week of</th><th class="n">Signed up</th><th class="n">Week 0</th><th class="n">Week 1</th><th class="n">Week 2</th><th class="n">Week 3</th></tr></thead><tbody>' +
+    (cr || '<tr><td class="rc-low" colspan="6">No signups in the last 8 weeks.</td></tr>') + '</tbody></table><p>"Studied" means finished at least one exam that week. Weeks run Thursday to Wednesday (UTC). With few students, treat single percentages loosely.</p></div></div>';
+}
+function system() {
+  const t = data.totals, next = new Date(); next.setUTCHours(24, 0, 0, 0);
+  const hrs = Math.round((next - Date.now()) / 36e5 * 10) / 10;
+  return '<div class="page rc-wide"><header class="page__header"><div><h1 class="page__title">System</h1><p class="page__subtitle">Usage and limits</p></div></header><div class="stats-strip rc-strip">' + kpi('Users', fmt(t.users)) + kpi('Exams stored', fmt(t.attempts)) + kpi('Topic rows', fmt(t.scopes)) + kpi('Daily limits reset in', hrs + ' h', '00:00 UTC') + '</div>' +
+    '<div class="rc-card rc-links"><h2>Live usage (needs your Cloudflare and Firebase login)</h2>' +
+    '<a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare: Workers &amp; Pages, Usage</a><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare: D1, Metrics</a>' +
+    '<a href="https://console.firebase.google.com/project/recall-med/authentication/users" target="_blank" rel="noopener">Firebase: Authentication</a>' +
+    '<p>Request counts and database reads and writes are not available here, because reading them would need an extra secret. Editing content uses a GitHub token stored only as an encrypted Cloudflare variable. Free-plan reminders: 60 exam uploads per hour per account; D1 allows 100,000 row writes per day.</p></div></div>';
+}
+const VIEWS = { overview: async () => overview(), content, students, retention: async () => retention(), system: async () => system() };
+
+// ---------- clicks ----------
+async function toggle(btn, body, okMsg) {
+  btn.disabled = true;
+  try { await cfgPost(body); toast(okMsg); } catch (e) { toast(e.message, true); }
+  show();
+}
+const STUDENT_BTN = '[data-rm],[data-ub],[data-mk],[data-rma]';
+document.addEventListener('click', async (e) => {
+  if (!root.contains(e.target)) return;
+  const b = e.target.closest('[data-act],[data-add],[data-sf],' + STUDENT_BTN);
+  if (b) {
+    const d = b.dataset;
+    if (d.act === 'edit') return openEditor(d.key);
+    if (d.act === 'del') return removeQuestion(d.key);
+    if (d.add) return openEditor(null, d.add);
+    if (d.act === 'tdetails') return openTopicEditor(topicByKey(d.tk));
+    if (d.act === 'newtopic') return openTopicEditor(null, d.sk);
+    if (d.act === 'publish') { const t = topicByKey(d.tk); if (t) return toggle(b, { action: 'set_topic', moduleId: t.module, exam: t.exam, subject: t.subject, topicId: t.sub, hidden: false }, 'Topic visible to students in about a minute.'); }
+    if (d.sf) { studFilter = d.sf; document.querySelectorAll('[data-sf]').forEach((x) => { const on = x.dataset.sf === studFilter; x.setAttribute('aria-pressed', on); x.classList.toggle('btn--primary', on); x.classList.toggle('btn--ghost', !on); }); $('sb').innerHTML = studentRows(); return; }
+    const uid = d.rm || d.ub || d.mk || d.rma;
+    if (uid) return studentAction(uid, d.rm ? 'remove' : d.ub ? 'unblock' : d.mk ? 'make_admin' : 'remove_admin');
+  }
+  const go = e.target.closest('[data-go]'); if (go && !e.target.closest('button,a,input,label')) location.hash = go.dataset.go;
+});
+document.addEventListener('change', async (e) => {
+  const tg = e.target; if (!tg.matches || !tg.matches('input.toggle[data-sw]') || !root.contains(tg)) return;
+  const k = tg.dataset.sw, on = tg.checked;   // the state it is switching TO
+  if (k === 'mod-ongoing') return toggle(tg, { action: 'set_module', moduleId: tg.dataset.m, ongoing: on }, on ? 'Now the ongoing module.' : 'No longer the ongoing module.');
+  if (k === 'mod-visible') {
+    if (!on && !(await confirmDialog({ title: 'Hide this module from students?', message: 'Students will no longer see ' + esc(tg.dataset.m) + ' or any of its topics. Admins still see it, with a Hidden badge.', ok: 'Hide module', danger: true }))) { tg.checked = true; return; }
+    return toggle(tg, { action: 'set_module', moduleId: tg.dataset.m, hidden: !on }, on ? 'Module visible to students in about a minute.' : 'Module hidden from students in about a minute.');
+  }
+  if (k === 'topic') { const t = topicByKey(tg.dataset.tk); if (t) return toggle(tg, { action: 'set_topic', moduleId: t.module, exam: t.exam, subject: t.subject, topicId: t.sub, hidden: !on }, on ? 'Topic visible to students in about a minute.' : 'Topic hidden from students in about a minute.'); }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-go]')) location.hash = e.target.dataset.go; });
+document.addEventListener('input', (e) => { if (e.target.id === 'sq' && $('sb')) { studTerm = e.target.value; $('sb').innerHTML = studentRows(); } });
+</script>
+</body>
+</html>

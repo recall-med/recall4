@@ -1,0 +1,347 @@
+{
+  "meta": {
+    "module": "CNS",
+    "examType": "end_module",
+    "subject": "histology",
+    "subSubject": "meninges_ear",
+    "totalQuestions": 28
+  },
+  "questions": [
+    {
+      "question": "Which of the meningeal layers forms the external protective covering and consists of dense connective tissue?",
+      "options": [
+        "Pia mater",
+        "Arachnoid mater",
+        "Dura mater",
+        "Ependyma"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Dura mater",
+      "id": 1
+    },
+    {
+      "question": "Histologically, the dura mater is primarily composed of:",
+      "options": [
+        "An outer periosteal layer and an inner meningeal layer",
+        "An outer arachnoid layer and an inner pial layer",
+        "Simple epithelial cells and smooth muscle fibers",
+        "Unmyelinated nervous tissue"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. An outer periosteal layer and an inner meningeal layer",
+      "id": 2
+    },
+    {
+      "question": "In the spinal cord, the space separating the dura mater from the bone is known as the:",
+      "options": [
+        "Epidural space",
+        "Subdural space",
+        "Subarachnoid space",
+        "Central canal"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Epidural space",
+      "id": 3
+    },
+    {
+      "question": "The arachnoid mater consists of a sheet-like membrane and a system of trabeculae that contain:",
+      "options": [
+        "The subdural space",
+        "The epidural space",
+        "The subarachnoid space filled with cerebrospinal fluid",
+        "The deep spinal canal"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. The subarachnoid space filled with cerebrospinal fluid",
+      "id": 4
+    },
+    {
+      "question": "What is the primary function of the arachnoid villi?",
+      "options": [
+        "To secrete cerebrospinal fluid (CSF)",
+        "To return CSF from the subarachnoid space into the venous blood of dural sinuses",
+        "To nourish motor neurons",
+        "To protect the brain from mechanical external trauma"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. To return CSF from the subarachnoid space into the venous blood of dural sinuses",
+      "id": 5
+    },
+    {
+      "question": "Which of the following best characterizes the pia mater?",
+      "options": [
+        "A thick, avascular fibrous layer",
+        "A delicate, highly vascular layer closely adhering to the brain and spinal cord surface",
+        "A cartilaginous layer lining the cranial cavity",
+        "An adipose layer separating the brain from the arachnoid mater"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. A delicate, highly vascular layer closely adhering to the brain and spinal cord surface",
+      "id": 6
+    },
+    {
+      "question": "The choroid plexus consists of folds of the pia mater covered by ependymal cells whose primary function is:",
+      "options": [
+        "Secretion of cerebrospinal fluid (CSF)",
+        "Conduction of rapid nerve impulses",
+        "Absorption of damaged neurotransmitters",
+        "Formation of myelin sheaths"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Secretion of cerebrospinal fluid (CSF)",
+      "id": 7
+    },
+    {
+      "question": "The blood-brain barrier (BBB) consists of all the following components EXCEPT:",
+      "options": [
+        "Capillary endothelial cells with tight junctions",
+        "The basement membrane of endothelial cells",
+        "Astrocyte perivascular end-feet",
+        "Fenestrated capillaries with wide pores"
+      ],
+      "answer": 3,
+      "explanation": "Correct answer: D. Fenestrated capillaries with wide pores",
+      "id": 8
+    },
+    {
+      "question": "The auricle (pinna) of the external ear is primarily supported by:",
+      "options": [
+        "Hyaline cartilage",
+        "Elastic cartilage covered by tightly adherent thin skin",
+        "Dense fibrous connective tissue and bone",
+        "Adipose tissue and skeletal muscle"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Elastic cartilage covered by tightly adherent thin skin",
+      "id": 9
+    },
+    {
+      "question": "The ceruminous glands found in the external auditory meatus are:",
+      "options": [
+        "Regular sebaceous glands",
+        "Modified sweat glands that secrete earwax (cerumen)",
+        "Mucous salivary glands",
+        "Endocrine glands"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Modified sweat glands that secrete earwax (cerumen)",
+      "id": 10
+    },
+    {
+      "question": "The middle layer (lamina propria) of the tympanic membrane consists of:",
+      "options": [
+        "Collagenous and elastic fibers arranged in circular and radial patterns with fibroblasts",
+        "Voluntary striated muscle tissue",
+        "Thick keratinized stratified epithelium",
+        "Pure adipose tissue"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Collagenous and elastic fibers arranged in circular and radial patterns with fibroblasts",
+      "id": 11
+    },
+    {
+      "question": "The auditory (Eustachian) tube connects the middle ear to the nasopharynx; its posterior third is bony, while its anterior two-thirds are supported by:",
+      "options": [
+        "Elastic cartilage",
+        "Hyaline cartilage",
+        "Pure fibrous tissue",
+        "Spongy bone"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Elastic cartilage",
+      "id": 12
+    },
+    {
+      "question": "In the internal ear, the bony labyrinth is filled with a fluid called ......., whereas the membranous labyrinth is filled with .......:",
+      "options": [
+        "Endolymph - Perilymph",
+        "Perilymph - Endolymph",
+        "Cerebrospinal fluid - Plasma",
+        "Blood - Pure lymph"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Perilymph - Endolymph",
+      "id": 13
+    },
+    {
+      "question": "The otolithic membrane overlying the sensory hair cells in the maculae of the utricle and saccule contains crystals made of:",
+      "options": [
+        "Calcium carbonate (otoliths)",
+        "Solid calcium phosphate",
+        "Sodium-potassium crystals",
+        "Melanin granules"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Calcium carbonate (otoliths)",
+      "id": 14
+    },
+    {
+      "question": "In the cristae ampullares of the semicircular ducts, the sensory hair cells are capped by a thick, gelatinous, cone-shaped structure known as the:",
+      "options": [
+        "Otolithic membrane",
+        "Cupula",
+        "Tectorial membrane",
+        "Basilar membrane"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Cupula",
+      "id": 15
+    },
+    {
+      "question": "The stria vascularis is located in the lateral wall of the cochlear duct and is responsible for:",
+      "options": [
+        "Secretion of endolymph",
+        "Secretion of perilymph",
+        "Reception of high-frequency sound vibrations",
+        "Direct nutritional supply to the tympanic membrane"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Secretion of endolymph",
+      "id": 16
+    },
+    {
+      "question": "The supporting cells that bound the inner tunnel (Tunnel of Corti) within the organ of Corti are:",
+      "options": [
+        "Inner and outer pillar (rod) cells",
+        "Hair cells",
+        "Hensen's cells",
+        "Border cells"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Inner and outer pillar (rod) cells",
+      "id": 17
+    },
+    {
+      "question": "The stereocilia of the hair cells in the organ of Corti are embedded in a stiff glycoprotein structure called the:",
+      "options": [
+        "Tectorial membrane",
+        "Basilar membrane",
+        "Vestibular membrane",
+        "Otolithic membrane"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Tectorial membrane",
+      "id": 18
+    },
+    {
+      "question": "The receptor hair cells found in the maculae and cristae ampullares are categorized into:",
+      "options": [
+        "Flask-shaped (Type I) and columnar (Type II) cells",
+        "Stellate and spindle-shaped cells",
+        "Pyramidal and cuboidal cells",
+        "Flat squamous cells"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Flask-shaped (Type I) and columnar (Type II) cells",
+      "id": 19
+    },
+    {
+      "question": "The cochlear duct (scala media) contains ....... fluid, whereas the scala vestibuli and scala tympani contain ....... fluid:",
+      "options": [
+        "Endolymph - Perilymph",
+        "Perilymph - Endolymph",
+        "Blood - Lymph",
+        "Cerebrospinal fluid - Blood"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Endolymph - Perilymph",
+      "id": 20
+    },
+    {
+      "question": "Which layer directly separates the subarachnoid space from the pia mater?",
+      "options": [
+        "Dura mater",
+        "Arachnoid trabeculae",
+        "Periosteum",
+        "Ependymal lining"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Arachnoid trabeculae",
+      "id": 21
+    },
+    {
+      "question": "Which part of the internal ear contains balance receptors responsible for sensing linear acceleration?",
+      "options": [
+        "Semicircular canals (Cristae)",
+        "Utricle and Saccule (Maculae)",
+        "Cochlear duct (Organ of Corti)",
+        "Endolymphatic sac"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Utricle and Saccule (Maculae)",
+      "id": 22
+    },
+    {
+      "question": "What type of epithelial cells line the membranous labyrinth in the internal ear?",
+      "options": [
+        "Simple squamous to simple cuboidal epithelium",
+        "Stratified columnar epithelium",
+        "Pseudostratified ciliated epithelium",
+        "Keratinized stratified squamous epithelium"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Simple squamous to simple cuboidal epithelium",
+      "id": 23
+    },
+    {
+      "question": "The supporting cells surrounding the hair cells in the cristae ampullares are known as:",
+      "options": [
+        "Pillar cells",
+        "Supporting (sustentacular) cells",
+        "Hensen's cells",
+        "Interdental cells"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Supporting (sustentacular) cells",
+      "id": 24
+    },
+    {
+      "question": "Which of the following structures separates the scala vestibuli from the scala media (cochlear duct)?",
+      "options": [
+        "Basilar membrane",
+        "Vestibular membrane (Reissner's membrane)",
+        "Tectorial membrane",
+        "Tympanic membrane"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Vestibular membrane (Reissner's membrane)",
+      "id": 25
+    },
+    {
+      "question": "Upon which membrane does the organ of Corti rest within the cochlea?",
+      "options": [
+        "Basilar membrane",
+        "Vestibular membrane",
+        "Otolithic membrane",
+        "Tectorial membrane"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Basilar membrane",
+      "id": 26
+    },
+    {
+      "question": "The cartilage supporting the auricle (pinna) specifically belongs to which type?",
+      "options": [
+        "Elastic cartilage",
+        "Hyaline cartilage",
+        "White fibrocartilage",
+        "Articular cartilage"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Elastic cartilage",
+      "id": 27
+    },
+    {
+      "question": "The external surface of the tympanic membrane is covered by:",
+      "options": [
+        "Thin skin (epidermis continuous with external acoustic meatus)",
+        "Mucous membrane continuous with the middle ear",
+        "Simple squamous mesothelium",
+        "Endothelial lining"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Thin skin (epidermis continuous with external acoustic meatus)",
+      "id": 28
+    }
+  ]
+}

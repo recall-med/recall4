@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * DEPT. Q. BANK — storage.js  (v2 — sub-subject support)
+ * Recall — storage.js  (v2 — sub-subject support)
  * ============================================================
  */
 
@@ -13,6 +13,8 @@ const STORAGE_KEYS = {
   CURRENT_EXAM:   'dqb_current_exam',
   LAST_PAGE:      'dqb_last_page',
   SETTINGS:       'dqb_settings',
+  LAST_RESULTS:   'dqb_last_results',
+  TOPIC_EXAMS:    'dqb_topic_exams',
 };
 
 const Storage = {
@@ -36,6 +38,13 @@ const Storage = {
   },
 
   _delete(key) { localStorage.removeItem(key); },
+
+  // ─── Question-count cache ─────────────────────────────────────────────────
+  // Remembers how many questions each topic file has, so pages can open instantly
+  // instead of waiting on every data file. Deliberately NOT in STORAGE_KEYS: it is
+  // not user progress, so Reset Progress must not clear it.
+  getCountCache()      { return this._get('dqb_count_cache') || {}; },
+  saveCountCache(map)  { this._set('dqb_count_cache', map); },
 
   // ─── Stats ────────────────────────────────────────────────────────────────
 
@@ -123,11 +132,58 @@ const Storage = {
     this._set(STORAGE_KEYS.EXAM_HISTORY, history);
   },
 
+  // ─── Last attempt of a scope (kept on this device for the Analytics view) ───
+  // One full result per topic / subject / exam type (the newest 12 scopes). Practice runs ("retry incorrect") never land here.
+
+  questionUid(e) { return `${e.module}|${e.examType}|${e.subject}|${e.subSubject}|${e.id}`; },
+  resultsKey(c)  { return c.scope === 'custom' ? 'custom' : [c.module, c.examType, c.scope || 'topic', c.subject || '', c.subSubject || ''].join('|'); },
+
+  // A topic keeps ONE record under its key (a retry merges into it). A full exam (subject / exam type) and the custom exams
+  // keep every attempt, because the topics in them can differ: stored under `key#<completedAt>`, listed newest first.
+  getLastResults(key) { const all = this._get(STORAGE_KEYS.LAST_RESULTS); return (all && all[key]) || (this.listAttempts(key)[0] || null); },
+
+  listAttempts(key) {
+    const all = this._get(STORAGE_KEYS.LAST_RESULTS) || {};
+    return Object.keys(all).filter(k => k === key || k.startsWith(key + '#')).map(k => ({ ...all[k], _key: k }))
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+  },
+
+  saveAttempt(key, results) { this.saveLastResults(`${key}#${results.completedAt || Date.now()}`, results); },
+
+  // Newest 40 records, and never more than about 1.5 MB of text in total (oldest go first)
+  saveLastResults(key, results) {
+    try { if (JSON.stringify(results).length > 600000) return; } catch (e) { return; }
+    const all  = this._get(STORAGE_KEYS.LAST_RESULTS) || {};
+    all[key]   = results;
+    const order = Object.keys(all).sort((a, b) => (all[b].completedAt || 0) - (all[a].completedAt || 0));
+    order.slice(40).forEach(k => delete all[k]);
+    let size = JSON.stringify(all).length;
+    for (let i = order.length - 1; i > 0 && size > 1500000; i--) { if (all[order[i]] && order[i] !== key) { size -= JSON.stringify(all[order[i]]).length; delete all[order[i]]; } }
+    this._set(STORAGE_KEYS.LAST_RESULTS, all);
+  },
+
   // ─── Current exam ────────────────────────────────────────────────────────
 
   saveCurrentExam(state)  { this._set(STORAGE_KEYS.CURRENT_EXAM, state); },
   loadCurrentExam()       { return this._get(STORAGE_KEYS.CURRENT_EXAM); },
   clearCurrentExam()      { this._delete(STORAGE_KEYS.CURRENT_EXAM); },
+
+  // ─── Unfinished exam of a topic (one per topic, so the topic page can offer "Continue" on its own) ───
+  // Separate from the single current-exam slot above, which the dashboard card uses: starting another exam replaces
+  // that slot but leaves each topic's own unfinished exam alone. Device-local, not synced.
+  getTopicExam(key) { const all = this._get(STORAGE_KEYS.TOPIC_EXAMS); const e = all && all[key]; return e && e.state && !e.state.submitted ? e : null; },
+  saveTopicExam(key, exam) {
+    try { if (JSON.stringify(exam).length > 600000) return; } catch (e) { return; }
+    const all = this._get(STORAGE_KEYS.TOPIC_EXAMS) || {};
+    all[key] = exam;
+    this._set(STORAGE_KEYS.TOPIC_EXAMS, all);
+  },
+  clearTopicExam(key) {
+    const all = this._get(STORAGE_KEYS.TOPIC_EXAMS);
+    if (!all || !(key in all)) return;
+    delete all[key];
+    if (Object.keys(all).length) this._set(STORAGE_KEYS.TOPIC_EXAMS, all); else this._delete(STORAGE_KEYS.TOPIC_EXAMS);
+  },
 
   // ─── Settings ─────────────────────────────────────────────────────────────
 

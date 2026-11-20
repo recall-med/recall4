@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "module": "CPM",
+    "examType": "final_exam_last_year",
+    "subject": "anatomy",
+    "subSubject": "xgdf",
+    "totalQuestions": 1
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "fsdfg",
+      "options": [
+        "fdgsdgf",
+        "fgsdf",
+        "dsfgs",
+        "dgsf"
+      ],
+      "explanation": "",
+      "answer": 0
+    }
+  ],
+  "nextId": 2
+}

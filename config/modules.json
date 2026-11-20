@@ -146,8 +146,7 @@
           "anatomy": [
             {
               "id": "xgdf",
-              "label": "xgdf",
-              "hidden": true
+              "label": "xgdf"
             }
           ],
           "physiology": [],

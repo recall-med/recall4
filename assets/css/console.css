@@ -180,3 +180,22 @@ textarea.rc-in { resize: vertical; min-height: 5.25rem; }
 .rc-set + .rc-set { border-top: 1px solid var(--border); }
 .rc-set b { display: block; font-size: .9rem; }
 .rc-set span { display: block; font-size: .8rem; color: var(--text-3); margin-top: .15rem; line-height: 1.45; }
+
+/* ── Save bar (unsaved admin changes) and review list ───────────────────────────────── */
+.rc-savebar { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); width: min(44rem, calc(100% - 1.5rem)); display: flex; align-items: center; justify-content: space-between; gap: .5rem .75rem; flex-wrap: wrap; padding: .55rem .55rem .55rem 1rem; background: var(--surface-solid); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); animation: rc-fade .15s ease-out; }
+.rc-savebar[hidden] { display: none; }
+.rc-savebar__msg { display: flex; align-items: center; gap: .6rem; min-width: 0; flex-wrap: wrap; }
+.rc-savebar__dot { flex: none; width: .55rem; height: .55rem; border-radius: 50%; background: var(--warning); }
+.rc-savebar__acts { display: flex; gap: .5rem; margin-left: auto; }
+.rc-savebar .rc-link { margin: 0; min-height: 2rem; padding: .15rem .6rem; }
+.rc-has-savebar .rc-main { padding-bottom: 6.5rem; }
+.rc-has-savebar .rc-toasts { bottom: 5.5rem; }
+@media (max-width: 599px) {
+  .rc-savebar { bottom: calc(4.9rem + env(safe-area-inset-bottom, 0px)); }
+  .rc-has-savebar .rc-main { padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px)); }
+  .rc-has-savebar .rc-toasts { bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px)); }
+}
+.rc-chg__row { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+.rc-chg__row b { display: block; font-size: .9rem; overflow-wrap: anywhere; }
+.rc-chg__row small { display: block; margin-top: .15rem; color: var(--text-3); font-size: .8rem; line-height: 1.4; overflow-wrap: anywhere; }
+.rc-q--del .rc-qtext { text-decoration: line-through; opacity: .6; }

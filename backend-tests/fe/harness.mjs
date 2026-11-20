@@ -50,8 +50,34 @@ fs.writeFileSync(path.join(tmp, '.dev.vars'), `FIREBASE_PROJECT_ID=${PROJECT}\nA
 // Fake GitHub for the admin tools: serves and updates the temp site's own files, and logs each commit.
 const ghLog = [];
 const shaOf = (t) => crypto.createHash('sha1').update(t).digest('hex');
+// Git Data API (what /api/admin/commit uses): one head commit, trees held in memory, a commit applies its files to the temp site in one step.
+const ghCommits = [];                       // { sha, message, paths } of every bundled commit
+const ghState = { head: 'head-0', n: 0, trees: {}, commits: {}, raceOnce: false, log: [] };
+const ghGit = (req, res, pathname) => {
+  const send = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+  const p = pathname.replace('/repos/recall-med/recall4/git/', '');
+  ghState.log.push(req.method + ' ' + p);
+  if (req.method === 'GET' && p === 'ref/heads/main') return send(200, { object: { sha: ghState.head } });
+  if (req.method === 'GET' && p.startsWith('commits/')) return send(200, { tree: { sha: 'tree-of-' + p.slice(8) } });
+  let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => {
+    const j = b ? JSON.parse(b) : {};
+    if (req.method === 'POST' && p === 'trees') { const sha = 'tree-' + (++ghState.n); ghState.trees[sha] = j.tree; return send(201, { sha }); }
+    if (req.method === 'POST' && p === 'commits') { const sha = 'c-' + (++ghState.n); ghState.commits[sha] = { ...j, sha }; return send(201, { sha }); }
+    if (req.method === 'PATCH' && p === 'refs/heads/main') {
+      const c = ghState.commits[j.sha];
+      if (ghState.raceOnce) { ghState.raceOnce = false; ghState.head = 'raced-' + (++ghState.n); return send(422, { message: 'Update is not a fast forward' }); }   // someone else pushed in between
+      if (!c || c.parents[0] !== ghState.head) return send(422, { message: 'Update is not a fast forward' });
+      const paths = [];
+      for (const e of ghState.trees[c.tree] || []) { const fp = path.join(tmp, e.path); fs.mkdirSync(path.dirname(fp), { recursive: true }); fs.writeFileSync(fp, e.content); paths.push(e.path); }
+      ghState.head = j.sha; ghCommits.push({ sha: j.sha, message: c.message, paths }); paths.forEach((x) => ghLog.push({ path: x, message: c.message, commit: j.sha }));
+      return send(200, { ref: 'refs/heads/main' });
+    }
+    send(404, { message: 'Not Found' });
+  });
+};
 const ghServer = http.createServer((req, res) => {
   const send = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+  if (new URL(req.url, 'http://x').pathname.startsWith('/repos/recall-med/recall4/git/')) return ghGit(req, res, new URL(req.url, 'http://x').pathname);
   const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace('/repos/recall-med/recall4/contents/', '');
   const fp = path.join(tmp, rel);
   if (!fp.startsWith(tmp)) return send(400, {});
@@ -169,4 +195,4 @@ export async function finish() {
   process.exit(fail ? 1 : 0);
 }
 
-export { BASE, PROJECT, GH_PORT, J, JSDOM, PORT, ResourceLoader, SITE_DIR, SignJWT, VirtualConsole, att, attNow, boot, check, crypto, deviceCount, ex, exportJWK, fileURLToPath, fs, generateKeyPair, ghLog, ghServer, good, hdr, here, http, jwk, openAcct, os, path, qfile, repo, sc, server, shaOf, signOut, sleep, slog, spawn, spawnSync, sql, tmp, token, until, visible, wr };
+export { ghCommits, ghState, BASE, PROJECT, GH_PORT, J, JSDOM, PORT, ResourceLoader, SITE_DIR, SignJWT, VirtualConsole, att, attNow, boot, check, crypto, deviceCount, ex, exportJWK, fileURLToPath, fs, generateKeyPair, ghLog, ghServer, good, hdr, here, http, jwk, openAcct, os, path, qfile, repo, sc, server, shaOf, signOut, sleep, slog, spawn, spawnSync, sql, tmp, token, until, visible, wr };

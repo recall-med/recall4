@@ -1,6 +1,6 @@
 // Front-end test part: admin. Run alone with: node fe/part-admin.mjs   (or all parts: node run-frontend.mjs)
 import * as H from './harness.mjs';
-const { BASE, PROJECT, GH_PORT, J, JSDOM, PORT, ResourceLoader, SITE_DIR, SignJWT, VirtualConsole, att, attNow, boot, check, crypto, deviceCount, ex, exportJWK, fileURLToPath, fs, generateKeyPair, ghLog, ghServer, good, hdr, here, http, jwk, openAcct, os, path, qfile, repo, sc, server, shaOf, signOut, sleep, slog, spawn, spawnSync, sql, tmp, token, until, visible, wr } = H;
+const { BASE, PROJECT, GH_PORT, J, JSDOM, PORT, ResourceLoader, SITE_DIR, SignJWT, VirtualConsole, att, attNow, boot, check, crypto, deviceCount, ex, exportJWK, fileURLToPath, fs, generateKeyPair, ghCommits, ghState, ghLog, ghServer, good, hdr, here, http, jwk, openAcct, os, path, qfile, repo, sc, server, shaOf, signOut, sleep, slog, spawn, spawnSync, sql, tmp, token, until, visible, wr } = H;
 
 await H.ready();
 try {
@@ -20,9 +20,10 @@ try {
 
     const html = fs.readFileSync(path.join(tmp, 'admin.html'), 'utf8');
     const mod = /<script type="module">([\s\S]*?)<\/script>/.exec(html)[1].replace(/^import\('\.\/assets\/js\/auth\.js'\).*$/m, '');
-    const page = async (uid, hash = '') => {
+    const page = async (uid, hash = '', seed = null) => {
       const dom = new JSDOM('<!doctype html><body><div id="root"></div></body>', { url: BASE + '/admin.html' + hash, runScripts: 'outside-only', pretendToBeVisual: true });
       const w = dom.window; w.fetch = (u, i) => fetch(new URL(u, BASE).href, i); w.scrollTo = () => {};
+      if (seed) w.localStorage.setItem('rc_admin_draft_v1', seed);
       w.eval("window.Sync = { attachAuth: function (p) { window.__prov = p; p.onChange(function (u) { window.__onUser && window.__onUser(u); }); } };");
       w.eval(mod);
       w.Sync.attachAuth({ onChange: (cb) => cb({ uid }), getToken: async () => token(uid), signOut: async () => {}, signInGoogle: async () => {}, signInEmail: async () => {} });
@@ -47,9 +48,10 @@ try {
     check('content: the module the config marks as ongoing is badged Ongoing on its card (' + (ongoingMod && ongoingMod.id) + ')', !!ongoingMod && /Ongoing/.test(cardText) && cardText.includes(ongoingMod.title), cardText.slice(0, 80));
     check('content: the statistics (possible wrong key, hardest, saved by the most) sit in one collapsible card', /Possible wrong answer key[\s\S]*?#3[^B]*B \(1\d%\)A \(8\d%\)2\d/.test(c) && /Hardest questions[\s\S]*?#3[^%]*1\d%[^A]*A \(8\d%\)2\d/.test(c) && /not a report/.test(c) && /Saved by the most students/.test(c) && !/flag/i.test(c));
     c = await go(A, '#content/CPM');
-    check('content: module page has the Ongoing and Visible switches, the exam type tabs and one card per subject', !!A.document.querySelector('[data-sw=mod-ongoing]') && !!A.document.querySelector('[data-sw=mod-visible]') && A.document.querySelectorAll('.exam-type-section').length === 2 && A.document.querySelectorAll('.subject-card').length === 8 && /Module settings/.test(c));
+    check('content: module page has the Ongoing and Visible switches, the exam type tabs and one card per subject', !!A.document.querySelector('[data-sw=mod-ongoing]') && !!A.document.querySelector('[data-sw=mod-visible]') && A.document.querySelectorAll('.exam-type-section').length === 6 && A.document.querySelectorAll('.subject-card').length === 24 && /Module settings/.test(c));
+    check('content: exam types are listed Final, End Module, TBL, Lecture Questions, then the two Last Year types with a note that they are buttons', [...A.document.querySelectorAll('.exam-type-header__title')].map((x) => x.textContent).join('|') === 'Final Exam|End Module Exam|TBL Exam|Lecture Questions|Last Year Final Exam|Last Year End Module Exam' && /one extra button under .Start Full Final Exam/.test(c));
     c = await go(A, '#content/CPM/final_exam');
-    check('content: the Final Exam tab shows Anatomy with its topic count and question count', /Anatomy[\s\S]*topics?[\s\S]*questions/.test(c) && /Final Exam/.test(A.document.querySelector('.exam-type-section:last-child .exam-type-header__title').textContent));
+    check('content: the Final Exam tab shows Anatomy with its topic count and question count', /Anatomy[\s\S]*topics?[\s\S]*questions/.test(c) && /Final Exam/.test(A.document.querySelector('.exam-type-section:first-child .exam-type-header__title').textContent));
     c = await go(A, '#content/CPM/final_exam/anatomy');
     check('content: subject page lists its topics, each with a visibility switch, a details button and its question count', A.document.querySelectorAll('.topics-list .topic-row').length >= 2 && /Pharynx/.test(c) && /4 Questions/.test(c) && /6 Questions/.test(c) && !!A.document.querySelector('[data-sw=topic]') && !!A.document.querySelector('[data-act=tdetails]') && !!A.document.querySelector('[data-act=newtopic]'), c.slice(0, 300));
     c = await go(A, '#content/CPM/final_exam/anatomy/pharynx');
@@ -60,73 +62,141 @@ try {
     check('content: search finds a question across every topic, showing where it lives', A.document.querySelectorAll('#cres .rc-q').length === 1 && /Pharynx/.test(A.document.getElementById('cres').textContent) && A.document.getElementById('chome').hidden === true);
     cs.value = ''; cs.dispatchEvent(new A.Event('input', { bubbles: true }));
 
-    // ---- editing a question: the side drawer ----
+    // ---- editing is STAGED: nothing reaches GitHub until Save ----
+    const bar = () => A.document.getElementById('savebar');
+    const barOn = () => !!bar() && !bar().hidden;
+    const draftN = () => { try { return JSON.parse(A.localStorage.getItem('rc_admin_draft_v1') || '{"ops":[]}').ops.length; } catch (e) { return -1; } };
+    const dr = () => A.document.querySelector('.rc-layer--drawer');
+    check('save bar: hidden while there is nothing to save', !barOn() && ghCommits.length === 0);
     await go(A, '#content/CPM/final_exam/anatomy/pharynx', 700);
     await click(A, '[data-act=edit]', 700);
-    const dr = () => A.document.querySelector('.rc-layer--drawer');
     check('editor: opens as a side drawer with the question, four options with a correct-answer radio, and an explanation', !!dr() && A.document.querySelectorAll('.rc-opt input[type=radio]').length === 4 && A.document.querySelectorAll('[data-o]').length === 4 && /Edit question #1/.test(dr().textContent));
     A.document.querySelector('.rc-scrim').dispatchEvent(new A.MouseEvent('click', { bubbles: true }));
     check('popups: tapping outside the drawer does NOT close it', !!dr());
     A.document.querySelector('[name=question]').value = 'Edited from the dashboard?';
     A.document.querySelector('[data-x]').click(); await sleep(200);
-    check('popups: closing with unsaved edits asks first (a dialog on top of the drawer)', !!A.document.querySelector('.rc-layer--dialog') && /Discard your changes/.test(A.document.body.textContent) && !!dr());
+    check('popups: closing with unapplied edits asks first (a dialog on top of the drawer)', !!A.document.querySelector('.rc-layer--dialog') && /Discard your changes/.test(A.document.body.textContent) && !!dr());
     A.document.dispatchEvent(key(A, 'Escape')); await sleep(300);
     check('popups: Escape closes only the top layer (the dialog); the drawer stays', !A.document.querySelector('.rc-layer--dialog') && !!dr());
     A.history.back(); await sleep(400);
     check('popups: the browser Back button also asks (dialog opens again) instead of leaving the page', !!A.document.querySelector('.rc-layer--dialog') && !!dr());
     await click(A, '.rc-layer--dialog [data-no]', 500);
     check('popups: Cancel on the dialog keeps the edits', !A.document.querySelector('.rc-layer--dialog') && A.document.querySelector('[name=question]').value === 'Edited from the dashboard?');
-    await click(A, '[data-save]', 1200);
-    check('editor: Save commits to GitHub (fake), closes the drawer and shows a confirmation toast', !dr() && /Saved/.test(A.document.querySelector('.rc-toasts').textContent) && ghLog.some((x) => /Admin edit: data\/CPM\/final_exam\/anatomy\/pharynx\.json #1/.test(x.message)));
-    check('editor: the page now shows the new text', /Edited from the dashboard\?/.test(A.document.getElementById('pane').textContent));
+    check('editor: the apply button says Apply edit, not Save to GitHub', /Apply edit/.test(A.document.querySelector('[data-save]').textContent));
+    await click(A, '[data-save]', 700);
+    check('staging: applying an edit closes the drawer, shows it as Edited on the page and makes NO commit', !dr() && /Edited from the dashboard\?/.test(A.document.getElementById('pane').textContent) && /Edited/.test(A.document.querySelector('.rc-q').textContent) && ghCommits.length === 0);
+    check('save bar: appears with "Unsaved changes", the count, Review, Discard and Save', barOn() && /Unsaved changes/.test(bar().textContent) && /1 change\b/.test(bar().textContent) && !!bar().querySelector('[data-act=review]') && !!bar().querySelector('[data-act=discard]') && !!bar().querySelector('[data-act=save]'), bar() && bar().textContent);
+    check('staging: the draft is kept in the browser (survives a refresh)', draftN() === 1);
     await click(A, '[data-add]', 700);
     A.document.querySelector('[name=question]').value = 'A brand new question?';
     A.document.querySelectorAll('[data-o]').forEach((i, n) => { i.value = 'Opt ' + n; }); A.document.querySelectorAll('.rc-opt input[type=radio]')[2].checked = true;
-    await click(A, '[data-save]', 1200);
-    check('editor: a new question is added with the next id', A.document.querySelectorAll('.rc-q').length === 5 && /A brand new question/.test(A.document.getElementById('pane').textContent) && ghLog.some((x) => /Admin add: .*pharynx\.json/.test(x.message)));
+    await click(A, '[data-save]', 700);
+    check('staging: a new question shows with a New badge and no id yet; the bar counts 2 changes', A.document.querySelectorAll('.rc-q').length === 5 && /A brand new question/.test(A.document.getElementById('pane').textContent) && /New/.test(A.document.querySelector('.rc-q:last-child').textContent) && /2 changes/.test(bar().textContent) && ghCommits.length === 0);
+    await click(A, '.rc-q:last-child [data-act=edit]', 600);
+    check('staging: a staged new question can be edited again before saving', !!dr() && A.document.querySelector('[name=question]').value === 'A brand new question?' && /Edit new question/.test(dr().textContent));
+    A.document.querySelector('[name=question]').value = 'A brand new question, reworded?';
+    await click(A, '[data-save]', 600);
+    check('staging: re-editing a new question updates the same change (still 2)', /reworded/.test(A.document.getElementById('pane').textContent) && /2 changes/.test(bar().textContent));
     await click(A, '[data-act=del]', 500);
-    check('remove: asks first in a dialog naming the question', !!A.document.querySelector('.rc-layer--dialog') && /Remove question #1\?/.test(A.document.querySelector('.rc-layer--dialog').textContent));
-    await click(A, '.rc-layer--dialog [data-no]', 400);
-    check('remove: Cancel removes nothing', A.document.querySelectorAll('.rc-q').length === 5);
-    await click(A, '[data-act=del]', 500); await click(A, '.rc-layer--dialog [data-ok]', 1200);
-    check('remove: confirming removes it and shows a toast', A.document.querySelectorAll('.rc-q').length === 4 && /Removed question #1/.test(A.document.querySelector('.rc-toasts').textContent));
+    check('remove: no dialog, no commit; the question stays in the list struck through with Undo', !A.document.querySelector('.rc-layer--dialog') && !!A.document.querySelector('.rc-q--del') && !!A.document.querySelector('[data-act=undel]') && /3 changes/.test(bar().textContent) && ghCommits.length === 0);
+    await click(A, '[data-act=undel]', 500);
+    check('remove: Undo brings the question back and the count drops', !A.document.querySelector('.rc-q--del') && /2 changes/.test(bar().textContent));
+    await click(A, '[data-act=del]', 500);
+    check('remove: removing again stages it once more', /3 changes/.test(bar().textContent));
+    check('remove: topic page header counts the live questions only (4 on file, 1 removed, 1 added = 4)', /4 questions/.test(A.document.querySelector('.rc-badges').textContent));
 
-    // ---- visibility, details, new topics ----
+    // ---- visibility, details, new topics, module settings: all staged ----
     await go(A, '#content/CPM/final_exam/anatomy', 800);
-    await click(A, '[data-sw=topic]', 1300);
-    check('visibility: the topic switch hides that topic in config/modules.json (one commit) and the page shows it as off', pharynx().hidden === true && A.document.querySelector('[data-sw=topic]').checked === false && ghLog.some((x) => /^Admin: edit topic pharynx/.test(x.message)));
+    await click(A, '[data-sw=topic]', 500);
+    check('visibility: the topic switch only stages (config unchanged on disk) and shows as off', pharynx().hidden === undefined && A.document.querySelector('[data-sw=topic]').checked === false && /4 changes/.test(bar().textContent) && ghCommits.length === 0);
+    check('save bar: the same bar is on every tab (Overview, Students, Retention, System)', (await go(A, '#overview', 500), barOn()) && (await go(A, '#retention', 500), barOn()) && (await go(A, '#system', 500), barOn()) && /4 changes/.test(bar().textContent));
+    await go(A, '#content/CPM/final_exam/anatomy', 800);
     await click(A, '[data-act=tdetails]', 500);
     check('details: the drawer has name, professor and a visibility switch', !!dr() && A.document.querySelector('[name=label]').value === 'Pharynx' && !!A.document.querySelector('[name=professor]') && !!A.document.querySelector('[data-vis]'));
     A.document.querySelector('[name=label]').value = 'Pharynx (renamed)'; A.document.querySelector('[name=professor]').value = "Prof. D'Souza";
     A.document.querySelector('[data-vis]').click();
-    await click(A, '[data-save]', 1300);
-    check('details: name, professor and visibility are saved together; the apostrophe is made typographic', pharynx().label === 'Pharynx (renamed)' && pharynx().professor === 'Prof. D\u2019Souza' && !('hidden' in pharynx()) && !dr());
+    await click(A, '[data-save]', 600);
+    check('details: staged together with the visibility change (one change per topic); nothing written yet', pharynx().label === 'Pharynx' && !dr() && /Pharynx \(renamed\)/.test(A.document.getElementById('pane').textContent) && /4 changes/.test(bar().textContent));
     await click(A, '[data-act=newtopic]', 500);
     A.document.querySelector('[name=label]').value = '<b>x</b>';
-    await click(A, '[data-save]', 800);
-    check('new topic: markup in the name is refused with a plain message and nothing is created', /cannot contain/.test(A.document.getElementById('tferr').textContent) && !fs.existsSync(path.join(tmp, 'data/CPM/final_exam/anatomy/new_topic.json')));
+    await click(A, '[data-save]', 500);
+    check('new topic: markup in the name is refused with a plain message and nothing is staged', /cannot contain/.test(A.document.getElementById('tferr').textContent) && /4 changes/.test(bar().textContent));
     A.document.querySelector('[name=label]').value = 'Epiglottis'; A.document.querySelector('[name=professor]').value = 'Prof. Hala';
-    await click(A, '[data-save]', 1800);
-    const newTopic = cfgNow().modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.find((x) => x.id === 'epiglottis');
-    check('new topic: created HIDDEN, with an empty data file, and the page opens it', !!newTopic && newTopic.hidden === true && newTopic.professor === 'Prof. Hala' && fs.existsSync(path.join(tmp, 'data/CPM/final_exam/anatomy/epiglottis.json')) && /Epiglottis/.test(A.document.getElementById('pane').textContent) && /Hidden from students/.test(A.document.getElementById('pane').textContent), A.location.hash);
+    await click(A, '[data-save]', 1500);
+    const newT = () => cfgNow().modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.find((x) => x.id === 'epiglottis');
+    check('new topic: staged HIDDEN (not on disk, no data file yet), the page opens it, no Open-on-GitHub link', !newT() && !fs.existsSync(path.join(tmp, 'data/CPM/final_exam/anatomy/epiglottis.json')) && /Epiglottis/.test(A.document.getElementById('pane').textContent) && /Hidden from s/.test(A.document.getElementById('pane').textContent) && !A.document.querySelector('a[href*="github.com"]') && /5 changes/.test(bar().textContent));
+    await click(A, '[data-add]', 600);
+    A.document.querySelector('[name=question]').value = 'Epiglottis question?'; A.document.querySelectorAll('[data-o]').forEach((i, n) => { i.value = 'E' + n; });
+    await click(A, '[data-save]', 600);
+    check('new topic: a question can be added to a topic that is not on GitHub yet', A.document.querySelectorAll('.rc-q').length === 1 && /6 changes/.test(bar().textContent));
     c = await go(A, '#content', 900);
     check('new topic: it appears under "Waiting for approval" with a Make visible button', /Waiting for approval/.test(c) && /Epiglottis/.test(c) && !!A.document.querySelector('[data-act=publish]'));
-    await click(A, '[data-act=publish]', 1300);
-    check('approval: Make visible switches it on for students', !('hidden' in cfgNow().modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.find((x) => x.id === 'epiglottis')) && !/Waiting for approval ·/.test(A.document.getElementById('pane').textContent));
-    // module settings
+    await click(A, '[data-act=publish]', 600);
+    check('approval: Make visible is staged into the new topic (still one change for it)', !/Waiting for approval ·/.test(A.document.getElementById('pane').textContent) && /6 changes/.test(bar().textContent) && ghCommits.length === 0);
     await go(A, '#content/CPM', 800);
-    await click(A, '[data-sw=mod-ongoing]', 1300);
-    check('module: Ongoing switch makes CPM the ongoing module and removes it from CNS', cfgNow().modules.find((m) => m.id === 'CPM').ongoing === true && !cfgNow().modules.find((m) => m.id === 'CNS').ongoing);
-    await click(A, '[data-sw=mod-ongoing]', 1300);
-    await go(A, '#content/CNS', 800); await click(A, '[data-sw=mod-ongoing]', 1300);
-    check('module: switching it back restores CNS as the ongoing module', cfgNow().modules.find((m) => m.id === 'CNS').ongoing === true && !cfgNow().modules.find((m) => m.id === 'CPM').ongoing);
-    await go(A, '#content/GIT', 800); await click(A, '[data-sw=mod-visible]', 600);
-    check('module: hiding a whole module asks first in a dialog', /Hide this module from students/.test(A.document.querySelector('.rc-layer--dialog').textContent) && !cfgNow().modules.find((m) => m.id === 'GIT').hidden);
-    await click(A, '.rc-layer--dialog [data-ok]', 1300);
-    check('module: after confirming, GIT is hidden in config/modules.json', cfgNow().modules.find((m) => m.id === 'GIT').hidden === true);
+    await click(A, '[data-sw=mod-ongoing]', 500);
+    check('module: Ongoing switch is staged; the page shows CPM as ongoing, the file still has ENDO_REPRO', cfgNow().modules.find((m) => m.id === 'ENDO_REPRO').ongoing === true && !cfgNow().modules.find((m) => m.id === 'CPM').ongoing && A.document.querySelector('[data-sw=mod-ongoing]').checked === true && /7 changes/.test(bar().textContent));
+    await go(A, '#content/GIT', 800); await click(A, '[data-sw=mod-visible]', 500);
+    check('module: hiding a whole module is staged without a dialog and shows in the count', !A.document.querySelector('.rc-layer--dialog') && A.document.querySelector('[data-sw=mod-visible]').checked === false && !cfgNow().modules.find((m) => m.id === 'GIT').hidden && /8 changes/.test(bar().textContent));
+
+    // ---- refresh keeps the edits; leaving the page warns ----
+    const seed = A.localStorage.getItem('rc_admin_draft_v1');
+    const B = await page('admin1', '#content/CPM/final_exam/anatomy/pharynx', seed); await sleep(1200);
+    check('refresh: a new page load restores the unsaved changes (bar, count, removed and new questions) and says so', !B.document.getElementById('savebar').hidden && /8 changes/.test(B.document.getElementById('savebar').textContent) && !!B.document.querySelector('.rc-q--del') && /reworded/.test(B.document.getElementById('pane').textContent) && /Restored 8 unsaved changes/.test(B.document.querySelector('.rc-toasts').textContent));
+    const bu = new A.Event('beforeunload', { cancelable: true }); A.dispatchEvent(bu);
+    check('leaving: closing or reloading the page with unsaved changes triggers the browser warning', bu.defaultPrevented === true);
+    B.close();
+    const other = await page('someone-else-not-admin'); const seedOther = other.localStorage.getItem('rc_admin_draft_v1'); other.close();
+    check('refresh: another account never sees this draft (it is tied to the account)', seedOther === null);
+
+    // ---- review, undo, discard ----
+    await click(A, '[data-act=review]', 700);
+    check('review: lists every change in words with an Undo each, and says nothing is on GitHub yet', A.document.querySelectorAll('.rc-chg__row').length === 8 && /Module GIT/.test(dr().textContent) && /New topic: Epiglottis/.test(dr().textContent) && /Edited question #1/.test(dr().textContent) && /Removed question #1/.test(dr().textContent) && /Nothing is on GitHub until you save/.test(dr().textContent));
+    await click(A, '[data-rundo="mod:GIT"]', 400);
+    check('review: Undo takes that one change out; the bar updates', A.document.querySelectorAll('.rc-chg__row').length === 7 && /7 changes/.test(bar().textContent));
+    A.document.querySelector('[data-x]').click(); await sleep(400);
+    await click(A, '[data-act=discard]', 500);
+    check('discard: asks first in a dialog', /Discard all unsaved changes/.test(A.document.querySelector('.rc-layer--dialog').textContent));
+    await click(A, '.rc-layer--dialog [data-no]', 400);
+    check('discard: Cancel keeps everything', barOn() && draftN() === 7);
+    await click(A, '[data-act=discard]', 500); await click(A, '.rc-layer--dialog [data-ok]', 900);
+    check('discard: confirming clears the draft, hides the bar and the page shows GitHub\'s content again', !barOn() && draftN() === 0 && !/Edited from the dashboard/.test(A.document.getElementById('pane').textContent) && ghCommits.length === 0);
+    const bu2 = new A.Event('beforeunload', { cancelable: true }); A.dispatchEvent(bu2);
+    check('leaving: with nothing unsaved there is no warning', bu2.defaultPrevented === false);
+
+    // ---- Save = ONE commit for the whole bundle ----
+    await go(A, '#content/CPM/final_exam/anatomy/pharynx', 800);
+    await click(A, '[data-act=edit]', 700); A.document.querySelector('[name=question]').value = 'Saved in a bundle?'; await click(A, '[data-save]', 600);
+    await click(A, '[data-add]', 600); A.document.querySelector('[name=question]').value = 'Bundled new question?'; A.document.querySelectorAll('[data-o]').forEach((i, n) => { i.value = 'B' + n; }); await click(A, '[data-save]', 600);
+    await go(A, '#content/CPM/final_exam/anatomy', 700);
+    await click(A, '[data-act=newtopic]', 500); A.document.querySelector('[name=label]').value = 'Epiglottis'; A.document.querySelector('[name=professor]').value = 'Prof. Hala'; await click(A, '[data-save]', 1500);
+    await click(A, '[data-add]', 600); A.document.querySelector('[name=question]').value = 'Epiglottis question?'; A.document.querySelectorAll('[data-o]').forEach((i, n) => { i.value = 'E' + n; }); await click(A, '[data-save]', 600);
+    await go(A, '#content/CPM', 700); await click(A, '[data-sw=mod-ongoing]', 400);
+    const nBefore = draftN();
+    await click(A, '[data-act=save]', 2500);
+    check('save: ONE commit holds the whole bundle (config + both topic files + the new topic file) with a summary message', ghCommits.length === 1 && nBefore === 5 && ghCommits[0].paths.includes('config/modules.json') && ghCommits[0].paths.includes('data/CPM/final_exam/anatomy/pharynx.json') && ghCommits[0].paths.includes('data/CPM/final_exam/anatomy/epiglottis.json') && /^Admin: save 5 changes/.test(ghCommits[0].message), J(ghCommits));
+    const ph = J(JSON.parse(fs.readFileSync(path.join(tmp, 'data/CPM/final_exam/anatomy/pharynx.json'), 'utf8')));
+    check('save: the edited question and the new one (next free id, meta count) are in the file; ids were not renumbered', /Saved in a bundle\?/.test(ph) && /Bundled new question\?/.test(ph) && JSON.parse(ph).questions.length === 5 && JSON.parse(ph).questions[4].id === 5);
+    check('save: the new topic exists, hidden, with its question; CPM is now the ongoing module and ENDO_REPRO is not', newT() && newT().hidden === true && newT().professor === 'Prof. Hala' && JSON.parse(fs.readFileSync(path.join(tmp, 'data/CPM/final_exam/anatomy/epiglottis.json'), 'utf8')).questions[0].id === 1 && cfgNow().modules.find((m) => m.id === 'CPM').ongoing === true && !cfgNow().modules.find((m) => m.id === 'ENDO_REPRO').ongoing);
+    check('save: the bar disappears, the draft is cleared and a toast confirms one commit', !barOn() && draftN() === 0 && /Saved 5 changes in one commit/.test(A.document.querySelector('.rc-toasts').textContent));
+    await click(A, '[data-sw=mod-ongoing]', 400); await click(A, '[data-act=save]', 2000);   // CPM off again: a second, separate commit
+    await go(A, '#content/CNS', 700); await click(A, '[data-sw=mod-ongoing]', 400); await click(A, '[data-act=save]', 2000);
+    check('save: later saves are separate commits; switching on CNS makes it the only ongoing module', ghCommits.length === 3 && cfgNow().modules.find((m) => m.id === 'CNS').ongoing === true && !cfgNow().modules.find((m) => m.id === 'CPM').ongoing);
+
+    // ---- conflicts and races ----
+    await go(A, '#content/CPM/final_exam/anatomy/pharynx', 800);
+    await click(A, '[data-act=edit]', 700); A.document.querySelector('[name=question]').value = 'My edit?'; await click(A, '[data-save]', 600);
+    const pf = path.join(tmp, 'data/CPM/final_exam/anatomy/pharynx.json'), pdoc = JSON.parse(fs.readFileSync(pf, 'utf8')); pdoc.questions[0].question = 'Someone else edited it first?'; fs.writeFileSync(pf, J(pdoc, null, 2));   // another admin commits the same question
+    const cN = ghCommits.length;
+    await click(A, '[data-act=save]', 1800);
+    check('conflict: saving over a question someone else changed is refused with a plain message, nothing is committed and the draft is kept', ghCommits.length === cN && barOn() && draftN() === 1 && /changed by someone else/.test(A.document.querySelector('.rc-toasts').textContent), A.document.querySelector('.rc-toasts').textContent);
+    await click(A, '[data-act=discard]', 500); await click(A, '.rc-layer--dialog [data-ok]', 800);
+    await go(A, '#content/URINARY', 700); await click(A, '[data-sw=mod-visible]', 400);
+    ghState.raceOnce = true;
+    await click(A, '[data-act=save]', 2500);
+    check('race: if main moved while saving, the save is retried on the newer head and succeeds', ghCommits.length === cN + 1 && !barOn() && draftN() === 0);
 
     // ---- what students and admins see in the app itself ----
-    await click(A, '[data-sw=mod-visible]', 1300);   // GIT visible again (no dialog when switching on)
     const gitShown = !cfgNow().modules.find((m) => m.id === 'GIT').hidden;
     const rt = await go(A, '#retention', 800);
     check('admin page: retention shows a cohort table and activation figures', /Weekly signup cohorts/.test(rt) && /Median time to first exam/.test(rt));
@@ -177,6 +247,37 @@ try {
     await S2.w.eval("App.navigate('subject', { moduleId: 'CPM', examType: 'final_exam', subject: 'anatomy' })"); await sleep(900);
     check('hidden: the admin sees "Hidden" on the hidden topic row and not on the visible one', /Larynx[\s\S]{0,80}Hidden/.test(S2.w.document.getElementById('app').textContent) && !/Pharynx[^]{0,20}Hidden/.test(S2.w.document.getElementById('app').textContent.replace(/Larynx[\s\S]*/, '')));
     S2.close();
+    // ---- the new exam types in the student app: order, Last Year buttons, hidden until approved ----
+    {
+      const cT = cfgNow(), cpmT = cT.modules.find((m) => m.id === 'CPM');
+      const addT = (et, id, hidden) => {
+        cpmT.subSubjects[et] = cpmT.subSubjects[et] || {}; (cpmT.subSubjects[et].anatomy = cpmT.subSubjects[et].anatomy || []).push({ id, label: id.toUpperCase(), ...(hidden ? { hidden: true } : {}) });
+        fs.mkdirSync(path.join(tmp, 'data/CPM', et, 'anatomy'), { recursive: true });
+        fs.writeFileSync(path.join(tmp, 'data/CPM', et, 'anatomy', id + '.json'), J({ questions: [1, 2].map((i) => ({ id: i, question: 'Q' + i + '?', options: ['A', 'B', 'C', 'D'], answer: 0, explanation: 'x' })) }));
+      };
+      addT('end_module', 'em1'); addT('tbl_exam', 'tbl1'); addT('lecture_questions', 'lec1'); addT('final_exam_last_year', 'fly1'); addT('end_module_last_year', 'emly1', true);
+      fs.writeFileSync(path.join(tmp, 'config/modules.json'), J(cT, null, 2));
+      const modPage = async (storage) => { const d = await boot({ cloud: false, storage }); await d.w.eval("App.navigate('module', { moduleId: 'CPM' })"); await sleep(1500); return d; };
+      const titles = (d) => [...d.w.document.querySelectorAll('.module-page .exam-type-header__title')].map((x) => x.textContent).join('|');
+      const S5 = await modPage({});
+      check('exam types: the module page lists Final, End Module, TBL, Lecture Questions in that order (and no Last Year section)', titles(S5) === 'Final Exam|End Module Exam|TBL Exam|Lecture Questions', titles(S5));
+      const fin = S5.w.document.querySelector('.module-page .exam-type-section'), btns = [...fin.querySelectorAll('.wide-exam-btn')];
+      check('last year: a button under Start Full Final Exam, same design (same classes), only in the section it belongs to', btns.length === 2 && /Start Full Final Exam/.test(btns[0].textContent) && /Start Last Year Final Exam/.test(btns[1].textContent) && btns[1].className === btns[0].className + ' wide-exam-btn--variant' && btns[1].previousElementSibling === btns[0] && /final_exam_last_year/.test(btns[1].dataset.params));
+      check('last year: End Module has none for students while its Last Year topic is hidden (waiting for approval)', S5.w.document.querySelectorAll('.module-page .exam-type-section')[1].querySelectorAll('.wide-exam-btn').length === 1 && !/Last Year End Module/.test(S5.w.document.querySelector('.module-page').textContent));
+      await S5.w.eval("document.querySelector('.wide-exam-btn--variant').click()"); await sleep(1200);
+      const pg = S5.w.document.getElementById('app').textContent;
+      check('last year: the button opens the full-exam start page for that exam type and it has its questions (2 topics picker row)', /Last Year Final Exam/.test(pg) && /FLY1/.test(pg), pg.slice(0, 160));
+      S5.close();
+      const S6 = await modPage({ dqb_is_admin: '1' });
+      const endBtns = [...S6.w.document.querySelectorAll('.module-page .exam-type-section')[1].querySelectorAll('.wide-exam-btn')].map((b) => b.textContent.replace(/\s+/g, ' ').trim());
+      check('last year: an admin device sees the hidden Last Year End Module button (and the full-exam button before it)', endBtns.length === 2 && /Start Full End Module Exam/.test(endBtns[0]) && /Start Last Year End Module Exam/.test(endBtns[1]), J(endBtns));
+      S6.close();
+      const cU = cfgNow(), cpmU = cU.modules.find((m) => m.id === 'CPM'); delete cpmU.subSubjects.final_exam_last_year; cpmU.subSubjects.final_exam_last_year = { anatomy: [] };
+      fs.writeFileSync(path.join(tmp, 'config/modules.json'), J(cU, null, 2));
+      const S7 = await modPage({});
+      check('last year: with no Last Year topic at all there is no button and no extra row', S7.w.document.querySelector('.module-page .exam-type-section').querySelectorAll('.wide-exam-btn').length === 1);
+      S7.close();
+    }
     const S3 = await boot({ storage: { dqb_is_admin: '1', dqb_last_page: J({ page: 'module', params: { moduleId: 'URINARY' } }) } });
     await S3.signIn('plain-student', 'ps@example.com'); await sleep(600);
     check('hidden: when /api/state says the person is not an admin, the admin flag is dropped and the hidden module disappears at once', S3.w.localStorage.getItem('dqb_is_admin') === null && !cfgOf(S3).modules.some((m) => m.id === 'URINARY'));

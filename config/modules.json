@@ -14,16 +14,42 @@
   },
   "examTypes": [
     {
+      "id": "final_exam",
+      "label": "Final Exam",
+      "description": "Final comprehensive assessment for this module",
+      "color": "#2a5298"
+    },
+    {
       "id": "end_module",
       "label": "End Module Exam",
       "description": "Comprehensive exam covering all topics in this module",
       "color": "#2563eb"
     },
     {
-      "id": "final_exam",
-      "label": "Final Exam",
-      "description": "Final comprehensive assessment for this module",
-      "color": "#2a5298"
+      "id": "tbl_exam",
+      "label": "TBL Exam",
+      "description": "Team-based learning questions for this module",
+      "color": "#7c3aed"
+    },
+    {
+      "id": "lecture_questions",
+      "label": "Lecture Questions",
+      "description": "Questions taken from the lectures of this module",
+      "color": "#0891b2"
+    },
+    {
+      "id": "final_exam_last_year",
+      "label": "Last Year Final Exam",
+      "description": "Last year’s final exam for this module",
+      "color": "#2a5298",
+      "variantOf": "final_exam"
+    },
+    {
+      "id": "end_module_last_year",
+      "label": "Last Year End Module Exam",
+      "description": "Last year’s end module exam for this module",
+      "color": "#2563eb",
+      "variantOf": "end_module"
     }
   ],
   "subjects": [
@@ -58,12 +84,6 @@
       "color": "#dc2626",
       "dataPath": "CPM",
       "subSubjects": {
-        "end_module": {
-          "anatomy": [],
-          "physiology": [],
-          "biochemistry": [],
-          "histology": []
-        },
         "final_exam": {
           "anatomy": [
             {
@@ -103,6 +123,36 @@
               "label": "Respiratory System"
             }
           ]
+        },
+        "end_module": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "tbl_exam": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "lecture_questions": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "final_exam_last_year": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "end_module_last_year": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
         }
       }
     },
@@ -115,12 +165,6 @@
       "color": "#d97706",
       "dataPath": "GIT",
       "subSubjects": {
-        "end_module": {
-          "anatomy": [],
-          "physiology": [],
-          "biochemistry": [],
-          "histology": []
-        },
         "final_exam": {
           "anatomy": [
             {
@@ -190,6 +234,36 @@
               "label": "Small Intestine (Dr. Hala)"
             }
           ]
+        },
+        "end_module": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "tbl_exam": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "lecture_questions": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "final_exam_last_year": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "end_module_last_year": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
         }
       }
     },
@@ -205,6 +279,12 @@
         "end_module": "https://redlineeducation.pages.dev/guide?id=p7pOoxivzDrBhpoTTq0r"
       },
       "subSubjects": {
+        "final_exam": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
         "end_module": {
           "anatomy": [
             {
@@ -287,7 +367,25 @@
             }
           ]
         },
-        "final_exam": {
+        "tbl_exam": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "lecture_questions": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "final_exam_last_year": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "end_module_last_year": {
           "anatomy": [],
           "physiology": [],
           "biochemistry": [],
@@ -304,13 +402,37 @@
       "color": "#4A9E8E",
       "dataPath": "ENDO_REPRO",
       "subSubjects": {
+        "final_exam": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
         "end_module": {
           "anatomy": [],
           "physiology": [],
           "biochemistry": [],
           "histology": []
         },
-        "final_exam": {
+        "tbl_exam": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "lecture_questions": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "final_exam_last_year": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "end_module_last_year": {
           "anatomy": [],
           "physiology": [],
           "biochemistry": [],
@@ -328,13 +450,37 @@
       "color": "#4A9E8E",
       "dataPath": "URINARY",
       "subSubjects": {
+        "final_exam": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
         "end_module": {
           "anatomy": [],
           "physiology": [],
           "biochemistry": [],
           "histology": []
         },
-        "final_exam": {
+        "tbl_exam": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "lecture_questions": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "final_exam_last_year": {
+          "anatomy": [],
+          "physiology": [],
+          "biochemistry": [],
+          "histology": []
+        },
+        "end_module_last_year": {
           "anatomy": [],
           "physiology": [],
           "biochemistry": [],

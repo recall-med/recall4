@@ -6,37 +6,10 @@
 import { json, readJson, errorResponse, HttpError } from '../../_lib/http.js';
 import { requireAdmin } from '../../_lib/admin.js';
 import { gh, b64e, readFile } from '../../_lib/github.js';
+import { qListOf as listOf, target, checkPatch } from '../../_lib/adminops.js';
 
 const PATH_RE = /^data\/[\w-]+\/[\w-]+\/[\w-]+\/[\w-]+\.json$/;
 const ID_RE = /^\d{1,6}$/;
-
-const listOf = (doc) => (Array.isArray(doc) ? doc : doc && Array.isArray(doc.questions) ? doc.questions : null);
-function target(text, id) {
-  let doc; try { doc = JSON.parse(text); } catch (e) { throw new HttpError(422, 'bad_file', 'The file is not valid JSON'); }
-  const list = listOf(doc); const q = list && list.find((x) => String(x.id) === String(id));
-  if (!q) throw new HttpError(404, 'not_found', 'No question with that id in the file');
-  return { doc, q };
-}
-function checkPatch(b, q) {
-  const patch = {};
-  const str = (v, max, name, allowEmpty) => { if (typeof v !== 'string' || v.length > max || (!allowEmpty && !v.trim())) throw new HttpError(400, 'bad_request', name + ' is invalid'); return v; };
-  if (b.question !== undefined) patch.question = str(b.question, 3000, 'question');
-  if (b.explanation !== undefined) patch.explanation = str(b.explanation, 6000, 'explanation', true);
-  if (b.options !== undefined) {
-    if (!Array.isArray(b.options) || b.options.length < 2 || b.options.length > 8) throw new HttpError(400, 'bad_request', 'options needs 2 to 8 entries');
-    if (!Array.isArray(q.options) || !q.options.every((o) => typeof o === 'string')) throw new HttpError(400, 'unsupported_options', 'This question stores its options in a format the editor does not change');
-    patch.options = b.options.map((o) => str(o, 1000, 'an option'));
-  }
-  if (b.answer !== undefined) {
-    const n = (patch.options || q.options || []).length;
-    if (!Number.isInteger(b.answer) || b.answer < 0 || b.answer >= n) throw new HttpError(400, 'bad_request', 'answer must point at one of the options');
-    patch.answer = b.answer;
-  } else if (patch.options && Number.isInteger(q.answer) && q.answer >= patch.options.length) {
-    throw new HttpError(400, 'bad_request', 'answer must point at one of the options');
-  }
-  if (!Object.keys(patch).length) throw new HttpError(400, 'bad_request', 'Nothing to change');
-  return patch;
-}
 
 export async function onRequest({ request, env, data }) {
   try {

@@ -159,6 +159,17 @@ try {
   const av = B.w.document.getElementById('account-view');
   check('email text is escaped in the account view', !av.querySelector('img') && /&lt;img|<img/.test(av.innerHTML.replace(/</g, '<')) && av.textContent.includes('<img src=x'));
 
+  // F17 mixed runs and partial full exams upload (new exam types included)
+  const runWith = (d, cfg, qs) => d.w.eval(`(function () { var E = ExamEngine; E.config = ${J(cfg)}; E.questions = ${J(qs)}; E.state = { currentIndex: 0, answers: { 0: 0, 1: 0 }, flagged: new Set(), startTime: Date.now() - 5000, endTime: null, elapsedMs: 5000, paused: false, submitted: false }; return E.submit(); })()`);
+  const Qm = (id, et, sub) => ({ id, question: 'q' + id + '?', options: ['A', 'B'], answer: 0, explanation: '', _subject: 'anatomy', _subSubject: sub, _module: 'CPM', _examType: et });
+  runWith(B, { module: '', examType: '', scope: 'custom', mixed: true, title: 'Custom exam', topicCount: 2, immediateFeedback: true }, [Qm(1, 'final_exam', 'larynx'), Qm(2, 'tbl_exam', 'tbl1')]);
+  runWith(B, { module: 'CPM', examType: 'tbl_exam', scope: 'examtype', partial: true, immediateFeedback: true }, [Qm(3, 'tbl_exam', 'tbl1'), Qm(4, 'tbl_exam', 'tbl2')]);
+  const okM = await B.flush();
+  const mixedRows = sql(`SELECT module, exam_type, scope, review FROM attempts WHERE uid='uid3' ORDER BY created_at`);
+  const mx = mixedRows.find((r) => r.scope === 'custom'), pr = mixedRows.find((r) => r.scope === 'examtype_partial');
+  check('mixed run: uploaded as module/exam type "mixed", scope custom, each question key carries its own module and exam type', okM && !!mx && mx.module === 'mixed' && mx.exam_type === 'mixed' && /CPM\|final_exam\|anatomy\|larynx\|1/.test(mx.review) && /CPM\|tbl_exam\|anatomy\|tbl1\|2/.test(mx.review), J(mixedRows));
+  check('partial full exam: uploaded with a _partial scope suffix so it is not counted as a complete one; TBL exam type passes validation', !!pr && pr.module === 'CPM' && pr.exam_type === 'tbl_exam', J(mixedRows));
+
   // errors from the page itself
   const pageErrors = [off, g, A, B].flatMap((d) => d.errors).filter((e) => !/Could not load|not implemented|fonts|navigation|import/i.test(e));
   check('no script errors were raised inside the page', pageErrors.length === 0, J(pageErrors.slice(0, 3)));

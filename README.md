@@ -43,7 +43,9 @@ Recall is a self-hosted medical question bank platform for practising multiple-c
 | ENDO & REPRO | Endocrinology & Reproductive |
 | Urinary | Urinary System |
 
-Each module contains two exam types (End Module Exam and Final Exam), each with four subjects (Anatomy, Physiology, Biochemistry, Histology).
+Each module has four exam types, listed on the module page in this order: **Final Exam**, **End Module Exam**, **TBL Exam** and **Lecture Questions**. A type only appears on a module page once it has at least one visible question. Each type has the same four subjects (Anatomy, Physiology, Biochemistry, Histology), topics and questions, and behaves the same way (full exam, topic exams, retry, incorrect list, cloud sync).
+
+There are also two **Last Year** types, `final_exam_last_year` (Last Year Final Exam) and `end_module_last_year` (Last Year End Module Exam). They are not sections: when one has a visible question, the module page shows one extra button, "Start Last Year Final Exam" (or "End Module Exam"), directly under the matching "Start Full ..." button, in the same design. Add their topics exactly like any other topic (the admin dashboard lists them under the module, with a note); until a topic is made visible students see nothing. In `config/modules.json` an exam type with `"variantOf": "final_exam"` is a button of that type instead of a section.
 
 All question content lives in plain JSON files. Adding or updating questions requires only editing JSON files — no coding knowledge needed.
 
@@ -334,7 +336,7 @@ Each exam section on a module page (End Module Exam, Final Exam) can show a **Re
 }
 ```
 
-- The two keys are `end_module` (End Module Exam) and `final_exam` (Final Exam).
+- The keys are the exam type ids: `final_exam`, `end_module`, `tbl_exam`, `lecture_questions`. The two Last Year types have no section of their own, so no link.
 - Each link appears at the right end of that section's title line, on every screen size.
 - Use the full URL, including `https://`.
 - If a key is missing or empty, no link is shown for that section. A module with no `redlineLinks` field shows none at all.
@@ -525,7 +527,7 @@ Rules the interface follows. Keep them when you change anything.
 
 ## Admin Dashboard
 
-`admin.html` is for owners (`ADMIN_UIDS`) and admins made by an owner. Tabs: Overview, Content (modules, exam types, subjects, topics and questions, with Edit and Add and Remove, visibility switches and the Ongoing switch), Students (search, Remove, Unblock, make admin), Retention and System. Editing a question commits to GitHub through `/api/admin/question`; it needs the encrypted Cloudflare variable `GITHUB_TOKEN`. The full setup, the D1 `ALTER TABLE` lines to run before uploading, the roles and the limits are in [BACKEND_GUIDE.md](BACKEND_GUIDE.md).
+`admin.html` is for owners (`ADMIN_UIDS`) and admins made by an owner. Tabs: Overview, Content (modules, exam types, subjects, topics and questions, with Edit and Add and Remove, visibility switches and the Ongoing switch), Students (search, Remove, Unblock, make admin), Retention and System. **Edits are staged, not sent one by one.** Every change (a question edit, add or remove, a topic name or visibility, a new topic, the Ongoing and Visible switches) is added to a draft that is kept in this browser, so a refresh does not lose it. While the draft is not empty, a bar at the bottom of every tab says "Unsaved changes" with **Review**, **Discard** and **Save**. Review lists each change in words with an Undo each. **Save** sends the whole draft to `/api/admin/commit`, which records it as **one** commit on `main` (Cloudflare redeploys once). Discard asks first and throws everything away. Closing or reloading the tab with unsaved changes shows the browser's leave warning. If another admin changed the same question in the meantime, the save is refused with a plain message and nothing is committed; your draft stays. It needs the encrypted Cloudflare variable `GITHUB_TOKEN`. The full setup, the D1 `ALTER TABLE` lines to run before uploading, the roles and the limits are in [BACKEND_GUIDE.md](BACKEND_GUIDE.md).
 
 ---
 

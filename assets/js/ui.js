@@ -316,7 +316,13 @@ const UI = {
   renderModule(mod, config, progressMap, countMap = null) {
     const arrow = '<svg class="icon icon--sm wide-exam-btn__arrow" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
 
-    const examTypesHTML = config.examTypes.map(et => {
+    // "Last year" exam types (variantOf = their parent) are not sections: they are one extra button under the parent's full-exam button.
+    const variantsOf = id => config.examTypes.filter(v => v.variantOf === id);
+    const totalFor = id => (countMap
+      ? Object.entries(countMap).filter(([k]) => k.startsWith(`${mod.id}|${id}|`)).reduce((acc, [, n]) => acc + n, 0)
+      : null);
+
+    const examTypesHTML = config.examTypes.filter(et => !et.variantOf).map(et => {
       const subjectsHTML = config.subjects.filter(sub => {
         if (!countMap) return true;
         const subSubs = (mod.subSubjects && mod.subSubjects[et.id] && mod.subSubjects[et.id][sub.id]) || [];
@@ -346,14 +352,22 @@ const UI = {
         </div>`;
       }).join('');
 
-      if (!subjectsHTML) return '';
+      // Last-year buttons: only for a variant that has at least one visible question
+      const variantBtns = variantsOf(et.id).map(v => {
+        const n = totalFor(v.id);
+        return n > 0
+          ? `<button class="btn btn--primary wide-exam-btn wide-exam-btn--variant"
+              data-nav="wide-exam-start"
+              data-params='${JSON.stringify({ moduleId: mod.id, examType: v.id, scope: 'examtype' })}'>
+              Start ${v.label} <span class="badge badge--count">${n} Q</span>${arrow}
+            </button>`
+          : '';
+      }).join('');
+
+      if (!subjectsHTML && !variantBtns) return '';
 
       // Total questions for this exam type
-      const etTotalQ = countMap
-        ? Object.entries(countMap)
-            .filter(([k]) => k.startsWith(`${mod.id}|${et.id}|`))
-            .reduce((acc, [, n]) => acc + n, 0)
-        : null;
+      const etTotalQ = totalFor(et.id);
 
       const fullExamBtn = etTotalQ > 0
         ? `<button class="btn btn--primary wide-exam-btn"
@@ -362,6 +376,7 @@ const UI = {
             Start Full ${et.label} <span class="badge badge--count">${etTotalQ} Q</span>${arrow}
           </button>`
         : '';
+      const actionsHTML = (fullExamBtn || variantBtns) ? `<div class="wide-exam-actions">${fullExamBtn}${variantBtns}</div>` : '';
 
       // Optional "Redline Data" guide link: mod.redlineLinks[examTypeId]; no link configured = no button
       const redlineUrl = (mod.redlineLinks && mod.redlineLinks[et.id]) || '';
@@ -382,10 +397,10 @@ const UI = {
               </div>
               ${redlineBtn}
             </div>
-            ${fullExamBtn}
+            ${actionsHTML}
           </div>
         </div>
-        <div class="subjects-list">${subjectsHTML}</div>
+        ${subjectsHTML ? `<div class="subjects-list">${subjectsHTML}</div>` : ''}
       </div>`;
     }).join('');
 

@@ -172,7 +172,7 @@ try {
   check('alg HS256 token -> 401', r.status === 401);
   r = await api('/api/state', { tok: t });
   check('valid token -> 200 with empty state', r.status === 200 && r.data.epoch === 0 && Object.keys(r.data.scopes).length === 0);
-  for (const [m, pth] of [['POST', '/api/sync'], ['POST', '/api/reset'], ['PUT', '/api/session'], ['GET', '/api/session'], ['GET', '/api/admin/summary'], ['GET', '/api/admin/config'], ['POST', '/api/admin/config'], ['POST', '/api/account'], ['POST', '/api/profile']]) {
+  for (const [m, pth] of [['POST', '/api/sync'], ['POST', '/api/reset'], ['PUT', '/api/session'], ['GET', '/api/session'], ['GET', '/api/admin/summary'], ['GET', '/api/admin/config'], ['POST', '/api/admin/config'], ['POST', '/api/admin/commit'], ['POST', '/api/account'], ['POST', '/api/profile']]) {
     const rr = await api(pth, { method: m, body: m === 'GET' ? undefined : {} });
     check(`every route needs a token: ${m} ${pth} -> 401`, rr.status === 401);
   }
@@ -565,6 +565,18 @@ try {
     check('questions: meta.totalQuestions is kept true when the file has a meta block (file here has none, so none is invented)', !('meta' in JSON.parse(gh.text)));
   }
 
+  // ===== admin commit (staged edits): the checks that happen before GitHub is touched =====
+  {
+    const K = '/api/admin/commit', tA = await token('admin1'), tS = await token('stu1');
+    let r = await api(K, { method: 'POST', tok: tS, body: { ops: [{ op: 'set_module', moduleId: 'CPM', hidden: true }] } });
+    check('commit: refused for a non-admin (403)', r.status === 403);
+    r = await api(K, { tok: tA });
+    check('commit: GET is not allowed (405)', r.status === 405);
+    for (const [label, body] of [['no ops', {}], ['empty ops', { ops: [] }], ['ops not a list', { ops: 'x' }], ['unknown op', { ops: [{ op: 'drop_everything' }] }], ['op not an object', { ops: [5] }], ['too many ops', { ops: Array.from({ length: 301 }, () => ({ op: 'set_module', moduleId: 'CPM', hidden: true })) }]]) {
+      r = await api(K, { method: 'POST', tok: tA, body });
+      check('commit: ' + label + ' -> 400 with a message, nothing sent to GitHub', r.status === 400 && typeof r.data.message === 'string', J(r.data));
+    }
+  }
   // ===== admin config: visibility, ongoing, topic details, new topics (fake GitHub) =====
   {
     const C = '/api/admin/config', tA = await token('admin1'), tS = await token('stu1');

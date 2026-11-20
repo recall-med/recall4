@@ -262,18 +262,23 @@
     function idOrNull(v) { return typeof v === 'string' && ID_RE.test(v) ? v : null; }
     var keys = [], answers = [], ok = true;
     (res.questions || []).forEach(function (q, i) {
-      var k = [cfg.module, cfg.examType, q._subject || cfg.subject, q._subSubject || cfg.subSubject, q.id].join('|');
+      var k = [q._module || cfg.module, q._examType || cfg.examType, q._subject || cfg.subject, q._subSubject || cfg.subSubject, q.id].join('|');
       if (!/^[A-Za-z0-9_-]{1,40}(\|[A-Za-z0-9_-]{1,40}){3}\|\d{1,6}$/.test(k)) ok = false;
       keys.push(k);
       var a = res.answers ? res.answers[i] : undefined;
       answers.push(Number.isInteger(a) && a >= 0 && a <= 9 ? a : -1);
     });
     var attempted = res.total - res.unanswered;
+    // Mixed runs (custom exams, multi-topic Master exams) have no single module or exam type: they upload as 'mixed',
+    // and each question key in review carries its own module and exam type. A partial full exam (topics unticked) gets a
+    // '_partial' scope suffix so stats do not mix it with a complete one.
+    var scope = typeof cfg.scope === 'string' && /^[A-Za-z0-9_|-]{1,60}$/.test(cfg.scope) ? cfg.scope : null;
+    if (scope && cfg.partial && scope !== 'custom' && scope.length <= 50) scope += '_partial';
     var a = {
       attemptId: id,
-      module: cfg.module, examType: cfg.examType,
+      module: cfg.module || 'mixed', examType: cfg.examType || 'mixed',
       subject: idOrNull(cfg.subject), subSubject: idOrNull(cfg.subSubject),
-      scope: typeof cfg.scope === 'string' && /^[A-Za-z0-9_|-]{1,60}$/.test(cfg.scope) ? cfg.scope : null,
+      scope: scope,
       score: res.score, correct: res.correct, total: res.total, attempted: attempted,
       timeSec: Math.min(res.timeSec || 0, 86400), clientTs: res.completedAt,
       review: ok && keys.length > 0 && keys.length <= 300 ? { keys: keys, answers: answers } : null

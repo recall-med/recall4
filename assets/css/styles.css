@@ -2473,7 +2473,7 @@ img { max-width: 100%; display: block; }
   font-weight:     700;
   text-align:      left;
 }
-.module-page .wide-exam-btn { grid-area: action; }
+.module-page .wide-exam-actions { grid-area: action; min-width: 0; }
 .module-page .wide-exam-btn:hover,
 .subject-page #start-subject-exam-btn:hover,
 .review-page .wide-action:hover { background: var(--surface-solid); transform: none; }

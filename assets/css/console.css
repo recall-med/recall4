@@ -200,9 +200,14 @@ textarea.rc-in { resize: vertical; min-height: 5.25rem; }
 .rc-chg__row small { display: block; margin-top: .15rem; color: var(--text-3); font-size: .8rem; line-height: 1.4; overflow-wrap: anywhere; }
 .rc-q--del .rc-qtext { text-decoration: line-through; opacity: .6; }
 
-/* Redline Data link row inside an exam type section */
-.rc-redline { cursor: default; flex-wrap: wrap; margin: 0 0 .75rem; padding: .7rem .9rem; background: var(--surface-solid); border: 1px solid var(--border); border-radius: var(--radius-lg); }
-.rc-redline .rc-prow__text { flex: 1 1 14rem; min-width: 0; }
-.rc-redline .rc-prow__text span { display: block; margin-top: .15rem; font-size: .8rem; line-height: 1.45; color: var(--text-3); overflow-wrap: anywhere; }
-.rc-redline .rc-prow__text a { color: var(--primary); }
-.rc-redline__acts { display: flex; flex: none; gap: .5rem; margin-left: auto; }
+/* Redline Data link: the first row of an exam type's list, so it stays inside the same bordered group as the subject rows */
+.rc-redline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem .75rem; padding: .875rem 1rem; border-bottom: 1px solid var(--border); font-size: .9rem; }
+.rc-redline__text { flex: 1 1 12rem; min-width: 0; }
+.rc-redline__text b { display: block; font-weight: 600; color: var(--text); }
+.rc-redline__text span { display: block; margin-top: .15rem; font-size: .8rem; line-height: 1.45; color: var(--text-3); overflow-wrap: anywhere; }
+.rc-redline__text a { color: var(--text-2); text-decoration: underline; text-underline-offset: .15em; }
+.rc-redline__acts { display: flex; flex: none; gap: .4rem; margin-left: auto; }
+.rc-redline .rc-link { margin: 0; min-height: 2rem; padding: .2rem .7rem; font-size: .8rem; }
+
+/* Dark mode: the lighter navy used for accents is too dim on the dark panels (titles, subject names, links), so the console uses a brighter one */
+:root[data-theme="dark"] { --accent-text: #8fb4f0; }

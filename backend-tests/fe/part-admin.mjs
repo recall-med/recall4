@@ -244,7 +244,7 @@ try {
     await click(A, '[data-act=save]', 2500);
     check('redline: saved into the module config under the exam type id', cfgM('CPM').redlineLinks.final_exam === 'https://example.com/redline-final-2');
     const Sx = await boot({ cloud: false }); await Sx.w.eval("App.navigate('module', { moduleId: 'CPM' })"); await sleep(1500);
-    check('redline: students get the Redline Data button for that exam type (including the new types once configured)', !!Sx.w.document.querySelector('.module-page a.redline-link[href="https://example.com/redline-final-2"]')); Sx.close();
+    check('redline: students get the Redline Data button for that exam type (including the new types once configured)', !!Sx.w.document.querySelector('.module-page a.redline-link[href="https://example.com/redline-final-2"]')); await sleep(500); Sx.close();
     await click(A, '[data-act=rmredline]', 500);
     check('redline: Remove is staged and shows "No link"; saving deletes it (and the empty redlineLinks object)', /No link/.test(A.document.querySelector('.rc-redline').textContent) && /1 change\b/.test(bar().textContent));
     await click(A, '[data-act=save]', 2500);
@@ -255,7 +255,7 @@ try {
       const cL = cfgNow(), cpmL = cL.modules.find((x) => x.id === 'CPM'); cpmL.subSubjects.final_exam_last_year.anatomy = [{ id: 'xgdf', label: 'xgdf' }]; fs.writeFileSync(path.join(tmp, 'config/modules.json'), J(cL, null, 2));
       fs.mkdirSync(path.join(tmp, 'data/CPM/final_exam_last_year/anatomy'), { recursive: true }); fs.writeFileSync(path.join(tmp, 'data/CPM/final_exam_last_year/anatomy/xgdf.json'), J({ questions: [1, 2].map((i) => ({ id: i, question: 'Old ' + i + '?', options: ['A', 'B'], answer: 0 })) }));
       const SL = await boot({ cloud: false }); await SL.w.eval("App.navigate('module', { moduleId: 'CPM' })"); await sleep(1500);
-      check('last year (old structure): an old topic under a Last Year type gives students no button and no section', !SL.w.document.querySelector('.wide-exam-btn--variant') && !/Last Year/.test(SL.w.document.querySelector('.module-page').textContent)); SL.close();
+      check('last year (old structure): an old topic under a Last Year type gives students no button and no section', !SL.w.document.querySelector('.wide-exam-btn--variant') && !/Last Year/.test(SL.w.document.querySelector('.module-page').textContent)); await sleep(500); SL.close();
       A.document.getElementById('rf').click(); await sleep(1500); await go(A, '#content/CPM', 900);
       check('last year (old structure): the admin lists it under "Old topics (not used any more)" with a Remove button, and still offers to add the new single exam', /Old topics \(not used any more\)/.test(A.document.getElementById('pane').textContent) && !!A.document.querySelector('[data-go$="final_exam_last_year/anatomy/xgdf"] [data-act=rmtopic]') && A.document.querySelectorAll('[data-act=addsingle]').length === 2);
       await click(A, '[data-go$="final_exam_last_year/anatomy/xgdf"] [data-act=rmtopic]', 600); await click(A, '[data-act=save]', 2500);
@@ -324,12 +324,12 @@ try {
     const topicIds = (d) => cfgOf(d).modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy.map((x) => x.id);
     check('hidden: a student does not get the hidden topic or the hidden module in the app', !topicIds(S1).includes('larynx') && topicIds(S1).includes('pharynx') && !cfgOf(S1).modules.some((m) => m.id === 'URINARY'));
     check('hidden: the module list on the dashboard has no card for the hidden module', !/Urinary|URINARY/.test(S1.w.document.getElementById('app').textContent) || !S1.w.document.querySelector('[data-params*="URINARY"]'));
-    S1.close();
+    await sleep(500); await sleep(500); S1.close();
     const S2 = await boot({ cloud: false, storage: { dqb_is_admin: '1' } });
     check('hidden: on an admin device the hidden topic and module are kept (shown with a Hidden badge)', topicIds(S2).includes('larynx') && cfgOf(S2).modules.some((m) => m.id === 'URINARY'));
     await S2.w.eval("App.navigate('subject', { moduleId: 'CPM', examType: 'final_exam', subject: 'anatomy' })"); await sleep(900);
     check('hidden: the admin sees "Hidden" on the hidden topic row and not on the visible one', /Larynx[\s\S]{0,80}Hidden/.test(S2.w.document.getElementById('app').textContent) && !/Pharynx[^]{0,20}Hidden/.test(S2.w.document.getElementById('app').textContent.replace(/Larynx[\s\S]*/, '')));
-    S2.close();
+    await sleep(500); await sleep(500); S2.close();
     // ---- the new exam types in the student app: order, Last Year buttons, hidden until approved ----
     {
       const cT = cfgNow(), cpmT = cT.modules.find((m) => m.id === 'CPM');
@@ -351,21 +351,21 @@ try {
       await S5.w.eval("document.querySelector('.wide-exam-btn--variant').click()"); await sleep(1200);
       const pg = S5.w.document.getElementById('app').textContent;
       check('last year: the button opens that one exam directly (title, module, breadcrumb, a Start button), with no subject or topic shown', /Last Year Final Exam/.test(pg) && !/Anatomy|Topic exam/.test(pg) && !!S5.w.document.querySelector('.subsubject-page [data-act=start], .subsubject-page .launch .btn--primary, .subsubject-page button.btn--primary'), pg.slice(0, 200));
-      S5.close();
+      await sleep(500); await sleep(500); S5.close();
       const S6 = await modPage({ dqb_is_admin: '1' });
       const endBtns = [...S6.w.document.querySelectorAll('.module-page .exam-type-section')[1].querySelectorAll('.wide-exam-btn')].map((b) => b.textContent.replace(/\s+/g, ' ').trim());
       check('last year: an admin device sees the hidden Last Year End Module button (and the full-exam button before it)', endBtns.length === 2 && /Start Full End Module Exam/.test(endBtns[0]) && /Start Last Year End Module Exam/.test(endBtns[1]), J(endBtns));
-      S6.close();
+      await sleep(500); await sleep(500); S6.close();
       const cU = cfgNow(), cpmU = cU.modules.find((m) => m.id === 'CPM'); delete cpmU.subSubjects.final_exam_last_year; cpmU.subSubjects.final_exam_last_year = { anatomy: [] };
       fs.writeFileSync(path.join(tmp, 'config/modules.json'), J(cU, null, 2));
       const S7 = await modPage({});
       check('last year: with no Last Year topic at all there is no button and no extra row', S7.w.document.querySelector('.module-page .exam-type-section').querySelectorAll('.wide-exam-btn').length === 1);
-      S7.close();
+      await sleep(500); await sleep(500); S7.close();
     }
     const S3 = await boot({ storage: { dqb_is_admin: '1', dqb_last_page: J({ page: 'module', params: { moduleId: 'URINARY' } }) } });
     await S3.signIn('plain-student', 'ps@example.com'); await sleep(600);
     check('hidden: when /api/state says the person is not an admin, the admin flag is dropped and the hidden module disappears at once', S3.w.localStorage.getItem('dqb_is_admin') === null && !cfgOf(S3).modules.some((m) => m.id === 'URINARY'));
-    S3.close();
+    await sleep(500); await sleep(500); S3.close();
     const S4 = await boot(); await S4.signIn('admin1', 'admin@example.com'); await sleep(800);
     check('hidden: when /api/state says admin, the flag is stored and hidden items appear without a reload', S4.w.localStorage.getItem('dqb_is_admin') === '1' && cfgOf(S4).modules.some((m) => m.id === 'URINARY'));
     await S4.w.eval("document.getElementById('account-btn').click()"); await sleep(100);
@@ -408,7 +408,7 @@ try {
     await sleep(800);
     check('popups: the account window now plays a closing animation too (is-closing before display none)', (() => { const m = S4.w.document.getElementById('account-modal'); S4.w.RecallLayers.show(m); S4.w.RecallLayers.hide(m); return m.classList.contains('is-closing') && m.style.display !== 'none'; })());
     await sleep(400);
-    S4.close();
+    await sleep(500); await sleep(500); S4.close();
   }
 
 

@@ -14,6 +14,7 @@ Built with plain HTML, CSS, and JavaScript, with no build step. It works fully a
 - [Deployment](#deployment-to-github-pages)
 - [Cloud Sync and Accounts](#cloud-sync-and-accounts)
 - [Repository Structure](#repository-structure)
+- [Exam Types](#exam-types)
 - [Adding Questions](#adding-questions)
 - [Crediting a Professor](#crediting-a-professor)
 - [Marking a Module as Ongoing](#marking-a-module-as-ongoing)
@@ -62,7 +63,8 @@ All question content lives in plain JSON files. Adding or updating questions req
 - Per-module progress rings with completion count and average score
 - Resume card under "Progress" on the dashboard: one tap anywhere on the card continues the exam (the small X abandons it)
 - Interface that scales itself to the screen: the same proportions on a phone, a laptop and a 1920px monitor, with nothing to zoom
-- Admin dashboard (`admin.html`) for owners and admins: overview, question editor, students, retention, system
+- Four exam types per module (Final Exam, End Module Exam, TBL Exam, Lecture Questions) plus a one-exam **Last Year** button under the Final and End Module "Start Full ..." buttons; see [Exam Types](#exam-types)
+- Admin dashboard (`admin.html`) for owners and admins: overview, content manager (questions, topics, Last Year exams, Redline Data links, visibility), students, retention, system. Edits are staged and saved as one commit, with a bar for Save / Discard / Review on every tab
 - Results page: score ring (correct / incorrect / skipped) and how this attempt compares with the previous one of the same exam; **By topic** (multi-topic exams: accuracy per topic, weakest first; tap a topic to review only it); filter chips (All / Incorrect / Skipped / Saved); a quiet list of every question that opens on tap to show your answer, the right answer and the explanation, with a Save button on each
 - Results card: **Retry incorrect** (wide button, with the count) and **Retry exam** (compact button beside it) sit at the bottom of the card; a score of 100% says "Excellent" instead of "Exam complete"; on a phone the four numbers are one compact strip. Tapping a question shows every choice with the right one and your wrong pick marked, as on the Incorrect page
 - **Retry incorrect** on a topic (from the results page, or from the topic page with a count badge): a practice exam made of that topic's wrong questions. Afterwards you see the results page of the **whole topic, updated** (retried questions take their new result, the score and the topic's last score follow). Several topics at once (custom exam) get a results page of their own
@@ -170,16 +172,43 @@ The question bank itself runs on any static host, including GitHub Pages. **Acco
 │   └── sync-config.json    Cloud sync on/off switch (cloudEnabled)
 │
 ├── functions/              Cloudflare Pages Functions (the /api backend)
+│   ├── _lib/               Shared code: auth, database, GitHub (incl. one-commit writes), admin change rules (adminops.js)
+│   └── api/                sync, session, account, reset and admin/ (summary, config, question, commit, students, retention)
 ├── db/schema.sql           Database tables for Cloudflare D1
 ├── backend-tests/          Automated tests for the backend and the sync front end
 ├── BACKEND_GUIDE.md        How the backend works, how to extend it, project status
 │
 └── data/
     └── <MODULE>/                       e.g. CPM, GIT, CNS, ENDO_REPRO, URINARY
-        └── <exam_type>/                end_module or final_exam
-            └── <subject>/              anatomy, physiology, biochemistry, histology
-                └── <topic>.json        one file per topic (sub-subject)
+        ├── <exam_type>/                final_exam, end_module, tbl_exam or lecture_questions
+        │   └── <subject>/              anatomy, physiology, biochemistry, histology
+        │       └── <topic>.json        one file per topic (sub-subject)
+        └── <last_year_type>/exam/exam.json    final_exam_last_year or end_module_last_year: ONE file, no subjects or topics
 ```
+
+---
+
+## Exam Types
+
+`config/modules.json` lists the exam types in `examTypes`; their order is the order on every module page.
+
+| Id | Shown as | On the module page |
+|----|----------|--------------------|
+| `final_exam` | Final Exam | A section with its subjects, a "Start Full Final Exam" button and, under it, the Last Year button when that exists |
+| `end_module` | End Module Exam | The same, with "Start Full End Module Exam" |
+| `tbl_exam` | TBL Exam | A section like the two above |
+| `lecture_questions` | Lecture Questions | A section like the two above |
+| `final_exam_last_year` | Last Year Final Exam | Not a section: one button under "Start Full Final Exam" |
+| `end_module_last_year` | Last Year End Module Exam | Not a section: one button under "Start Full End Module Exam" |
+
+- The first four behave identically (subjects, topics, full exams, retry, incorrect list, saved questions, cloud sync). A section only appears once it has at least one visible question.
+- A **Last Year** type is **one exam per module**, with no subjects and no topics. Its questions live in `data/<MODULE>/<type>/exam/exam.json` and it is listed in the config as the single topic `exam` under `subSubjects.<type>.exam`:
+  ```json
+  "final_exam_last_year": { "exam": [ { "id": "exam", "label": "Last Year Final Exam", "hidden": true } ] }
+  ```
+  The button appears only when the exam has a visible question, is styled like "Start Full ...", and opens that exam's page (Start, Retry, last attempt). The easiest way to create it is the admin dashboard (Content, open the module, **Add** under the Last Year type, add questions, switch it on). An exam type with `"variantOf": "final_exam"` in `examTypes` is a Last Year type of that parent.
+- New topics and new Last Year exams start **hidden**: students see nothing until an admin switches them on (see [Hiding a Module or Topic](#hiding-a-module-or-topic)).
+- To add another ordinary exam type: add it to `examTypes` (`id` of letters, digits, `_` and `-`, up to 40 characters; `label`; `description`; `color`), add an entry with an empty list per subject to every module's `subSubjects`, and create `data/<MODULE>/<id>/` folders. Nothing else changes.
 
 ---
 
@@ -193,7 +222,7 @@ Questions are organised as **module → exam type → subject → topic**. Each 
    ```
    data/<MODULE>/<exam_type>/<subject>/<topic_id>.json
    ```
-   For example: `data/CNS/end_module/anatomy/spinal_cord.json`
+   For example: `data/CNS/end_module/anatomy/spinal_cord.json` (or `data/CNS/tbl_exam/...` and `data/CNS/lecture_questions/...`). For a Last Year exam there is no subject or topic: the file is always `data/CNS/final_exam_last_year/exam/exam.json` (or `end_module_last_year`)
 
 2. Put the questions in it (see [JSON Question Format](#json-question-format)):
    ```json
@@ -322,7 +351,7 @@ To highlight the module the class is currently studying, add `"ongoing": true` t
 
 ## Adding Redline Data Links
 
-Each exam section on a module page (End Module Exam, Final Exam) can show a **Redline Data** link that opens the matching data guide in a new tab. Add a `redlineLinks` field to the module in `config/modules.json`, keyed by exam type id:
+Each exam section on a module page (Final Exam, End Module Exam, TBL Exam, Lecture Questions) can show a **Redline Data** link that opens the matching data guide in a new tab. Add a `redlineLinks` field to the module in `config/modules.json`, keyed by exam type id:
 
 ```json
 {
@@ -341,12 +370,13 @@ Each exam section on a module page (End Module Exam, Final Exam) can show a **Re
 - Use the full URL, including `https://`.
 - If a key is missing or empty, no link is shown for that section. A module with no `redlineLinks` field shows none at all.
 - No code changes are needed, and the link is picked up the next time the page loads.
+- The admin dashboard edits these links without touching the file: Content, open the module, and each exam type has a **Redline Data link** row with Add link, Edit and Remove (the link must start with `https://`). Like every admin edit it is staged and saved with the Save bar.
 
 ---
 
 ## Hiding a Module or Topic
 
-Add `"hidden": true` to a module or to a topic entry in `config/modules.json` and students no longer see it; admins still do, with a Hidden badge. Remove the field to show it again. The admin dashboard (Content) does this with switches, and creates new topics as hidden. This hides items in the app only: the JSON data files remain public web addresses.
+Add `"hidden": true` to a module or to a topic entry in `config/modules.json` and students no longer see it; admins still do, with a Hidden badge. Remove the field to show it again. The admin dashboard (Content) does this with switches, and creates new topics and Last Year exams as hidden. This hides items in the app only: the JSON data files remain public web addresses.
 
 ---
 
@@ -360,8 +390,9 @@ Add `"hidden": true` to a module or to a topic entry in `config/modules.json` an
 
 4. Create the matching data folder structure:
    ```bash
-   mkdir -p data/NEW_MODULE/end_module data/NEW_MODULE/final_exam
+   mkdir -p data/NEW_MODULE/final_exam data/NEW_MODULE/end_module data/NEW_MODULE/tbl_exam data/NEW_MODULE/lecture_questions
    ```
+   (Last Year exams need no folder in advance: the admin dashboard creates `data/NEW_MODULE/<type>/exam/exam.json` when you add one.)
 
 5. Create empty question files for each subject in each exam folder:
    ```json
@@ -521,6 +552,8 @@ Rules the interface follows. Keep them when you change anything.
 - **Topic badge in an exam** (`UI.topicVeil`, `App._revealTopic`): closed, it is a fixed-width pill with a dashed edge, a small eye and a blurred stand-in ("Reveal topic"), never the real name, so neither the words nor their length give the topic away. Pressing it swaps the real name in, which sharpens out of the blur while the pill grows to fit. It stays open for that question for the rest of the attempt; the next question starts closed. Single-topic exams have no badge.
 - **Phone vs desktop:** on phones the topic and full-exam pages show Incorrect / Saved as a short "Review" list under the card; from 768px they live in the rail instead (`.scope-review` is hidden). Results: stats in a 2x2 grid on phones, four across from 640px.
 - **Admin page** classes start with `rc-`. Never use `ad-` or words like banner or sponsor in class names: ad blockers hide them.
+- **Admin save bar** (`#savebar`, `.rc-savebar`): fixed at the bottom of every admin tab, above the phone navigation, shown only while there are unsaved changes (message, Review, Discard, Save). The toasts and the page padding move up while it is shown. Admin rows keep to the console's own controls: `rc-link` for text buttons (`rc-link--warn` for destructive ones), `icon-btn` for icon actions, `toggle` for switches. A row that belongs to an exam type's list (such as the Redline Data link) is a row inside that list, never a separate card between the header and the list.
+- **Admin dark mode:** `console.css` re-declares `--accent-text` in `:root[data-theme="dark"]` as a brighter blue, because the app's dark accent is too dim for titles, subject names and links on the console's dark panels. Use `--accent-text` or `--text-2` for admin text, never a fixed colour.
 - **Dark mode** must keep working after every change: colours come from the variables, never hard-coded.
 
 ---

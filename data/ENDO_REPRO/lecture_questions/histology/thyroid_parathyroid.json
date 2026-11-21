@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "module": "ENDO_REPRO",
+    "examType": "lecture_questions",
+    "subject": "histology",
+    "subSubject": "thyroid_parathyroid",
+    "totalQuestions": 14
+  },
+  "questions": [
+    {
+      "question": "A thyroid section shows tall follicular cells. This is suggestive of:",
+      "options": [
+        "Reduced thyroid activity",
+        "Increased thyroid activity",
+        "Parathyroid hyperplasia",
+        "Thyroid atrophy"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Increased thyroid activity",
+      "id": 1
+    },
+    {
+      "question": "A histological section of parathyroid gland shows large eosinophilic cells with numerous mitochondria. These cells are most likely:",
+      "options": [
+        "Chief cells",
+        "Follicular cells",
+        "Oxyphil cells",
+        "Parafollicular cells"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Oxyphil cells",
+      "id": 2
+    },
+    {
+      "question": "Accidental removal of parathyroid glands during thyroid surgery may lead to:",
+      "options": [
+        "Hypercalcemia",
+        "Hypocalcemia",
+        "Hyperglycemia",
+        "Hypernatremia"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Hypocalcemia",
+      "id": 3
+    },
+    {
+      "question": "Thyroid follicles are lined mainly by:",
+      "options": [
+        "Simple squamous epithelium",
+        "Simple cuboidal epithelium",
+        "Stratified cuboidal epithelium",
+        "Simple columnar epithelium"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Simple cuboidal epithelium",
+      "id": 4
+    },
+    {
+      "question": "The height of follicular cells depends mainly on:",
+      "options": [
+        "Age of the individual",
+        "Functional activity of the gland",
+        "Blood supply only",
+        "Amount of connective tissue"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Functional activity of the gland",
+      "id": 5
+    },
+    {
+      "question": "The colloid inside thyroid follicles mainly contains:",
+      "options": [
+        "Thyroglobulin",
+        "Calcitonin",
+        "Parathyroid hormone",
+        "Albumin"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Thyroglobulin",
+      "id": 6
+    },
+    {
+      "question": "Which of the following is a characteristic feature of an active thyroid follicle?",
+      "options": [
+        "Flattened follicular cells",
+        "Abundant colloid without vacuoles",
+        "Tall follicular cells with irregular margined colloid",
+        "Absence of colloid"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Tall follicular cells with irregular margined colloid",
+      "id": 7
+    },
+    {
+      "question": "The apical surface of follicular cells is characterized by:",
+      "options": [
+        "Microvilli",
+        "Cilia",
+        "Stereocilia",
+        "Flagella"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Microvilli",
+      "id": 8
+    },
+    {
+      "question": "Thyroid follicular cells secrete:",
+      "options": [
+        "Calcitonin",
+        "T3 and T4",
+        "PTH",
+        "Aldosterone"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. T3 and T4",
+      "id": 9
+    },
+    {
+      "question": "Parafollicular cells are also known as:",
+      "options": [
+        "Chief cells",
+        "Oxyphil cells",
+        "C cells",
+        "Chromophobes"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. C cells",
+      "id": 10
+    },
+    {
+      "question": "Parafollicular cells are characterized by:",
+      "options": [
+        "Strong acidophilic staining",
+        "Pale-staining cytoplasm",
+        "Presence of colloid droplets",
+        "Formation of follicular lumen"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Pale-staining cytoplasm",
+      "id": 11
+    },
+    {
+      "question": "Calcitonin is secreted by:",
+      "options": [
+        "Follicular cells",
+        "Parafollicular cells",
+        "Chief cells",
+        "Oxyphil cells"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Parafollicular cells",
+      "id": 12
+    },
+    {
+      "question": "Which organelle is particularly abundant in thyroid follicular cells due to their protein synthesis activity?",
+      "options": [
+        "Rough endoplasmic reticulum",
+        "Smooth endoplasmic reticulum only",
+        "Centrioles",
+        "Peroxisomes only"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Rough endoplasmic reticulum",
+      "id": 13
+    },
+    {
+      "question": "Which of the following is TRUE about thyroid follicles?",
+      "options": [
+        "All follicles have the same size",
+        "They are surrounded by a rich network of fenestrated capillaries",
+        "Their lumen contains PTH",
+        "They are lined by stratified squamous epithelium"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. They are surrounded by a rich network of fenestrated capillaries",
+      "id": 14
+    }
+  ]
+}

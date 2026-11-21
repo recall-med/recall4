@@ -59,6 +59,10 @@ const ghGit = (req, res, pathname) => {
   ghState.log.push(req.method + ' ' + p);
   if (req.method === 'GET' && p === 'ref/heads/main') return send(200, { object: { sha: ghState.head } });
   if (req.method === 'GET' && p.startsWith('commits/')) return send(200, { tree: { sha: 'tree-of-' + p.slice(8) } });
+  if (req.method === 'GET' && p.startsWith('trees/')) {   // recursive listing of the temp site (what the admin dashboard uses to spot deleted files)
+    const out = []; const walk = (d) => fs.readdirSync(path.join(tmp, d), { withFileTypes: true }).forEach((e) => { const r = d ? d + '/' + e.name : e.name; if (e.isDirectory()) walk(r); else out.push({ type: 'blob', path: r }); }); walk('');
+    return send(200, { tree: out, truncated: false });
+  }
   let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => {
     const j = b ? JSON.parse(b) : {};
     if (req.method === 'POST' && p === 'trees') { const sha = 'tree-' + (++ghState.n); ghState.trees[sha] = j.tree; return send(201, { sha }); }
@@ -68,7 +72,7 @@ const ghGit = (req, res, pathname) => {
       if (ghState.raceOnce) { ghState.raceOnce = false; ghState.head = 'raced-' + (++ghState.n); return send(422, { message: 'Update is not a fast forward' }); }   // someone else pushed in between
       if (!c || c.parents[0] !== ghState.head) return send(422, { message: 'Update is not a fast forward' });
       const paths = [];
-      for (const e of ghState.trees[c.tree] || []) { const fp = path.join(tmp, e.path); fs.mkdirSync(path.dirname(fp), { recursive: true }); fs.writeFileSync(fp, e.content); paths.push(e.path); }
+      for (const e of ghState.trees[c.tree] || []) { const fp = path.join(tmp, e.path); if (e.sha === null) { fs.rmSync(fp, { force: true }); paths.push('-' + e.path); continue; } fs.mkdirSync(path.dirname(fp), { recursive: true }); fs.writeFileSync(fp, e.content); paths.push(e.path); }
       ghState.head = j.sha; ghCommits.push({ sha: j.sha, message: c.message, paths }); paths.forEach((x) => ghLog.push({ path: x, message: c.message, commit: j.sha }));
       return send(200, { ref: 'refs/heads/main' });
     }

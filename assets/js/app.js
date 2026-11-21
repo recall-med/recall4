@@ -1169,6 +1169,9 @@ const App = {
     const res = await fetch('config/modules.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     this._rawConfig = await res.json();
+    // A "Last year" exam type (variantOf) is ONE exam per module, with no subjects or topics: it is stored as the single topic
+    // `exam` of this built-in pseudo-subject, so scope keys, counts, progress and sync work like any other topic.
+    if (!(this._rawConfig.subjects || []).some(s => s.id === 'exam')) (this._rawConfig.subjects = this._rawConfig.subjects || []).push({ id: 'exam', label: 'Exam' });
     return this._applyVisibility(this._rawConfig);
   },
 
@@ -1202,6 +1205,7 @@ const App = {
     for (const m of mods) {
       for (const et of (config.examTypes || [])) {
         for (const sub of (config.subjects || [])) {
+          if (et.variantOf ? sub.id !== 'exam' : sub.id === 'exam') continue;   // a Last year type has only the single topic `exam`
           const subs = (m.subSubjects && m.subSubjects[et.id] && m.subSubjects[et.id][sub.id]) || [];
           for (const ss of subs) {
             entries.push({ key: this._countKey(m, et.id, sub.id, ss.id), m, et: et.id, sub: sub.id, ss: ss.id });

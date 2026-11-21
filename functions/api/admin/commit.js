@@ -6,6 +6,9 @@
 //   add_topic  { moduleId, exam, subject, topicId, label, professor? }       empty data file + a hidden topic (the client names the id)
 //   set_module { moduleId, ongoing?, hidden? }
 //   set_topic  { moduleId, exam, subject, topicId, label?, professor?, hidden? }
+//   set_redline { moduleId, exam, url }                                     the "Redline Data" link of one exam type in a module; url "" removes it
+//   remove_topic { moduleId, exam, subject, topicId }                      removes the config entry AND deletes its data file; a topic that is already gone is ignored
+//   (a Last year exam type holds ONE exam per module: subject `exam`, topic `exam`; add_topic creates it, remove_topic removes it)
 //   q_add      { path, temp, question, options, answer, explanation? }       gets the next free id; the answer maps temp -> id in idMap
 //   q_edit     { path, id, patch: { question?, options?, answer?, explanation? }, base: { <the same fields as the admin first saw them> } }
 //   q_del      { path, id, base?: { question } }                             never renumbers; an id that is already gone is ignored
@@ -20,7 +23,7 @@ import { applyConfigOp, qListOf, checkPatch, bad } from '../../_lib/adminops.js'
 const CFG = 'config/modules.json';
 const PATH_RE = /^data\/[\w-]+\/[\w-]+\/[\w-]+\/[\w-]+\.json$/;
 const MAX_OPS = 300;
-const RANK = { add_topic: 0, set_module: 1, set_topic: 1, q_add: 2, q_edit: 3, q_del: 4 };
+const RANK = { add_topic: 0, set_module: 1, set_topic: 1, set_redline: 1, q_add: 2, q_edit: 3, q_del: 4, remove_topic: 5 };
 const conflict = (m) => new HttpError(409, 'conflict', m);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -29,7 +32,7 @@ async function run(g, ops) {
   const cf = await readAt(g, CFG, head.commit);
   let cfg; try { cfg = JSON.parse(cf.text); } catch (e) { throw new HttpError(422, 'bad_file', 'config/modules.json is not valid JSON'); }
   if (!cfg || !Array.isArray(cfg.modules)) throw new HttpError(422, 'bad_file', 'config/modules.json has no modules');
-  let cfgTouched = false; const files = new Map(), idMap = [], notes = [];
+  let cfgTouched = false; const files = new Map(), idMap = [], notes = [], removals = [];
 
   async function file(path) {
     if (files.has(path)) return files.get(path);
@@ -44,8 +47,9 @@ async function run(g, ops) {
 
   const sorted = ops.map((o, i) => [o, i]).sort((a, b) => (RANK[a[0].op] - RANK[b[0].op]) || (a[1] - b[1])).map((x) => x[0]);
   for (const op of sorted) {
-    if (op.op === 'add_topic' || op.op === 'set_module' || op.op === 'set_topic') {
+    if (op.op === 'add_topic' || op.op === 'set_module' || op.op === 'set_topic' || op.op === 'remove_topic' || op.op === 'set_redline') {
       const r = applyConfigOp(cfg, { ...op, action: op.op }); cfgTouched = true; notes.push(r.msg.replace(/^Admin: /, ''));
+      if (r.removeFile) removals.push(r.removeFile);
       if (r.file) {
         if (await readAt(g, r.file.path, head.commit, true)) throw new HttpError(409, 'exists', 'A data file named ' + r.file.path + ' already exists in the repository');
         const doc = JSON.parse(r.file.text);
@@ -78,7 +82,6 @@ async function run(g, ops) {
         if (!op.patch || typeof op.patch !== 'object') throw bad('patch is required');
         Object.assign(cur, checkPatch(op.patch, cur)); notes.push('edit question #' + op.id + ' (' + op.path + ')');
       } else {
-        if (f.list.length === 1) throw new HttpError(400, 'last_question', 'This would leave ' + op.path + ' with no questions. Remove the topic file on GitHub instead.');
         if (!Array.isArray(f.doc)) f.doc.nextId = Math.max(Number(f.doc.nextId) || 0, f.list.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1);
         f.list.splice(i, 1); notes.push('remove question #' + op.id + ' (' + op.path + ')');
       }
@@ -88,13 +91,15 @@ async function run(g, ops) {
 
   const out = [];
   if (cfgTouched) out.push({ path: CFG, text: JSON.stringify(cfg, null, 2) + (cf.text.endsWith('\n') ? '\n' : '') });
+  const gone = new Set(removals);
   for (const f of files.values()) {
-    if (!f.touched) continue;
+    if (!f.touched || gone.has(f.path)) continue;
     if (!Array.isArray(f.doc) && f.doc.meta && typeof f.doc.meta === 'object') f.doc.meta.totalQuestions = f.list.length;   // keep the meta count true
     const indent = f.text ? (f.text.trim().includes('\n') ? ((/\n([ \t]+)"/.exec(f.text) || [])[1] || 2) : 0) : 2;
     out.push({ path: f.path, text: JSON.stringify(f.doc, null, indent) + (!f.text || f.text.endsWith('\n') ? '\n' : '') });
   }
-  const changed = out.filter((o) => { const old = files.get(o.path); return o.path === CFG ? o.text !== cf.text : old ? o.text !== old.text : true; });
+  for (const path of gone) if (await readAt(g, path, head.commit, true)) out.push({ path, del: true });   // a file that is already gone needs no deletion
+  const changed = out.filter((o) => { const old = files.get(o.path); return o.del ? true : o.path === CFG ? o.text !== cf.text : old ? o.text !== old.text : true; });
   if (!changed.length) return { ok: true, commit: null, changed: 0, files: [], config: cfg, idMap };
   const lines = notes.slice(0, 25).map((n) => '- ' + n); if (notes.length > 25) lines.push('- and ' + (notes.length - 25) + ' more');
   const msg = 'Admin: save ' + notes.length + ' change' + (notes.length === 1 ? '' : 's') + ' in ' + changed.length + ' file' + (changed.length === 1 ? '' : 's') + '\n\n' + lines.join('\n');

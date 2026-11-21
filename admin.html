@@ -37,6 +37,7 @@ const ICONS = {
   refresh: '<path d="M21 12a9 9 0 11-3-6.7M21 4v5h-5"/>', logout: '<path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/>',
   app: '<path d="M14 3h7v7M21 3l-9 9M19 14v6H4V5h6"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', code: '<path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
 };
 const ic = (n, c) => '<svg class="rc-i' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[n] + '</svg>';
 
@@ -133,13 +134,30 @@ async function load(refresh) {
     $('rt').onclick = () => load(true);
   } finally { loading = false; }
 }
+// A "Last year" exam type has no subjects or topics: its single exam is the topic `exam` of the built-in pseudo-subject `exam`.
+const fixCfg = (c) => { if (!(c.subjects || []).some((x) => x.id === 'exam')) (c.subjects = c.subjects || []).push({ id: 'exam', label: 'Exam' }); return c; };
+let repoFiles = null, baseAt = 0;   // repoFiles: every data file that is on GitHub right now (null = GitHub could not say); baseAt: when baseCfg was read
 async function loadCfg() {
   if (baseCfg) return;
   const r = await adminFetch('/api/admin/config');   // fresh from GitHub, so a change made a minute ago is already in it
-  if (r.status === 200 && r.body.ok) { baseCfg = r.body.config; cfgErr = ''; recompute(); return; }
+  if (r.status === 200 && r.body.ok) { baseCfg = fixCfg(r.body.config); repoFiles = Array.isArray(r.body.files) ? new Set(r.body.files) : null; cfgErr = ''; baseAt = Date.now(); pruneOps(); recompute(); return; }
   cfgErr = r.body.message || 'Could not read the site configuration from GitHub.';
-  baseCfg = await fetch('config/modules.json').then((x) => x.json());   // read-only fallback: the deployed copy
+  baseCfg = fixCfg(await fetch('config/modules.json').then((x) => x.json())); repoFiles = null; baseAt = Date.now();   // read-only fallback: the deployed copy
   recompute();
+}
+const topicPathOf = (o) => 'data/' + (((baseCfg || cfg).modules.find((x) => x.id === o.moduleId) || {}).dataPath || o.moduleId) + '/' + o.exam + '/' + o.subject + '/' + o.topicId + '.json';
+// When GitHub changed under an unsaved draft (a topic deleted there, say), changes that no longer apply are dropped instead of failing the save
+function pruneOps() {
+  if (!draft.ops.length || !baseCfg) return;
+  const paths = new Set(); baseCfg.modules.forEach((m) => Object.entries(m.subSubjects || {}).forEach(([e, subs]) => Object.entries(subs).forEach(([sb, l]) => (l || []).forEach((t) => paths.add(topicPathOf({ moduleId: m.id, exam: e, subject: sb, topicId: t.id }))))));
+  const staged = new Set(draft.ops.filter((o) => o.op === 'add_topic').map((o) => topicPathOf(o)));
+  const n = draft.ops.length;
+  draft.ops = draft.ops.filter((o) => {
+    if (o.op === 'set_module' || o.op === 'add_topic' || o.op === 'set_redline') return baseCfg.modules.some((x) => x.id === o.moduleId);
+    if (o.op === 'set_topic' || o.op === 'remove_topic') return !!baseTopicOf(o.moduleId, o.exam, o.subject, o.topicId);
+    return !o.path || paths.has(o.path) || staged.has(o.path);
+  });
+  if (draft.ops.length !== n) { persist(); renderBar(); toast('Dropped ' + plural(n - draft.ops.length, 'unsaved change') + ' for things that were removed on GitHub.'); }
 }
 
 // ---------- staged edits (the draft) ----------
@@ -181,8 +199,15 @@ function recompute() {
       if (o.set.professor !== undefined) { if (o.set.professor) t.professor = o.set.professor; else delete t.professor; }
       if (o.set.hidden === true) t.hidden = true; else if (o.set.hidden === false) delete t.hidden;
     } else if (o.op === 'add_topic') {
-      const l = listIn(o); if (!l || l.some((x) => x.id === o.topicId)) return;
+      let l = listIn(o);
+      if (!l) { const m = cfg.modules.find((x) => x.id === o.moduleId); if (!m) return; m.subSubjects = m.subSubjects || {}; m.subSubjects[o.exam] = m.subSubjects[o.exam] || {}; l = m.subSubjects[o.exam][o.subject] = []; }   // a Last year exam type has no list yet in an older config
+      if (l.some((x) => x.id === o.topicId)) return;
       const e = { id: o.topicId, label: o.label }; if (o.professor) e.professor = o.professor; if (!o.makeVisible) e.hidden = true; l.push(e);
+    } else if (o.op === 'set_redline') {
+      const m = cfg.modules.find((x) => x.id === o.moduleId); if (!m) return;
+      m.redlineLinks = m.redlineLinks || {}; if (o.url) m.redlineLinks[o.exam] = o.url; else delete m.redlineLinks[o.exam];
+    } else if (o.op === 'remove_topic') {
+      const l = listIn(o), i = l ? l.findIndex((x) => x.id === o.topicId) : -1; if (i >= 0) l.splice(i, 1);
     } else if (o.op === 'q_edit') slot(o.path).edit.set(String(o.qid), o);
     else if (o.op === 'q_del') slot(o.path).del.add(String(o.qid));
     else if (o.op === 'q_add') slot(o.path).add.push(o);
@@ -190,6 +215,7 @@ function recompute() {
 }
 const sameVal = (a, b) => JSON.stringify(a === undefined ? '' : a) === JSON.stringify(b === undefined ? '' : b);
 const stagedTopic = (t) => !!findOp('at:' + tkey(t));
+const missingTopic = (t) => !!repoFiles && !stagedTopic(t) && !repoFiles.has(t.path);   // listed in the config, but its data file is gone from GitHub
 function stageModule(id, field, val) {
   const bm = baseCfg.modules.find((x) => x.id === id); if (!bm) return;
   const oid = 'mod:' + id, o = findOp(oid) || { id: oid, op: 'set_module', moduleId: id, set: {} };
@@ -216,6 +242,22 @@ function stageNewTopic(mid, exam, subject, label, professor) {
   let id = slugOf(label), n = 1; while (list.some((x) => x.id === id)) id = slugOf(label).slice(0, 36) + '_' + (++n);
   putOp({ id: 'at:' + [mid, exam, subject, id].join('|'), op: 'add_topic', moduleId: mid, exam, subject, topicId: id, label, professor, makeVisible: false });
   changed(); return id;
+}
+function stageRedline(mid, exam, url) {   // url '' removes the link
+  const bm = baseCfg.modules.find((x) => x.id === mid), base = (bm && bm.redlineLinks && bm.redlineLinks[exam]) || '', id = 'rl:' + mid + '|' + exam;
+  if (url === base) dropOp(id); else putOp({ id, op: 'set_redline', moduleId: mid, exam, url, base });
+  changed();
+}
+function stageAddSingle(mid, exam) {   // the one exam of a Last year type: topic `exam`, named like the type, hidden until approved
+  const et = cfg.examTypes.find((x) => x.id === exam), id = 'at:' + [mid, exam, 'exam', 'exam'].join('|'); if (!et || findOp(id)) return;
+  putOp({ id, op: 'add_topic', moduleId: mid, exam, subject: 'exam', topicId: 'exam', label: et.label, professor: '', makeVisible: false }); changed();
+}
+function stageRemoveTopic(t) {   // removes the topic from the config and deletes its data file on Save; changes staged for it are dropped
+  if (stagedTopic(t)) { undoOp('at:' + tkey(t)); return; }
+  const single = !!(cfg.examTypes.find((e) => e.id === t.exam) || {}).variantOf;
+  draft.ops = draft.ops.filter((o) => o.path !== t.path && o.id !== 'top:' + tkey(t));
+  putOp({ id: 'rt:' + tkey(t), op: 'remove_topic', moduleId: t.module, exam: t.exam, subject: t.subject, topicId: t.sub, label: single ? t.examLabel : t.label, loc: single ? t.moduleTitle : where(t), path: t.path, single, nq: live(t).length });
+  changed();
 }
 const rawOf = (q) => ({ question: q.question, options: q.options, answer: q.answer, explanation: q.explanation });
 function stageQEdit(t, orig, v) {   // orig = the question as GitHub has it, v = what the form holds now
@@ -249,6 +291,8 @@ function opsToSend() {
     } else if (o.op === 'q_add') out.push({ op: 'q_add', path: o.path, temp: o.temp, question: o.question, options: o.options, answer: o.answer, explanation: o.explanation });
     else if (o.op === 'q_edit') { const patch = {}, base = {}; FIELDS.forEach((k) => { if (!sameVal(o.cur[k], o.orig[k])) { patch[k] = o.cur[k]; if (o.orig[k] !== undefined) base[k] = o.orig[k]; } }); out.push({ op: 'q_edit', path: o.path, id: o.qid, patch, base }); }
     else if (o.op === 'q_del') out.push({ op: 'q_del', path: o.path, id: o.qid, base: o.orig });
+    else if (o.op === 'set_redline') out.push({ op: 'set_redline', moduleId: o.moduleId, exam: o.exam, url: o.url });
+    else if (o.op === 'remove_topic') out.push({ op: 'remove_topic', moduleId: o.moduleId, exam: o.exam, subject: o.subject, topicId: o.topicId });
   });
   return out;
 }
@@ -259,7 +303,7 @@ async function saveDraft() {
     const r = await adminFetch('/api/admin/commit', { method: 'POST', body: JSON.stringify({ ops: opsToSend() }) });
     if (r.status === 200 && r.body.ok) {
       const n = draft.ops.length; draft.ops = []; persist();
-      baseCfg = r.body.config; Object.keys(qcache).forEach((k) => delete qcache[k]); recompute();
+      baseCfg = null; Object.keys(qcache).forEach((k) => delete qcache[k]); await loadCfg();
       toast('Saved ' + plural(n, 'change') + ' in one commit. Students see it in about a minute.'); return true;
     }
     toast(r.status === 413 ? 'Too many edits for one save. Review them, discard some, and save in two rounds.' : (r.body.message || 'Could not save. Your changes are still here.'), true); return false;
@@ -272,6 +316,7 @@ async function discardDraft() {
   draft.ops = []; changed(); if ($('pane')) show(true); toast('Unsaved changes discarded.'); return true;
 }
 window.addEventListener('beforeunload', (e) => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && data && myUid && !saving && parseRoute().sec === 'content' && Date.now() - baseAt > 15000) show(true); });
 window.addEventListener('storage', (e) => {   // the same admin in another tab changed the draft
   if (e.key !== DKEY || !myUid || !data) return;
   restore(myUid); renderBar(); if ($('pane')) show(true);
@@ -302,12 +347,12 @@ const hashOf = (...p) => '#content/' + p.filter(Boolean).map(enc).join('/');
 // Every topic's questions from the deployed data files (used for counts and search); a topic's own page reads fresh from GitHub.
 async function loadBank() {
   await loadCfg();
-  await Promise.all(allTopics().filter((t) => !qcache[t.path]).map((t) => (stagedTopic(t) ? Promise.resolve(null).then(() => { qcache[t.path] = { questions: [], sha: null, fresh: true }; }) : fetch(t.path + '?v=' + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((d) => {
+  await Promise.all(allTopics().filter((t) => !qcache[t.path]).map((t) => (stagedTopic(t) || missingTopic(t) ? Promise.resolve(null).then(() => { qcache[t.path] = { questions: [], sha: null, fresh: true, missing: !stagedTopic(t) }; }) : fetch(t.path + '?v=' + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((d) => {
     qcache[t.path] = { questions: d ? (Array.isArray(d) ? d : d.questions || []) : [], sha: null, fresh: false };
   }))));
 }
 async function freshTopic(t) {
-  if (stagedTopic(t)) return (qcache[t.path] = { questions: [], sha: null, fresh: true });   // not on GitHub yet
+  if (stagedTopic(t) || missingTopic(t)) return (qcache[t.path] = { questions: [], sha: null, fresh: true, missing: !stagedTopic(t) });   // not on GitHub (yet, or any more)
   if (qcache[t.path] && qcache[t.path].fresh) return qcache[t.path];
   const r = await adminFetch('/api/admin/question?path=' + enc(t.path) + '&full=1');
   if (r.status !== 200 || !r.body.ok) throw new Error(r.body.message || 'Could not open the topic.');
@@ -330,6 +375,8 @@ function renderShell() {
 window.addEventListener('hashchange', () => { if (data && $('pane')) show(); });
 async function show(keep) {
   const my = ++renderId, { sec, parts } = parseRoute(), y = window.scrollY;
+  // Keep in step with GitHub: after 15 seconds the configuration and the file list are read again, so a topic deleted or added there appears here
+  if (sec === 'content' && baseCfg && !saving && Date.now() - baseAt > 15000) { baseCfg = null; Object.keys(qcache).forEach((k) => delete qcache[k]); }
   document.querySelectorAll('#nav a').forEach((a) => { if (a.dataset.sec === sec) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   const pane = $('pane'); if (!pane) return;
   if (!keep) pane.innerHTML = '<div class="rc-msg">Loading…</div>'; crumbs([[SECTIONS[sec]]]);
@@ -398,6 +445,7 @@ async function content(parts) {
   const m = cfg.modules.find((x) => x.id === modId); if (!m) return '<div class="rc-msg">That module does not exist.</div>';
   if (!exam || !(cfg.examTypes || []).some((e) => e.id === exam) || !subject) return moduleView(m);
   if (!(cfg.subjects || []).some((s) => s.id === subject)) return '<div class="rc-msg">That subject does not exist.</div>';
+  if (!topicId && (cfg.examTypes.find((e) => e.id === exam) || {}).variantOf) return moduleView(m);   // a Last year exam has no subject page
   if (!topicId) return subjectView(m, exam, subject);
   const t = allTopics().find((x) => x.module === modId && x.exam === exam && x.subject === subject && x.sub === topicId);
   if (!t) return '<div class="rc-msg">That topic does not exist.</div>';
@@ -405,11 +453,12 @@ async function content(parts) {
 }
 const topicIc = () => (typeof UI !== 'undefined' ? UI.topicIcon() : '');
 function topicRow(t, o) {
-  const n = qs(t).length, tk = esc(tkey(t));
-  return '<div class="topic-row" role="link" tabindex="0" data-go="' + hashOf(t.module, t.exam, t.subject, t.sub) + '"><div class="topic-row__left"><span class="topic-row__icon">' + topicIc() + '</span><div class="topic-row__text"><div class="topic-row__name">' + esc(t.label) + (t.hidden ? ' ' + hiddenBadge : '') + '</div><div class="topic-row__meta">' +
-    (o.path ? '<span>' + esc(t.moduleTitle + ' › ' + t.examLabel + ' › ' + t.subjectLabel) + '</span>' : '') + '<span>' + plural(n, 'Question') + '</span>' + prof(t.professor) + '</div></div></div>' +
+  const n = live(t).length, tk = esc(tkey(t)), nm = o.single ? t.examLabel : t.label, miss = missingTopic(t);
+  const rm = '<button class="icon-btn rc-danger" type="button" data-act="rmtopic" data-tk="' + tk + '" title="Remove ' + (o.single ? 'exam' : 'topic') + '" aria-label="Remove ' + esc(nm) + '">' + ic('trash') + '</button>';
+  return '<div class="topic-row" role="link" tabindex="0" data-go="' + hashOf(t.module, t.exam, t.subject, t.sub) + '"><div class="topic-row__left"><span class="topic-row__icon">' + topicIc() + '</span><div class="topic-row__text"><div class="topic-row__name">' + esc(nm) + (t.hidden ? ' ' + hiddenBadge : '') + (miss ? ' ' + badge('File missing', 'hidden') : '') + '</div><div class="topic-row__meta">' +
+    (o.path ? '<span>' + esc(t.moduleTitle + ' › ' + t.examLabel + ' › ' + t.subjectLabel) + '</span>' : '') + '<span>' + plural(n, 'Question') + '</span>' + (o.single ? '' : prof(t.professor)) + '</div></div></div>' +
     '<div class="topic-row__right">' + (o.publish ? '<button class="btn btn--primary btn--sm" type="button" data-act="publish" data-tk="' + tk + '">Make visible</button>'
-      : '<label class="rc-hit" title="Visible to students">' + tog(!t.hidden, 'data-sw="topic" data-tk="' + tk + '"', 'Visible to students: ' + t.label) + '</label><button class="icon-btn" type="button" data-act="tdetails" data-tk="' + tk + '" title="Edit details" aria-label="Edit details of ' + esc(t.label) + '">' + ic('edit') + '</button>') +
+      : '<label class="rc-hit" title="Visible to students">' + tog(!t.hidden, 'data-sw="topic" data-tk="' + tk + '"', 'Visible to students: ' + nm) + '</label>' + (o.single ? '' : '<button class="icon-btn" type="button" data-act="tdetails" data-tk="' + tk + '" title="Edit details" aria-label="Edit details of ' + esc(t.label) + '">' + ic('edit') + '</button>') + rm) +
     '<span class="topic-row__arrow">' + chevSvg + '</span></div></div>';
 }
 function contentHome() {
@@ -451,14 +500,22 @@ function moduleView(m) {
   crumbs([['Content', '#content'], [m.title || m.id]]);
   const topics = allTopics().filter((t) => t.module === m.id);
   const sections = cfg.examTypes.map((e) => {
-    const rows = cfg.subjects.map((s) => {
+    if (e.variantOf) {   // a Last year type is ONE exam: add it, switch it on, fill it with questions, remove it
+      const one = topics.find((t) => t.exam === e.id && t.subject === 'exam'), old = topics.filter((t) => t.exam === e.id && t.subject !== 'exam');
+      const body = one ? '<div class="topics-list">' + topicRow(one, { single: true }) + '</div>'
+        : '<div class="empty-state"><h3 class="empty-state__title">Not added yet</h3><p class="empty-state__body">Students see a button for this exam once it is added, has questions and is visible.</p><button class="btn btn--primary" type="button" data-act="addsingle" data-ek="' + esc(m.id + '|' + e.id) + '">' + ic('plus', 'rc-i--sm') + ' Add ' + esc(e.label) + '</button></div>';
+      const legacy = old.length ? '<h3 class="section__title rc-h">Old topics (not used any more)</h3><div class="topics-list">' + old.map((t) => topicRow(t, { path: true })).join('') + '</div>' : '';
+      return '<div class="exam-type-section"><div class="exam-type-header"><div class="exam-type-header__top"><h2 class="exam-type-header__title">' + esc(e.label) + '</h2></div></div>' + body + legacy + '</div>';
+    }
+    const rows = cfg.subjects.filter((s) => s.id !== 'exam').map((s) => {
       const ts = topics.filter((t) => t.exam === e.id && t.subject === s.id), hid = ts.filter((t) => t.hidden).length, vis = ts.length - hid;
       return '<a class="subject-card" href="' + hashOf(m.id, e.id, s.id) + '"><div class="subject-card__left"><span class="subject-card__icon">' + sicon(s.id) + '</span><div class="subject-card__text"><div class="subject-card__name">' + esc(s.label) + '</div><div class="subject-card__score">' + plural(ts.length, 'topic') + ' · ' + plural(nq(ts), 'question') + '</div></div></div>' +
         '<div class="subject-card__bar" aria-hidden="true"><span style="width:' + (ts.length ? Math.round((vis / ts.length) * 100) : 0) + '%"></span></div><div class="subject-card__right">' + (hid ? hiddenBadge.replace('Hidden', hid + ' hidden') : '') + '<span class="subject-card__arrow">' + chevSvg + '</span></div></a>';
     }).join('');
-    const par = e.variantOf ? lab(cfg.examTypes, e.variantOf) : '';
-    return '<div class="exam-type-section"><div class="exam-type-header"><div class="exam-type-header__top"><h2 class="exam-type-header__title">' + esc(e.label) + '</h2></div></div>' +
-      (par ? '<p class="rc-note" style="margin:0 0 8px">Students see this as one extra button under \u201cStart Full ' + esc(par) + '\u201d, and only once it has visible questions.</p>' : '') + '<div class="subjects-list">' + rows + '</div></div>';
+    const link = (m.redlineLinks && m.redlineLinks[e.id]) || '', ek = esc(m.id + '|' + e.id);
+    const redline = '<div class="rc-prow rc-redline"><span class="rc-prow__text"><b>Redline Data link</b><span>' + (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">' + esc(link) + '</a>' : 'No link. Students see no Redline Data button for this exam type.') + '</span></span>' +
+      '<span class="rc-redline__acts"><button class="btn btn--ghost btn--sm" type="button" data-act="redline" data-ek="' + ek + '">' + (link ? 'Edit' : 'Add link') + '</button>' + (link ? '<button class="btn btn--ghost btn--sm rc-danger" type="button" data-act="rmredline" data-ek="' + ek + '">Remove</button>' : '') + '</span></div>';
+    return '<div class="exam-type-section"><div class="exam-type-header"><div class="exam-type-header__top"><h2 class="exam-type-header__title">' + esc(e.label) + '</h2></div></div>' + redline + '<div class="subjects-list">' + rows + '</div></div>';
   }).join('');
   return '<div class="page has-rail rc-wide">' + setupBanner() + '<header class="page__header"><span class="page__icon">' + micon(m.id) + '</span><div><h1 class="page__title">' + esc(m.title || m.id) + '</h1><p class="page__subtitle">' + esc(m.fullTitle || '') + '</p></div></header>' +
     panel('Module settings', prow('Ongoing module', 'Pinned first on every student\u2019s dashboard. Only one module can be ongoing.', tog(m.ongoing, 'data-sw="mod-ongoing" data-m="' + esc(m.id) + '"', 'Ongoing module')) +
@@ -476,14 +533,15 @@ function subjectView(m, exam, subject) {
       : '<div class="empty-state"><h3 class="empty-state__title">No topics yet</h3><p class="empty-state__body">No topics in ' + esc(s.label) + ' yet. Create one with New topic.</p></div>') + '</div></div>';
 }
 async function topicView(t) {
-  crumbs([['Content', '#content'], [t.moduleTitle, hashOf(t.module)], [t.examLabel + ' · ' + t.subjectLabel, hashOf(t.module, t.exam, t.subject)], [t.label]]);
-  let warn = '';
+  const single = !!(cfg.examTypes.find((e) => e.id === t.exam) || {}).variantOf, miss = missingTopic(t), nm = single ? t.examLabel : t.label;
+  crumbs(single ? [['Content', '#content'], [t.moduleTitle, hashOf(t.module)], [t.examLabel]] : [['Content', '#content'], [t.moduleTitle, hashOf(t.module)], [t.examLabel + ' · ' + t.subjectLabel, hashOf(t.module, t.exam, t.subject)], [t.label]]);
+  let warn = miss ? '<div class="rc-notice"><div><b>This file is not in the repository</b>The data file ' + esc(t.path) + ' was deleted on GitHub, so students see nothing for it. Remove it here to clean up the configuration (nothing else is deleted), or put the file back on GitHub and use Refresh data.</div><button class="btn btn--ghost btn--sm rc-danger" type="button" data-act="rmtopic" data-tk="' + esc(tkey(t)) + '">Remove ' + (single ? 'exam' : 'topic') + '</button></div>' : '';
   try { await freshTopic(t); } catch (e) { warn = '<div class="rc-notice"><div><b>Showing the last published copy</b>' + esc(e.message) + '</div></div>'; }
   const list = live(t), tk = esc(tkey(t));
-  return '<div class="page has-rail rc-wide">' + setupBanner() + warn + '<header class="page__header"><span class="page__icon">' + sicon(t.subject) + '</span><div><h1 class="page__title">' + esc(t.label) + '</h1><p class="page__subtitle">' + esc(t.moduleTitle + ' · ' + t.examLabel + ' · ' + t.subjectLabel) + '</p>' +
-    '<div class="rc-badges">' + prof(t.professor) + badge(plural(list.length, 'question'), 'ghost') + (t.hidden ? hiddenBadge.replace('Hidden', 'Hidden from students') : badge('Visible to students', 'success')) + '</div></div></header>' +
-    panel('Topic', prow('Visible to students', t.hidden ? 'Hidden. Review the questions here and in the Recall app (you see this topic there with a Hidden badge), then switch it on.' : 'Students can see and practise this topic.', tog(!t.hidden, 'data-sw="topic" data-tk="' + tk + '"', 'Visible to students')) +
-      '<div class="rc-pbtn"><button class="btn btn--primary" type="button" data-add="' + tk + '">' + ic('plus', 'rc-i--sm') + ' Add a question</button><button class="btn btn--ghost" type="button" data-act="tdetails" data-tk="' + tk + '">' + ic('edit', 'rc-i--sm') + ' Details</button>' + (stagedTopic(t) ? '' : ghLink(t).replace('btn--sm', '')) + '</div>') +
+  return '<div class="page has-rail rc-wide">' + setupBanner() + warn + '<header class="page__header"><span class="page__icon">' + sicon(t.subject) + '</span><div><h1 class="page__title">' + esc(nm) + '</h1><p class="page__subtitle">' + esc(single ? t.moduleTitle : t.moduleTitle + ' · ' + t.examLabel + ' · ' + t.subjectLabel) + '</p>' +
+    '<div class="rc-badges">' + (single ? '' : prof(t.professor)) + badge(plural(list.length, 'question'), 'ghost') + (t.hidden ? hiddenBadge.replace('Hidden', 'Hidden from students') : badge('Visible to students', 'success')) + '</div></div></header>' +
+    panel(single ? 'Exam' : 'Topic', prow('Visible to students', t.hidden ? 'Hidden. Review the questions here and in the Recall app (you see this ' + (single ? 'exam' : 'topic') + ' there with a Hidden badge), then switch it on.' : 'Students can see and practise this ' + (single ? 'exam.' : 'topic.'), tog(!t.hidden, 'data-sw="topic" data-tk="' + tk + '"', 'Visible to students')) +
+      '<div class="rc-pbtn"><button class="btn btn--primary" type="button" data-add="' + tk + '"' + (miss ? ' disabled' : '') + '>' + ic('plus', 'rc-i--sm') + ' Add a question</button>' + (single ? '' : '<button class="btn btn--ghost" type="button" data-act="tdetails" data-tk="' + tk + '">' + ic('edit', 'rc-i--sm') + ' Details</button>') + (stagedTopic(t) || miss ? '' : ghLink(t).replace('btn--sm', '')) + '<button class="btn btn--ghost rc-danger" type="button" data-act="rmtopic" data-tk="' + tk + '">' + ic('trash', 'rc-i--sm') + ' Remove ' + (single ? 'exam' : 'topic') + '</button></div>') +
     '<div class="page__main">' + (list.length > 6 ? '<label class="rc-search">' + ic('search') + '<input id="tq" type="search" placeholder="Filter these questions" aria-label="Filter questions"></label>' : '') + '<div id="qlist">' + questionCards(t, '') + '</div></div></div>';
 }
 function questionCards(t, term) {
@@ -566,6 +624,24 @@ function topicForm(o) {   // shared by "New topic" and "Details"
       : '<div class="rc-set" style="padding-top:0"><div><b>Visible to students</b><span>Hidden topics are shown to admins only.</span></div>' + '<label class="rc-hit">' + tog(!o.hidden, 'data-vis', 'Visible to students') + '</label></div>') +
     '<p class="rc-hint">A straight apostrophe is saved as a typographic one. The characters &lt; &gt; " ` and \\ are not allowed.</p><p class="rc-err" id="tferr" role="alert" hidden></p></form>';
 }
+const stagedTopicGone = (t) => !findOp('rt:' + tkey(t));   // true when removing simply dropped a topic that was only in the draft
+function openRedline(mid, exam) {
+  const m = cfg.modules.find((x) => x.id === mid), et = cfg.examTypes.find((x) => x.id === exam); if (!m || !et) return;
+  const cur = (m.redlineLinks && m.redlineLinks[exam]) || '';
+  let initial = '';
+  const L = openLayer({ kind: 'drawer', title: cur ? 'Edit Redline Data link' : 'Add Redline Data link', sub: (m.title || m.id) + ' \u203a ' + et.label,
+    body: '<form id="rlf" novalidate><label class="rc-field"><span>Link <em>https://\u2026</em></span><input class="rc-in" name="url" type="url" inputmode="url" autocomplete="off" value="' + esc(cur) + '" placeholder="https://"></label><p class="rc-sub">Students get a \u201cRedline Data\u201d button on this exam type that opens the link in a new tab.</p><p class="rc-err" id="rlerr" role="alert" hidden></p></form>',
+    foot: '<button class="btn btn--ghost" type="button" data-no>Cancel</button><button class="btn btn--primary" type="button" data-save>Apply</button>',
+    beforeClose: async () => L.body.querySelector('[name=url]').value.trim() === initial || confirmDialog({ title: 'Discard your changes?', message: 'The link has an edit that is not applied yet.', ok: 'Discard', danger: true }) });
+  const inp = L.body.querySelector('[name=url]'); initial = inp.value.trim();
+  L.foot.querySelector('[data-no]').onclick = () => L.tryClose(false);
+  L.foot.querySelector('[data-save]').onclick = () => {
+    const url = inp.value.trim(), err = (x) => { const el = $('rlerr'); el.textContent = x; el.hidden = !x; };
+    if (!url) return err(cur ? 'Use Remove on the page to delete the link.' : 'Paste the link.');
+    if (!/^https:\/\/[^\s<>"'`\\]{3,480}$/i.test(url)) return err('Enter a full link that starts with https:// and has no spaces.');
+    stageRedline(mid, exam, url); initial = url; L.finish(true); toast('Link added to your unsaved changes.'); show(true);
+  };
+}
 function openTopicEditor(t, sk) {
   const isNew = !t, [mid, exam, subject] = isNew ? sk.split('|') : [];
   const start = isNew ? { label: '', professor: '', hidden: true, isNew: true } : { label: t.label, professor: t.professor, hidden: t.hidden };
@@ -626,7 +702,9 @@ function describe(o) {
     if (o.set.hidden !== undefined) bits.push(o.set.hidden ? 'Hidden from students' : 'Visible to students');
     return ['Topic ' + (t ? t.label : o.topicId), [loc].concat(bits).filter(Boolean).join(' \u00b7 ')];
   }
-  if (o.op === 'add_topic') return ['New topic: ' + o.label, [loc, o.makeVisible ? 'Visible to students' : 'Hidden until you approve it'].filter(Boolean).join(' \u00b7 ')];
+  if (o.op === 'set_redline') { const m = cfg.modules.find((x) => x.id === o.moduleId) || {}, et = cfg.examTypes.find((x) => x.id === o.exam) || {}; return ['Redline Data link', (m.title || o.moduleId) + ' \u203a ' + (et.label || o.exam) + ' \u00b7 ' + (o.url ? (o.base ? 'changed to ' : 'set to ') + o.url : 'removed')]; }
+  if (o.op === 'remove_topic') return ['Remove ' + (o.single ? 'exam' : 'topic') + ' ' + o.label, [o.loc, 'deletes ' + plural(o.nq, 'question') + ' and its data file'].filter(Boolean).join(' \u00b7 ')];
+  if (o.op === 'add_topic') return [(o.subject === 'exam' ? 'New exam: ' : 'New topic: ') + o.label, [loc, o.makeVisible ? 'Visible to students' : 'Hidden until you approve it'].filter(Boolean).join(' \u00b7 ')];
   const short = (x) => String(x || '').slice(0, 90) + (String(x || '').length > 90 ? '\u2026' : '');
   if (o.op === 'q_add') return ['New question', [loc, short(o.question)].filter(Boolean).join(' \u00b7 ')];
   if (o.op === 'q_edit') {
@@ -728,6 +806,10 @@ document.addEventListener('click', async (e) => {
     if (d.act === 'save') { await saveDraft(); return; }
     if (d.add) return openEditor(null, d.add);
     if (d.act === 'tdetails') return openTopicEditor(topicByKey(d.tk));
+    if (d.act === 'rmtopic') { const t = topicByKey(d.tk); if (!t) return; const wasOnTopicPage = parseRoute().parts.length >= 4; stageRemoveTopic(t); toast(stagedTopicGone(t) ? 'Dropped.' : 'Removal added to your unsaved changes. The data file is deleted when you save.'); if (wasOnTopicPage) location.hash = hashOf(t.module); else show(true); return; }
+    if (d.act === 'addsingle') { const [mid, exam] = d.ek.split('|'); stageAddSingle(mid, exam); toast('Added hidden, in your unsaved changes. Add its questions next.'); await loadBank(); location.hash = hashOf(mid, exam, 'exam', 'exam'); return; }
+    if (d.act === 'redline') { const [mid, exam] = d.ek.split('|'); return openRedline(mid, exam); }
+    if (d.act === 'rmredline') { const [mid, exam] = d.ek.split('|'); stageRedline(mid, exam, ''); toast('Link removal added to your unsaved changes.'); show(true); return; }
     if (d.act === 'newtopic') return openTopicEditor(null, d.sk);
     if (d.act === 'publish') { const t = topicByKey(d.tk); if (t) return stagedToggle(() => stageTopic(t, { hidden: false }), 'Visible to students once you save.'); }
     if (d.sf) { studFilter = d.sf; document.querySelectorAll('[data-sf]').forEach((x) => { const on = x.dataset.sf === studFilter; x.setAttribute('aria-pressed', on); x.classList.toggle('btn--primary', on); x.classList.toggle('btn--ghost', !on); }); $('sb').innerHTML = studentRows(); return; }

@@ -8,7 +8,7 @@
 // The change is read-modify-write on the latest file (retried once if someone else committed in between), so two admins do not overwrite each other.
 import { json, readJson, errorResponse, HttpError } from '../../_lib/http.js';
 import { requireAdmin } from '../../_lib/admin.js';
-import { gh, readFile, writeFile } from '../../_lib/github.js';
+import { gh, readFile, writeFile, listDataFiles } from '../../_lib/github.js';
 import { applyConfigOp, bad } from '../../_lib/adminops.js';
 
 const CFG = 'config/modules.json';
@@ -23,7 +23,7 @@ export async function onRequest({ request, env, data }) {
   try {
     await requireAdmin(env, data);
     const g = gh(request, env);
-    if (request.method === 'GET') { const c = await load(g); return json({ ok: true, config: c.cfg, sha: c.sha }); }
+    if (request.method === 'GET') { const c = await load(g); return json({ ok: true, config: c.cfg, sha: c.sha, files: await listDataFiles(g) }); }
     if (request.method !== 'POST') throw new HttpError(405, 'method_not_allowed', 'Use GET or POST');
     const b = await readJson(request);
     if (!['set_module', 'set_topic', 'add_topic'].includes(b.action)) throw bad('unknown action');

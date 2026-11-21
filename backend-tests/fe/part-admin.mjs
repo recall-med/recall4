@@ -48,8 +48,8 @@ try {
     check('content: the module the config marks as ongoing is badged Ongoing on its card (' + (ongoingMod && ongoingMod.id) + ')', !!ongoingMod && /Ongoing/.test(cardText) && cardText.includes(ongoingMod.title), cardText.slice(0, 80));
     check('content: the statistics (possible wrong key, hardest, saved by the most) sit in one collapsible card', /Possible wrong answer key[\s\S]*?#3[^B]*B \(1\d%\)A \(8\d%\)2\d/.test(c) && /Hardest questions[\s\S]*?#3[^%]*1\d%[^A]*A \(8\d%\)2\d/.test(c) && /not a report/.test(c) && /Saved by the most students/.test(c) && !/flag/i.test(c));
     c = await go(A, '#content/CPM');
-    check('content: module page has the Ongoing and Visible switches, the exam type tabs and one card per subject', !!A.document.querySelector('[data-sw=mod-ongoing]') && !!A.document.querySelector('[data-sw=mod-visible]') && A.document.querySelectorAll('.exam-type-section').length === 6 && A.document.querySelectorAll('.subject-card').length === 24 && /Module settings/.test(c));
-    check('content: exam types are listed Final, End Module, TBL, Lecture Questions, then the two Last Year types with a note that they are buttons', [...A.document.querySelectorAll('.exam-type-header__title')].map((x) => x.textContent).join('|') === 'Final Exam|End Module Exam|TBL Exam|Lecture Questions|Last Year Final Exam|Last Year End Module Exam' && /one extra button under .Start Full Final Exam/.test(c));
+    check('content: module page has the Ongoing and Visible switches, the exam type tabs and one card per subject', !!A.document.querySelector('[data-sw=mod-ongoing]') && !!A.document.querySelector('[data-sw=mod-visible]') && A.document.querySelectorAll('.exam-type-section').length === 6 && A.document.querySelectorAll('.subject-card').length === 16 && A.document.querySelectorAll('[data-act=addsingle]').length === 2 && /Module settings/.test(c));
+    check('content: exam types are listed Final, End Module, TBL, Lecture Questions, then the two Last Year types (one exam each, no subject cards, no description note)', [...A.document.querySelectorAll('.exam-type-header__title')].map((x) => x.textContent).join('|') === 'Final Exam|End Module Exam|TBL Exam|Lecture Questions|Last Year Final Exam|Last Year End Module Exam' && !/extra button/.test(c));
     c = await go(A, '#content/CPM/final_exam');
     check('content: the Final Exam tab shows Anatomy with its topic count and question count', /Anatomy[\s\S]*topics?[\s\S]*questions/.test(c) && /Final Exam/.test(A.document.querySelector('.exam-type-section:first-child .exam-type-header__title').textContent));
     c = await go(A, '#content/CPM/final_exam/anatomy');
@@ -63,6 +63,7 @@ try {
     cs.value = ''; cs.dispatchEvent(new A.Event('input', { bubbles: true }));
 
     // ---- editing is STAGED: nothing reaches GitHub until Save ----
+    const location_hash = (w) => w.location.hash;
     const bar = () => A.document.getElementById('savebar');
     const barOn = () => !!bar() && !bar().hidden;
     const draftN = () => { try { return JSON.parse(A.localStorage.getItem('rc_admin_draft_v1') || '{"ops":[]}').ops.length; } catch (e) { return -1; } };
@@ -196,6 +197,88 @@ try {
     await click(A, '[data-act=save]', 2500);
     check('race: if main moved while saving, the save is retried on the newer head and succeeds', ghCommits.length === cN + 1 && !barOn() && draftN() === 0);
 
+    // ---- Last Year is ONE exam per module (no subjects or topics) ----
+    const cfgM = (id) => cfgNow().modules.find((m) => m.id === id);
+    const exists = (f) => fs.existsSync(path.join(tmp, f));
+    await go(A, '#content/CPM', 900);
+    await click(A, '[data-act=addsingle]', 1500);
+    check('last year (admin): "Add" creates the one exam hidden, opens it, with no subject, topic name, professor or Details button', location_hash(A) === '#content/CPM/final_exam_last_year/exam/exam' && /Last Year Final Exam/.test(A.document.querySelector('.page__title').textContent) && !A.document.querySelector('[data-act=tdetails]') && /Hidden from s/.test(A.document.getElementById('pane').textContent) && !/Anatomy/.test(A.document.querySelector('.page__subtitle').textContent) && /1 change\b/.test(bar().textContent));
+    await click(A, '[data-add]', 600); A.document.querySelector('[name=question]').value = 'Last year question?'; A.document.querySelectorAll('[data-o]').forEach((i, n) => { i.value = 'L' + n; }); await click(A, '[data-save]', 600);
+    await click(A, '[data-sw=topic]', 500);
+    await click(A, '[data-act=save]', 2500);
+    check('last year (admin): saved as data/CPM/final_exam_last_year/exam/exam.json, visible, labelled like the exam type', exists('data/CPM/final_exam_last_year/exam/exam.json') && J(cfgM('CPM').subSubjects.final_exam_last_year.exam) === J([{ id: 'exam', label: 'Last Year Final Exam' }]), J(cfgM('CPM').subSubjects.final_exam_last_year));
+    await go(A, '#content/CPM', 900);
+    check('last year (admin): the module page shows the exam as one row with a switch, a remove button and no Add button for it', /Last Year Final Exam/.test(A.document.getElementById('pane').textContent) && A.document.querySelectorAll('[data-act=addsingle]').length === 1 && !!A.document.querySelector('[data-go$="final_exam_last_year/exam/exam"] [data-act=rmtopic]') && !A.document.querySelector('[data-go$="final_exam_last_year/exam/exam"] [data-act=tdetails]'));
+
+    // ---- removing topics (and the single exam): staged, the data file is deleted in the same commit ----
+    await go(A, '#content/CPM/final_exam/anatomy', 900);
+    const c0 = ghCommits.length;
+    await click(A, '[data-act=rmtopic][data-tk$="epiglottis"]', 600);
+    check('remove topic: staged without a dialog; the row leaves the list, nothing is deleted yet', !A.document.querySelector('[data-go$="anatomy/epiglottis"]') && exists('data/CPM/final_exam/anatomy/epiglottis.json') && /1 change\b/.test(bar().textContent) && ghCommits.length === c0);
+    await click(A, '[data-act=review]', 700);
+    check('remove topic: Review says what will be deleted and offers Undo', /Remove topic Epiglottis/.test(dr().textContent) && /deletes 1 question and its data file/.test(dr().textContent));
+    await click(A, '[data-rundo="rt:CPM|final_exam|anatomy|epiglottis"]', 500);
+    check('remove topic: Undo brings the topic back', !dr() && !!A.document.querySelector('[data-go$="anatomy/epiglottis"]') && !barOn());
+    await click(A, '[data-act=rmtopic][data-tk$="epiglottis"]', 600);
+    await go(A, '#content/CPM', 900); await click(A, '[data-go$="final_exam_last_year/exam/exam"] [data-act=rmtopic]', 700);
+    const nCommits = ghCommits.length;
+    await click(A, '[data-act=save]', 2500);
+    check('remove topic: ONE commit removes both config entries and deletes both data files', ghCommits.length === nCommits + 1 && ghCommits.at(-1).paths.includes('-data/CPM/final_exam/anatomy/epiglottis.json') && ghCommits.at(-1).paths.includes('-data/CPM/final_exam_last_year/exam/exam.json') && !exists('data/CPM/final_exam/anatomy/epiglottis.json') && !exists('data/CPM/final_exam_last_year/exam/exam.json') && !cfgM('CPM').subSubjects.final_exam.anatomy.some((x) => x.id === 'epiglottis') && cfgM('CPM').subSubjects.final_exam_last_year.exam.length === 0, J(ghCommits.at(-1)));
+    // the last question of a topic can be removed (the topic stays, empty)
+    await go(A, '#content/CPM/final_exam/anatomy', 800); await click(A, '[data-act=newtopic]', 500); A.document.querySelector('[name=label]').value = 'Solo'; await click(A, '[data-save]', 1500);
+    await click(A, '[data-add]', 600); A.document.querySelector('[name=question]').value = 'Only question?'; A.document.querySelectorAll('[data-o]').forEach((i, n) => { i.value = 'S' + n; }); await click(A, '[data-save]', 600); await click(A, '[data-act=save]', 2500);
+    await click(A, '[data-act=del]', 500); await click(A, '[data-act=save]', 2500);
+    check('remove question: the last question of a topic can be removed (no "remove the file on GitHub" refusal); the empty topic stays', JSON.parse(fs.readFileSync(path.join(tmp, 'data/CPM/final_exam/anatomy/solo.json'), 'utf8')).questions.length === 0 && !barOn());
+    await go(A, '#content/CPM/final_exam/anatomy', 800); await click(A, '[data-act=rmtopic][data-tk$="solo"]', 500); await click(A, '[data-act=save]', 2500);
+
+    // ---- Redline Data links per exam type ----
+    await go(A, '#content/CPM', 900);
+    check('redline: every exam type except Last Year has a "Redline Data link" row', A.document.querySelectorAll('.rc-redline').length === 4 && /No link/.test(A.document.querySelector('.rc-redline').textContent));
+    await click(A, '[data-act=redline][data-ek="CPM|final_exam"]', 600);
+    A.document.querySelector('[name=url]').value = 'ftp://nope'; await click(A, '[data-save]', 400);
+    check('redline: a link that is not https:// is refused with a plain message', /https:\/\//.test(A.document.getElementById('rlerr').textContent) && !!dr());
+    A.document.querySelector('[name=url]').value = 'https://example.com/redline-final'; await click(A, '[data-save]', 700);
+    check('redline: a valid link is staged (shown on the page, not in the config file yet)', !dr() && /redline-final/.test(A.document.querySelector('.rc-redline').textContent) && !cfgM('CPM').redlineLinks && /1 change\b/.test(bar().textContent));
+    await click(A, '[data-act=redline][data-ek="CPM|final_exam"]', 600); A.document.querySelector('[name=url]').value = 'https://example.com/redline-final-2'; await click(A, '[data-save]', 700);
+    check('redline: editing a staged link keeps it one change', /final-2/.test(A.document.querySelector('.rc-redline').textContent) && /1 change\b/.test(bar().textContent));
+    await click(A, '[data-act=save]', 2500);
+    check('redline: saved into the module config under the exam type id', cfgM('CPM').redlineLinks.final_exam === 'https://example.com/redline-final-2');
+    const Sx = await boot({ cloud: false }); await Sx.w.eval("App.navigate('module', { moduleId: 'CPM' })"); await sleep(1500);
+    check('redline: students get the Redline Data button for that exam type (including the new types once configured)', !!Sx.w.document.querySelector('.module-page a.redline-link[href="https://example.com/redline-final-2"]')); Sx.close();
+    await click(A, '[data-act=rmredline]', 500);
+    check('redline: Remove is staged and shows "No link"; saving deletes it (and the empty redlineLinks object)', /No link/.test(A.document.querySelector('.rc-redline').textContent) && /1 change\b/.test(bar().textContent));
+    await click(A, '[data-act=save]', 2500);
+    check('redline: removed from the config', !cfgM('CPM').redlineLinks);
+
+    // ---- topics left over from the old Last Year structure (subject > topic) are listed for cleanup and never shown to students ----
+    {
+      const cL = cfgNow(), cpmL = cL.modules.find((x) => x.id === 'CPM'); cpmL.subSubjects.final_exam_last_year.anatomy = [{ id: 'xgdf', label: 'xgdf' }]; fs.writeFileSync(path.join(tmp, 'config/modules.json'), J(cL, null, 2));
+      fs.mkdirSync(path.join(tmp, 'data/CPM/final_exam_last_year/anatomy'), { recursive: true }); fs.writeFileSync(path.join(tmp, 'data/CPM/final_exam_last_year/anatomy/xgdf.json'), J({ questions: [1, 2].map((i) => ({ id: i, question: 'Old ' + i + '?', options: ['A', 'B'], answer: 0 })) }));
+      const SL = await boot({ cloud: false }); await SL.w.eval("App.navigate('module', { moduleId: 'CPM' })"); await sleep(1500);
+      check('last year (old structure): an old topic under a Last Year type gives students no button and no section', !SL.w.document.querySelector('.wide-exam-btn--variant') && !/Last Year/.test(SL.w.document.querySelector('.module-page').textContent)); SL.close();
+      A.document.getElementById('rf').click(); await sleep(1500); await go(A, '#content/CPM', 900);
+      check('last year (old structure): the admin lists it under "Old topics (not used any more)" with a Remove button, and still offers to add the new single exam', /Old topics \(not used any more\)/.test(A.document.getElementById('pane').textContent) && !!A.document.querySelector('[data-go$="final_exam_last_year/anatomy/xgdf"] [data-act=rmtopic]') && A.document.querySelectorAll('[data-act=addsingle]').length === 2);
+      await click(A, '[data-go$="final_exam_last_year/anatomy/xgdf"] [data-act=rmtopic]', 600); await click(A, '[data-act=save]', 2500);
+      check('last year (old structure): removing it deletes its config entry and data file', !exists('data/CPM/final_exam_last_year/anatomy/xgdf.json') && !(cfgM('CPM').subSubjects.final_exam_last_year.anatomy || []).some((x) => x.id === 'xgdf'));
+    }
+
+    // ---- keeping in step with GitHub: deleted files and removed topics ----
+    await go(A, '#content/CPM/final_exam/anatomy', 800); await click(A, '[data-act=newtopic]', 500); A.document.querySelector('[name=label]').value = 'Ghost'; await click(A, '[data-save]', 1500);
+    await click(A, '[data-add]', 600); A.document.querySelector('[name=question]').value = 'Ghost question?'; A.document.querySelectorAll('[data-o]').forEach((i, n) => { i.value = 'G' + n; }); await click(A, '[data-save]', 600); await click(A, '[data-act=save]', 2500);
+    fs.rmSync(path.join(tmp, 'data/CPM/final_exam/anatomy/ghost.json'));   // the file is deleted on GitHub, the config still lists it
+    A.document.getElementById('rf').click(); await sleep(1500);
+    await go(A, '#content/CPM/final_exam/anatomy', 900);
+    check('github sync: a topic whose data file was deleted on GitHub shows a "File missing" badge in the list', /File missing/.test(A.document.querySelector('[data-go$="anatomy/ghost"]').textContent));
+    await go(A, '#content/CPM/final_exam/anatomy/ghost', 900);
+    check('github sync: its page explains the file is not in the repository and offers Remove topic (no raw error); Add a question is disabled', /not in the repository/.test(A.document.getElementById('pane').textContent) && A.document.querySelector('[data-add]').disabled === true && !!A.document.querySelector('.rc-notice [data-act=rmtopic]'));
+    await click(A, '.rc-notice [data-act=rmtopic]', 700); await click(A, '[data-act=save]', 2500);
+    check('github sync: removing it cleans the config even though the file is already gone', !cfgM('CPM').subSubjects.final_exam.anatomy.some((x) => x.id === 'ghost') && !barOn());
+    await go(A, '#content/CPM/final_exam/anatomy', 800); await click(A, '[data-act=newtopic]', 500); A.document.querySelector('[name=label]').value = 'Ghost2'; await click(A, '[data-save]', 1500); await click(A, '[data-act=save]', 2500);
+    await go(A, '#content/CPM/final_exam/anatomy', 800); await click(A, '[data-sw=topic][data-tk$="ghost2"]', 500);
+    const c2 = cfgNow(), l2 = c2.modules.find((m) => m.id === 'CPM').subSubjects.final_exam.anatomy; l2.splice(l2.findIndex((x) => x.id === 'ghost2'), 1); fs.writeFileSync(path.join(tmp, 'config/modules.json'), J(c2, null, 2)); fs.rmSync(path.join(tmp, 'data/CPM/final_exam/anatomy/ghost2.json'));   // removed on GitHub while a change to it is unsaved
+    A.document.getElementById('rf').click(); await sleep(1500);
+    check('github sync: an unsaved change to a topic that was removed on GitHub is dropped on refresh, with a message, instead of breaking the save', !barOn() && draftN() === 0 && /Dropped 1 unsaved change/.test(A.document.querySelector('.rc-toasts').textContent), A.document.querySelector('.rc-toasts').textContent);
+
     // ---- what students and admins see in the app itself ----
     const gitShown = !cfgNow().modules.find((m) => m.id === 'GIT').hidden;
     const rt = await go(A, '#retention', 800);
@@ -251,9 +334,10 @@ try {
     {
       const cT = cfgNow(), cpmT = cT.modules.find((m) => m.id === 'CPM');
       const addT = (et, id, hidden) => {
-        cpmT.subSubjects[et] = cpmT.subSubjects[et] || {}; (cpmT.subSubjects[et].anatomy = cpmT.subSubjects[et].anatomy || []).push({ id, label: id.toUpperCase(), ...(hidden ? { hidden: true } : {}) });
-        fs.mkdirSync(path.join(tmp, 'data/CPM', et, 'anatomy'), { recursive: true });
-        fs.writeFileSync(path.join(tmp, 'data/CPM', et, 'anatomy', id + '.json'), J({ questions: [1, 2].map((i) => ({ id: i, question: 'Q' + i + '?', options: ['A', 'B', 'C', 'D'], answer: 0, explanation: 'x' })) }));
+        const single = /_last_year$/.test(et), sj = single ? 'exam' : 'anatomy'; if (single) id = 'exam';
+        cpmT.subSubjects[et] = cpmT.subSubjects[et] || {}; (cpmT.subSubjects[et][sj] = cpmT.subSubjects[et][sj] || []).push({ id, label: single ? (et === 'final_exam_last_year' ? 'Last Year Final Exam' : 'Last Year End Module Exam') : id.toUpperCase(), ...(hidden ? { hidden: true } : {}) });
+        fs.mkdirSync(path.join(tmp, 'data/CPM', et, sj), { recursive: true });
+        fs.writeFileSync(path.join(tmp, 'data/CPM', et, sj, id + '.json'), J({ questions: [1, 2].map((i) => ({ id: i, question: 'Q' + i + '?', options: ['A', 'B', 'C', 'D'], answer: 0, explanation: 'x' })) }));
       };
       addT('end_module', 'em1'); addT('tbl_exam', 'tbl1'); addT('lecture_questions', 'lec1'); addT('final_exam_last_year', 'fly1'); addT('end_module_last_year', 'emly1', true);
       fs.writeFileSync(path.join(tmp, 'config/modules.json'), J(cT, null, 2));
@@ -262,11 +346,11 @@ try {
       const S5 = await modPage({});
       check('exam types: the module page lists Final, End Module, TBL, Lecture Questions in that order (and no Last Year section)', titles(S5) === 'Final Exam|End Module Exam|TBL Exam|Lecture Questions', titles(S5));
       const fin = S5.w.document.querySelector('.module-page .exam-type-section'), btns = [...fin.querySelectorAll('.wide-exam-btn')];
-      check('last year: a button under Start Full Final Exam, same design (same classes), only in the section it belongs to', btns.length === 2 && /Start Full Final Exam/.test(btns[0].textContent) && /Start Last Year Final Exam/.test(btns[1].textContent) && btns[1].className === btns[0].className + ' wide-exam-btn--variant' && btns[1].previousElementSibling === btns[0] && /final_exam_last_year/.test(btns[1].dataset.params));
+      check('last year: a button under Start Full Final Exam, same design (same classes), only in the section it belongs to', btns.length === 2 && /Start Full Final Exam/.test(btns[0].textContent) && /Start Last Year Final Exam/.test(btns[1].textContent) && btns[1].className === btns[0].className + ' wide-exam-btn--variant' && btns[1].previousElementSibling === btns[0] && /final_exam_last_year/.test(btns[1].dataset.params) && /"subject":"exam"/.test(btns[1].dataset.params) && /Q/.test(btns[1].textContent) && /2 Q/.test(btns[1].textContent));
       check('last year: End Module has none for students while its Last Year topic is hidden (waiting for approval)', S5.w.document.querySelectorAll('.module-page .exam-type-section')[1].querySelectorAll('.wide-exam-btn').length === 1 && !/Last Year End Module/.test(S5.w.document.querySelector('.module-page').textContent));
       await S5.w.eval("document.querySelector('.wide-exam-btn--variant').click()"); await sleep(1200);
       const pg = S5.w.document.getElementById('app').textContent;
-      check('last year: the button opens the full-exam start page for that exam type and it has its questions (2 topics picker row)', /Last Year Final Exam/.test(pg) && /FLY1/.test(pg), pg.slice(0, 160));
+      check('last year: the button opens that one exam directly (title, module, breadcrumb, a Start button), with no subject or topic shown', /Last Year Final Exam/.test(pg) && !/Anatomy|Topic exam/.test(pg) && !!S5.w.document.querySelector('.subsubject-page [data-act=start], .subsubject-page .launch .btn--primary, .subsubject-page button.btn--primary'), pg.slice(0, 200));
       S5.close();
       const S6 = await modPage({ dqb_is_admin: '1' });
       const endBtns = [...S6.w.document.querySelectorAll('.module-page .exam-type-section')[1].querySelectorAll('.wide-exam-btn')].map((b) => b.textContent.replace(/\s+/g, ' ').trim());

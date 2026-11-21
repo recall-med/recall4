@@ -199,3 +199,10 @@ textarea.rc-in { resize: vertical; min-height: 5.25rem; }
 .rc-chg__row b { display: block; font-size: .9rem; overflow-wrap: anywhere; }
 .rc-chg__row small { display: block; margin-top: .15rem; color: var(--text-3); font-size: .8rem; line-height: 1.4; overflow-wrap: anywhere; }
 .rc-q--del .rc-qtext { text-decoration: line-through; opacity: .6; }
+
+/* Redline Data link row inside an exam type section */
+.rc-redline { cursor: default; flex-wrap: wrap; margin: 0 0 .75rem; padding: .7rem .9rem; background: var(--surface-solid); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.rc-redline .rc-prow__text { flex: 1 1 14rem; min-width: 0; }
+.rc-redline .rc-prow__text span { display: block; margin-top: .15rem; font-size: .8rem; line-height: 1.45; color: var(--text-3); overflow-wrap: anywhere; }
+.rc-redline .rc-prow__text a { color: var(--primary); }
+.rc-redline__acts { display: flex; flex: none; gap: .5rem; margin-left: auto; }

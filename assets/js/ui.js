@@ -321,6 +321,7 @@ const UI = {
     const totalFor = id => (countMap
       ? Object.entries(countMap).filter(([k]) => k.startsWith(`${mod.id}|${id}|`)).reduce((acc, [, n]) => acc + n, 0)
       : null);
+    const lastYearCount = id => (countMap ? (countMap[`${mod.id}|${id}|exam|exam`] || 0) : null);
 
     const examTypesHTML = config.examTypes.filter(et => !et.variantOf).map(et => {
       const subjectsHTML = config.subjects.filter(sub => {
@@ -354,11 +355,11 @@ const UI = {
 
       // Last-year buttons: only for a variant that has at least one visible question
       const variantBtns = variantsOf(et.id).map(v => {
-        const n = totalFor(v.id);
+        const n = lastYearCount(v.id);
         return n > 0
           ? `<button class="btn btn--primary wide-exam-btn wide-exam-btn--variant"
-              data-nav="wide-exam-start"
-              data-params='${JSON.stringify({ moduleId: mod.id, examType: v.id, scope: 'examtype' })}'>
+              data-nav="subsubject"
+              data-params='${JSON.stringify({ moduleId: mod.id, examType: v.id, subject: 'exam', subSubject: 'exam' })}'>
               Start ${v.label} <span class="badge badge--count">${n} Q</span>${arrow}
             </button>`
           : '';
@@ -579,7 +580,7 @@ topicResume(saved, where = 'main') {
     const examCard = `<section class="exam-card">
         <div class="exam-card__top">
           <div class="exam-card__body">
-            <p class="launch__eyebrow">Topic exam</p>
+            <p class="launch__eyebrow">${et.variantOf ? 'Exam' : 'Topic exam'}</p>
             <p class="launch__count"><span class="launch__num">${questionCount}</span><span class="launch__unit">${questionCount === 1 ? 'question' : 'questions'}</span></p>
           </div>
           ${ss.professor ? `<div class="exam-card__prof">${this.professorBadge(ss.professor)}</div>` : ''}
@@ -587,10 +588,16 @@ topicResume(saved, where = 'main') {
         <div class="exam-card__actions">${actions}</div>
       </section>`;
 
+    // A Last year exam is one exam, not a subject with topics: the module is its parent page
+    const single = !!et.variantOf;
     return `
     <div class="page subsubject-page has-rail">
-      ${this.backBtn('subject', { moduleId: mod.id, examType, subject: subjectId })}
-      ${this.breadcrumb([
+      ${single ? this.backBtn('module', { moduleId: mod.id }) : this.backBtn('subject', { moduleId: mod.id, examType, subject: subjectId })}
+      ${this.breadcrumb(single ? [
+        { label: 'Dashboard', nav: 'dashboard' },
+        { label: mod.title, nav: 'module', params: { moduleId: mod.id } },
+        { label: et.label },
+      ] : [
         { label: 'Dashboard', nav: 'dashboard' },
         { label: mod.title, nav: 'module', params: { moduleId: mod.id } },
         { label: et.label, nav: 'module', params: { moduleId: mod.id } },
@@ -600,8 +607,8 @@ topicResume(saved, where = 'main') {
       <header class="page__header">
         <span class="page__icon">${this.subjectIcon(subjectId)}</span>
         <div>
-          <h1 class="page__title">${ss.label}</h1>
-          <p class="page__subtitle">${mod.title} · ${sub.label} · ${et.label}</p>
+          <h1 class="page__title">${single ? et.label : ss.label}</h1>
+          <p class="page__subtitle">${single ? mod.title : `${mod.title} · ${sub.label} · ${et.label}`}</p>
           ${ss.hidden ? `<div class="page__badges"><span class="badge badge--hidden" title="Only admins see this">Hidden</span></div>` : ''}
         </div>
       </header>
@@ -1023,18 +1030,29 @@ topicResume(saved, where = 'main') {
       const sub     = config.subjects.find(s => s.id === rc.subject);
       const subSubs = (mod?.subSubjects?.[rc.examType]?.[rc.subject]) || [];
       const ss      = subSubs.find(s => s.id === rc.subSubject) || { label: rc.subSubject };
-      titleLabel    = ss.label;
-      subtitleLabel = `${sub?.label} · ${et?.label}`;
       backNav       = 'subsubject';
       backParams    = { moduleId: rc.module, examType: rc.examType, subject: rc.subject, subSubject: rc.subSubject };
-      crumbs        = [
-        { label: 'Dashboard', nav: 'dashboard' },
-        { label: mod?.title, nav: 'module', params: { moduleId: rc.module } },
-        { label: et?.label, nav: 'module', params: { moduleId: rc.module } },
-        { label: sub?.label, nav: 'subject', params: { moduleId: rc.module, examType: rc.examType, subject: rc.subject } },
-        { label: ss.label, nav: 'subsubject', params: backParams },
-        { label: opts.stored ? 'Last attempt' : 'Results' },
-      ];
+      if (et?.variantOf) {   // a Last year exam is one exam: no subject or topic in the titles
+        titleLabel    = et.label;
+        subtitleLabel = mod?.title;
+        crumbs        = [
+          { label: 'Dashboard', nav: 'dashboard' },
+          { label: mod?.title, nav: 'module', params: { moduleId: rc.module } },
+          { label: et.label, nav: 'subsubject', params: backParams },
+          { label: opts.stored ? 'Last attempt' : 'Results' },
+        ];
+      } else {
+        titleLabel    = ss.label;
+        subtitleLabel = `${sub?.label} · ${et?.label}`;
+        crumbs        = [
+          { label: 'Dashboard', nav: 'dashboard' },
+          { label: mod?.title, nav: 'module', params: { moduleId: rc.module } },
+          { label: et?.label, nav: 'module', params: { moduleId: rc.module } },
+          { label: sub?.label, nav: 'subject', params: { moduleId: rc.module, examType: rc.examType, subject: rc.subject } },
+          { label: ss.label, nav: 'subsubject', params: backParams },
+          { label: opts.stored ? 'Last attempt' : 'Results' },
+        ];
+      }
     }
 
     const L = i => this.examLetter(i);

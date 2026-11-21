@@ -22,8 +22,20 @@ export function moduleOf(cfg, id) {
   return m;
 }
 export function listOf(cfg, m, exam, subject) {
+  const et = (cfg.examTypes || []).find((e) => e.id === exam);
+  if (!et) throw new HttpError(404, 'not_found', 'Unknown exam type');
+  if (et.variantOf) {   // a Last year exam type is ONE exam per module: its only topic is `exam` under the pseudo-subject `exam`
+    if (subject !== 'exam') {   // topics left over from the old structure can still be removed or renamed, never added
+      const old = m.subSubjects && m.subSubjects[exam] && m.subSubjects[exam][subject];
+      if (!Array.isArray(old)) throw bad('A Last year exam has no subjects or topics');
+      return old;
+    }
+    m.subSubjects = m.subSubjects || {}; m.subSubjects[exam] = m.subSubjects[exam] || {};
+    if (!Array.isArray(m.subSubjects[exam].exam)) m.subSubjects[exam].exam = [];
+    return m.subSubjects[exam].exam;
+  }
   const list = m.subSubjects && m.subSubjects[exam] && m.subSubjects[exam][subject];
-  if (!(cfg.examTypes || []).some((e) => e.id === exam) || !(cfg.subjects || []).some((s) => s.id === subject) || !Array.isArray(list)) throw new HttpError(404, 'not_found', 'Unknown exam type or subject');
+  if (subject === 'exam' || !(cfg.subjects || []).some((s) => s.id === subject) || !Array.isArray(list)) throw new HttpError(404, 'not_found', 'Unknown exam type or subject');
   return list;
 }
 export function slug(label) {
@@ -44,6 +56,16 @@ export function applyConfigOp(cfg, b) {
     if (b.hidden !== undefined) { if (flag(b.hidden, 'hidden')) m.hidden = true; else delete m.hidden; bits.push(b.hidden ? 'hide' : 'show'); }
     return { msg: 'Admin: ' + bits.join(', ') + ' module ' + m.id };
   }
+  if (b.action === 'set_redline') {   // the optional "Redline Data" link of one exam type in this module; an empty url removes it
+    const et = (cfg.examTypes || []).find((e) => e.id === b.exam);
+    if (!et || et.variantOf) throw bad('This exam type has no Redline Data link');
+    const url = String(b.url == null ? '' : b.url).trim();
+    if (url && !/^https:\/\/[^\s<>"'`\\]{3,480}$/i.test(url)) throw bad('The link must start with https:// and contain no spaces or quotes');
+    m.redlineLinks = m.redlineLinks && typeof m.redlineLinks === 'object' ? m.redlineLinks : {};
+    if (url) m.redlineLinks[b.exam] = url; else delete m.redlineLinks[b.exam];
+    if (!Object.keys(m.redlineLinks).length) delete m.redlineLinks;
+    return { msg: `Admin: ${url ? 'set' : 'remove'} Redline Data link (${m.id}/${b.exam})` };
+  }
   const list = listOf(cfg, m, b.exam, b.subject);
   if (b.action === 'set_topic') {
     if (!SAFE.test(String(b.topicId))) throw bad('topicId is invalid');
@@ -60,7 +82,12 @@ export function applyConfigOp(cfg, b) {
     const dir = String(m.dataPath || m.id);
     if (!SAFE.test(dir)) throw new HttpError(422, 'bad_config', 'This module has an unusable dataPath');
     let id, n = 1;
-    if (b.topicId !== undefined) {   // the staged-edits bundle (commit.js) names the topic itself, so its later changes can point at it; a clash means someone else added it first
+    const single = !!(cfg.examTypes || []).find((e) => e.id === b.exam && e.variantOf);
+    if (single && b.subject !== 'exam') throw bad('A Last year exam has no subjects or topics');
+    if (single) {   // the one Last year exam of this module
+      if (list.length) throw new HttpError(409, 'conflict', 'This module already has that exam.');
+      id = 'exam';
+    } else if (b.topicId !== undefined) {   // the staged-edits bundle (commit.js) names the topic itself, so its later changes can point at it; a clash means someone else added it first
       if (!SAFE.test(String(b.topicId))) throw bad('topicId is invalid');
       if (list.some((x) => x.id === b.topicId)) throw new HttpError(409, 'conflict', 'A topic with this id already exists in ' + m.id + '/' + b.exam + '/' + b.subject + '. Discard that new topic and add it again.');
       id = b.topicId;
@@ -74,6 +101,15 @@ export function applyConfigOp(cfg, b) {
       msg: `Admin: add topic ${id} (${m.id}/${b.exam}/${b.subject}), hidden`, topicId: id,
       file: { path: `data/${dir}/${b.exam}/${b.subject}/${id}.json`, text: JSON.stringify({ meta: { module: m.id, examType: b.exam, subject: b.subject, subSubject: id, totalQuestions: 0 }, questions: [], nextId: 1 }, null, 2) + '\n' },
     };
+  }
+  if (b.action === 'remove_topic') {   // removes the topic from the config; commit.js deletes its data file in the same commit
+    if (!SAFE.test(String(b.topicId))) throw bad('topicId is invalid');
+    const i = list.findIndex((x) => x.id === b.topicId);
+    const dir = String(m.dataPath || m.id);
+    if (!SAFE.test(dir)) throw new HttpError(422, 'bad_config', 'This module has an unusable dataPath');
+    if (i < 0) return { msg: `Admin: remove topic ${b.topicId} (${m.id}/${b.exam}/${b.subject}), already gone`, gone: true };
+    const [t] = list.splice(i, 1);
+    return { msg: `Admin: remove topic ${t.id} (${m.id}/${b.exam}/${b.subject})`, removeFile: `data/${dir}/${b.exam}/${b.subject}/${t.id}.json` };
   }
   throw bad('unknown action');
 }

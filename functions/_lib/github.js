@@ -63,10 +63,21 @@ export async function readAt(g, path, commit, orNull) {
   const j = await r.json();
   return { text: b64d(j.content || ''), sha: j.sha };
 }
-// files: [{ path, text }]. Creates ONE commit with all of them on top of head and moves main to it.
+// files: [{ path, text }] to write or [{ path, del: true }] to delete. Creates ONE commit with all of them on top of head and moves main to it.
 export async function commitFiles(g, head, files, message) {
-  const tree = await ghJson(g, 'POST', '/git/trees', { base_tree: head.tree, tree: files.map((f) => ({ path: f.path, mode: '100644', type: 'blob', content: f.text })) }, 'the new files');
+  const tree = await ghJson(g, 'POST', '/git/trees', { base_tree: head.tree, tree: files.map((f) => (f.del ? { path: f.path, mode: '100644', type: 'blob', sha: null } : { path: f.path, mode: '100644', type: 'blob', content: f.text })) }, 'the new files');
   const commit = await ghJson(g, 'POST', '/git/commits', { message, tree: tree.sha, parents: [head.commit] }, 'the commit');
   await ghJson(g, 'PATCH', '/git/refs/heads/main', { sha: commit.sha, force: false }, 'the branch update');
   return commit.sha;
+}
+
+// Every data/*.json path that exists on main right now (one call), or null when GitHub cannot say. The admin dashboard uses it to
+// notice topics whose file was deleted on GitHub.
+export async function listDataFiles(g) {
+  try {
+    const head = await getHead(g);
+    const t = await ghJson(g, 'GET', '/git/trees/' + head.tree + '?recursive=1', undefined, 'the file list');
+    if (!t || !Array.isArray(t.tree) || t.truncated) return null;
+    return t.tree.filter((e) => e.type === 'blob' && /^data\/.+\.json$/.test(e.path)).map((e) => e.path);
+  } catch (e) { return null; }
 }

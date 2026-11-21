@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "module": "ENDO_REPRO",
+    "examType": "lecture_questions",
+    "subject": "physiology",
+    "subSubject": "first_formative_assessment",
+    "totalQuestions": 10
+  },
+  "questions": [
+    {
+      "question": "A patient develops increased circulating thyroxine levels. Subsequently, TSH secretion decreases because of hormonal feedback. Which type of feedback explains this finding?",
+      "options": [
+        "Direct negative feedback",
+        "Indirect positive feedback",
+        "Auto-positive feedback",
+        "Short-loop negative feedback"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Direct negative feedback",
+      "id": 1
+    },
+    {
+      "question": "A patient experiences sleep disturbances after disruption of the normal pineal gland function. Which hormone is primarily responsible for regulating the circadian rhythm?",
+      "options": [
+        "Prolactin",
+        "Melatonin",
+        "Oxytocin",
+        "Somatostatin"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Melatonin",
+      "id": 2
+    },
+    {
+      "question": "During childbirth, stretching of the cervix stimulates hypothalamic nuclei and increases uterine contractions. Which hormone mediates this positive feedback mechanism?",
+      "options": [
+        "Prolactin",
+        "Oxytocin",
+        "Vasopressin",
+        "Somatotropin"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Oxytocin",
+      "id": 3
+    },
+    {
+      "question": "Which hormone inhibits growth hormone secretion?",
+      "options": [
+        "Somatotropin-releasing factor",
+        "Somatostatin",
+        "CRF",
+        "TRF"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Somatostatin",
+      "id": 4
+    },
+    {
+      "question": "Which of the following stimulates GH secretion?",
+      "options": [
+        "Hyperglycemia",
+        "Hypoglycemia",
+        "Somatostatin",
+        "Increased GH concentration"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Hypoglycemia",
+      "id": 5
+    },
+    {
+      "question": "Prolactin inhibits ovulation by which of the following?",
+      "options": [
+        "Stimulating LH action",
+        "Blocking gonadotropic hormone effects on ovaries",
+        "Increasing estrogen secretion",
+        "Stimulating follicular development"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Blocking gonadotropic hormone effects on ovaries",
+      "id": 6
+    },
+    {
+      "question": "Thyroid hormone receptor alpha is responsible mainly for which of the following?",
+      "options": [
+        "General metabolic functions",
+        "TSH release only",
+        "Brain maturation only",
+        "ADH secretion"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. General metabolic functions",
+      "id": 7
+    },
+    {
+      "question": "A 60-year-old patient experiences severe hemorrhage, resulting in decreased blood circulating volume. Which hormonal response helps restore extracellular fluid volume?",
+      "options": [
+        "Decreased ADH secretion",
+        "Increased ADH secretion",
+        "Decreased oxytocin secretion",
+        "Increased prolactin secretion"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Increased ADH secretion",
+      "id": 8
+    },
+    {
+      "question": "A patient develops increased ADH secretion, which subsequently stimulates ACTH release from the anterior pituitary. Which receptor mediates this pituitary action?",
+      "options": [
+        "V1A receptor",
+        "V1B receptor",
+        "V2 receptor",
+        "V3 receptor"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. V1B receptor",
+      "id": 9
+    },
+    {
+      "question": "A patient develops increased thyroid hormone levels with increased peripheral vasodilation. Which blood pressure is most likely to change?",
+      "options": [
+        "Increased systolic and decreased diastolic pressure",
+        "Decreased systolic and increased diastolic pressure",
+        "Increased systolic and increased diastolic pressure",
+        "Decreased systolic and decreased diastolic pressure"
+      ],
+      "answer": 0,
+      "explanation": "Correct answer: A. Increased systolic and decreased diastolic pressure",
+      "id": 10
+    }
+  ]
+}

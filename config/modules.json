@@ -143,13 +143,7 @@
           "histology": []
         },
         "final_exam_last_year": {
-          "anatomy": [
-            {
-              "id": "xgdf",
-              "label": "xgdf",
-              "hidden": true
-            }
-          ],
+          "anatomy": [],
           "physiology": [],
           "biochemistry": [],
           "histology": []
@@ -424,13 +418,45 @@
           "anatomy": [],
           "physiology": [],
           "biochemistry": [],
-          "histology": []
+          "histology": [
+            {
+              "id": "pituitary_gland",
+              "label": "Pituitary Gland",
+              "professor": "Dr. Maha Zayed",
+              "hidden": true
+            }
+          ]
         },
         "lecture_questions": {
           "anatomy": [],
-          "physiology": [],
+          "physiology": [
+            {
+              "id": "first_formative_assessment",
+              "label": "1st Formative Assessment",
+              "hidden": true
+            }
+          ],
           "biochemistry": [],
-          "histology": []
+          "histology": [
+            {
+              "id": "testis_formative",
+              "label": "Testis (Formative)",
+              "professor": "Prof. Hala Soliman",
+              "hidden": true
+            },
+            {
+              "id": "pituitary_gland",
+              "label": "Pituitary Gland",
+              "professor": "Dr. Maha Zayed",
+              "hidden": true
+            },
+            {
+              "id": "thyroid_parathyroid",
+              "label": "Thyroid & Parathyroid Glands",
+              "professor": "Dr. Maha Zayed",
+              "hidden": true
+            }
+          ]
         },
         "final_exam_last_year": {
           "anatomy": [],
@@ -445,7 +471,10 @@
           "histology": []
         }
       },
-      "ongoing": true
+      "ongoing": true,
+      "redlineLinks": {
+        "tbl_exam": "https://harvest-programme.web.app/guide.html?id=UD9lFqXgjqXF89Pw6qYO"
+      }
     },
     {
       "id": "URINARY",

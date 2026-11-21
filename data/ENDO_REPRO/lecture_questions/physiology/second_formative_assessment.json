@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "module": "ENDO_REPRO",
+    "examType": "lecture_questions",
+    "subject": "physiology",
+    "subSubject": "second_formative_assessment",
+    "totalQuestions": 8
+  },
+  "questions": [
+    {
+      "question": "In which nephron segment does PTH promote urinary phosphate excretion?",
+      "options": [
+        "Collecting ducts",
+        "Proximal tubules",
+        "Loop of Henle",
+        "Distal convoluted tubules"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Proximal tubules",
+      "id": 1
+    },
+    {
+      "question": "What is the normal physiological range of plasma calcium maintained by PTH?",
+      "options": [
+        "6 –8 mg%",
+        "9 – 11 mg%",
+        "13.5 – 15 mg%",
+        "2 – 3.5 mg%"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. 9 – 11 mg%",
+      "id": 2
+    },
+    {
+      "question": "Which hormone directly blocks the bone-resorbing action of parathormone (PTH)?",
+      "options": [
+        "Aldosterone",
+        "Calcitonin",
+        "Adrenaline",
+        "Thyroxine"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Calcitonin",
+      "id": 3
+    },
+    {
+      "question": "A patient's parathyroid gland remains fully functional despite surgical removal of the hypothalamus, as PTH secretion is independent of the CNS. Which factor normally regulates PTH secretion?",
+      "options": [
+        "Plasma sodium concentration through positive feedback",
+        "Plasma calcium concentration via metabolic negative feedback",
+        "Hypothalamic releasing hormones via neural pathways",
+        "ANS innervation supplying direct stimulatory input"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Plasma calcium concentration via metabolic negative feedback",
+      "id": 4
+    },
+    {
+      "question": "A patient with severe hypocalcemia is found to have reduced calcium reabsorption in the distal renal tubules. What is the normal renal action of PTH?",
+      "options": [
+        "Increase phosphate reabsorption in proximal tubules",
+        "Decrease activation of vitamin D hydroxylase enzyme",
+        "Increase calcium reabsorption in distal tubules and collecting ducts",
+        "Decrease urinary excretion of phosphate in proximal tubules"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Increase calcium reabsorption in distal tubules and collecting ducts",
+      "id": 5
+    },
+    {
+      "question": "Cortisol causes which of the following effects on electrolytes?",
+      "options": [
+        "Increased Na⁺ excretion",
+        "Increased K⁺ retention",
+        "Na⁺ and water retention",
+        "Strong K⁺ excretion under normal conditions"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Na⁺ and water retention",
+      "id": 6
+    },
+    {
+      "question": "A 58-year-old woman with chronic heart failure shows elevated atrial pressure, leading to increased release of atrial natriuretic factor (ANF). Which effect of ANF helps regulate aldosterone secretion in this condition?",
+      "options": [
+        "Stimulating renin secretion to raise aldosterone levels",
+        "Enhancing zona glomerulosa responsiveness to angiotensin II",
+        "Inhibiting aldosterone and renin secretion through negative feedback",
+        "Increasing aldosterone secretion during high blood volume"
+      ],
+      "answer": 2,
+      "explanation": "Correct answer: C. Inhibiting aldosterone and renin secretion through negative feedback",
+      "id": 7
+    },
+    {
+      "question": "A man presents with increased blood volume and higher arterial pressure. Physical examination shows reduced salivary sodium content and increased intestinal sodium absorption. Which general action of aldosterone explains these findings?",
+      "options": [
+        "Increasing sodium loss in sweat and saliva",
+        "Increasing sodium absorption in sweat glands, salivary glands, and GIT",
+        "Decreasing water absorption from the gastrointestinal tract",
+        "Reducing sodium reabsorption in renal collecting ducts"
+      ],
+      "answer": 1,
+      "explanation": "Correct answer: B. Increasing sodium absorption in sweat glands, salivary glands, and GIT",
+      "id": 8
+    }
+  ]
+}

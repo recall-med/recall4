@@ -418,13 +418,39 @@
           "anatomy": [],
           "physiology": [],
           "biochemistry": [],
-          "histology": []
+          "histology": [
+            {
+              "id": "pituitary_gland",
+              "label": "Pituitary Gland",
+              "professor": "Dr. Maha Zayed",
+              "hidden": true
+            }
+          ]
         },
         "lecture_questions": {
           "anatomy": [],
           "physiology": [],
           "biochemistry": [],
-          "histology": []
+          "histology": [
+            {
+              "id": "testis_formative",
+              "label": "Testis (Formative)",
+              "professor": "Prof. Hala Soliman",
+              "hidden": true
+            },
+            {
+              "id": "pituitary_gland",
+              "label": "Pituitary Gland",
+              "professor": "Dr. Maha Zayed",
+              "hidden": true
+            },
+            {
+              "id": "thyroid_parathyroid",
+              "label": "Thyroid & Parathyroid Glands",
+              "professor": "Dr. Maha Zayed",
+              "hidden": true
+            }
+          ]
         },
         "final_exam_last_year": {
           "anatomy": [],

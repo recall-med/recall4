@@ -429,7 +429,13 @@
         },
         "lecture_questions": {
           "anatomy": [],
-          "physiology": [],
+          "physiology": [
+            {
+              "id": "first_formative_assessment",
+              "label": "1st Formative Assessment",
+              "hidden": true
+            }
+          ],
           "biochemistry": [],
           "histology": [
             {

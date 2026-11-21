@@ -431,11 +431,13 @@
           "physiology": [
             {
               "id": "first_formative_assessment",
-              "label": "1st Formative Assessment"
+              "label": "1st Formative Assessment",
+              "professor": "Dr. Eman Abdelraouf"
             },
             {
               "id": "second_formative_assessment",
-              "label": "2nd Formative Assessment"
+              "label": "2nd Formative Assessment",
+              "professor": "Dr. Eman Abdelraouf"
             }
           ],
           "biochemistry": [],

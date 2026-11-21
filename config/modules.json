@@ -422,8 +422,7 @@
             {
               "id": "pituitary_gland",
               "label": "Pituitary Gland",
-              "professor": "Dr. Maha Zayed",
-              "hidden": true
+              "professor": "Dr. Maha Zayed"
             }
           ]
         },
@@ -432,8 +431,7 @@
           "physiology": [
             {
               "id": "first_formative_assessment",
-              "label": "1st Formative Assessment",
-              "hidden": true
+              "label": "1st Formative Assessment"
             }
           ],
           "biochemistry": [],
@@ -441,20 +439,17 @@
             {
               "id": "testis_formative",
               "label": "Testis (Formative)",
-              "professor": "Prof. Hala Soliman",
-              "hidden": true
+              "professor": "Prof. Hala Soliman"
             },
             {
               "id": "pituitary_gland",
               "label": "Pituitary Gland",
-              "professor": "Dr. Maha Zayed",
-              "hidden": true
+              "professor": "Dr. Maha Zayed"
             },
             {
               "id": "thyroid_parathyroid",
               "label": "Thyroid & Parathyroid Glands",
-              "professor": "Dr. Maha Zayed",
-              "hidden": true
+              "professor": "Dr. Maha Zayed"
             }
           ]
         },

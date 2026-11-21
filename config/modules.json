@@ -143,13 +143,7 @@
           "histology": []
         },
         "final_exam_last_year": {
-          "anatomy": [
-            {
-              "id": "xgdf",
-              "label": "xgdf",
-              "hidden": true
-            }
-          ],
+          "anatomy": [],
           "physiology": [],
           "biochemistry": [],
           "histology": []
